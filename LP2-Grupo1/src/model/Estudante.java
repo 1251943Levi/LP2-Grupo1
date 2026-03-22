@@ -7,9 +7,9 @@ public class Estudante extends Utilizador {
     private final int anoPrimeiraInscricao;
 
     // ---------- CONSTRUTOR ----------
-    public Estudante(){}
     public Estudante(int numeroMecanografico, String email, String password, String nome, String nif, String morada, String dataNascimento, int anoPrimeiraInscricao) {
         super(email, password, nome, nif, morada, dataNascimento);
+
         this.numeroMecanografico = numeroMecanografico;
         this.anoPrimeiraInscricao = anoPrimeiraInscricao;
     }
