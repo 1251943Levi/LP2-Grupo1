@@ -1,7 +1,8 @@
 package Controller;
 
+
 import View.MainView;
-import Model.RepositorioDados;
+import model.RepositorioDados;
 
 public class MainController {
 
