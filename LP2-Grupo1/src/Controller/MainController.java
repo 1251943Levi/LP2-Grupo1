@@ -4,12 +4,12 @@ package Controller;
 import view.MainView;
 import model.RepositorioDados;
 
-public class maincontroller {
+public class MainController {
 
     private MainView view;
     private RepositorioDados repositorio;
 
-    public maincontroller() {
+    public MainController() {
         this.view = new MainView();
         this.repositorio = new RepositorioDados();
     }
