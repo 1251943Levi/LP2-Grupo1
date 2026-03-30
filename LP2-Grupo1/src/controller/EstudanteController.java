@@ -1,6 +1,6 @@
 package controller;
 
-import view.EstudanteView; // Importamos a View que criaste anteriormente
+import view.EstudanteView;
 
 /**
  * O Controlador (Controller) faz a ponte entre a View (Ecrã/Menus) e o Model (Dados).
@@ -9,7 +9,6 @@ import view.EstudanteView; // Importamos a View que criaste anteriormente
 public class EstudanteController {
 
     private EstudanteView view;
-    // private EstudanteModel model; // <- No futuro, terão aqui o Model para aceder à Base de Dados
 
     /**
      * Construtor do Controller.
@@ -46,7 +45,7 @@ public class EstudanteController {
                     aExecutar = false; // Quebra o ciclo while e termina o menu
                     break;
                 case -1:
-                    // Lembras-te do -1 na View? Aqui o Controller trata esse erro.
+                    //  Aqui o Controller trata esse erro.
                     view.mostrarMensagem("Erro: Por favor, insira um número válido.");
                     break;
                 default:
@@ -59,6 +58,7 @@ public class EstudanteController {
 
     // --- MÉTODOS DE LÓGICA DO CONTROLLER ---
 
+    // exemplos nada defenido
     private void verDadosPessoais() {
         // Exemplo: O Controller iria pedir ao Model os dados do aluno e mandar a View mostrar.
         view.mostrarMensagem("A carregar os seus dados pessoais...");
@@ -68,7 +68,7 @@ public class EstudanteController {
         // O Controller usa a View para pedir um dado novo...
         String novoEmail = view.pedirInputString("Insira o seu novo email");
 
-        // ...e depois (no futuro) mandaria o Model guardar esse novo email.
+        //  (no futuro) mandaria o Model guardar esse novo email.
         view.mostrarMensagem("Email atualizado com sucesso para: " + novoEmail);
     }
 
