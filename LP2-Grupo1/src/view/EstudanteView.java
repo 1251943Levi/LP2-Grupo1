@@ -25,4 +25,15 @@ public class EstudanteView {
         }
     }
 
+    public String pedirInputString(String mensagem) {
+        System.out.print(mensagem + ": ");
+        return scanner.nextLine();
+    }
+
+    public void mostrarMensagem(String mensagem) {
+        System.out.println(">> " + mensagem);
+    }
 }
+
+
+
