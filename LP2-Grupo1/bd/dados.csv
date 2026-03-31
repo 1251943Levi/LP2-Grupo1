@@ -1,9 +1,10 @@
-Tipo;Coluna1;Coluna2;Coluna3;Coluna4;Coluna5;Coluna6;Coluna7;Coluna8;Coluna9
+TIPO;COLUNA1;COLUNA2;COLUNA3;COLUNA4;COLUNA5;COLUNA6;COLUNA7;COLUNA8;COLUNA9
+GESTOR;backoffice@issmf.ipp.pt;admin123;Admin Principal;123456789;Rua Central;01-01-1980
 DEPARTAMENTO;DEI;Departamento de Engenharia Informatica
 DEPARTAMENTO;DGE;Departamento de Gestao e Economia
-DOCENTE;ABC;abc@issmf.ipp.pt;pass123;Antonio Bernardo Costa;111222333;Rua A;01-01-1970
-DOCENTE;XYZ;xyz@issmf.ipp.pt;pass123;Xavier Ygor Zeca;444555666;Rua B;02-02-1975
-DOCENTE;MNO;mno@issmf.ipp.pt;pass123;Maria Nogueira Oliveira;777888999;Rua C;03-03-1980
+DOCENTE;ABC;abc@issmf.ipp.pt;prof123;Antonio Bernardo Costa;111222333;Rua A;01-01-1970
+DOCENTE;XYZ;xyz@issmf.ipp.pt;prof123;Xavier Ygor Zeca;444555666;Rua B;02-02-1975
+DOCENTE;MNO;mno@issmf.ipp.pt;prof123;Maria Nogueira Oliveira;777888999;Rua C;03-03-1980
 CURSO;LEI;Licenciatura em Engenharia Informatica;DEI
 CURSO;LGE;Licenciatura em Gestao de Empresas;DGE
 UC;P1;Programacao I;1;ABC;LEI

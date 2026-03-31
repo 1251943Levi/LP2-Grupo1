@@ -44,33 +44,6 @@ public class EstudanteController {
 
                     view.mostrarMensagem("Dados atualizados com sucesso!");
                     break;
-                //Futuro encremento
-               /* case 3:
-                    view.mostrarMensagem("\n--- CERTIFICADO DE HABILITAÇÕES ---");
-                    PercursoAcademico percurso = estudanteAtivo.getPercurso();
-
-                    if (percurso == null || percurso.getTotalAvaliacoes() == 0) {
-                        view.mostrarMensagem("Ainda não possui histórico de avaliações registadas.");
-                    } else {
-                        for (int i = 0; i < percurso.getTotalAvaliacoes(); i++) {
-                            Avaliacao aval = percurso.getHistoricoAvaliacoes()[i];
-                            double notaMaisAlta = -1.0;
-
-                            for (int j = 0; j < aval.getTotalAvaliacoesLancadas(); j++) {
-                                if (aval.getResultados()[j] > notaMaisAlta) {
-                                    notaMaisAlta = aval.getResultados()[j];
-                                }
-                            }
-
-                            if (notaMaisAlta != -1.0) {
-                                String estado = (notaMaisAlta >= 10.0) ? "APROVADO" : "REPROVADO";
-                                view.mostrarMensagem(aval.getUc().getSigla() + " | Melhor Nota: " + notaMaisAlta + " | " + estado);
-                            } else {
-                                view.mostrarMensagem(aval.getUc().getSigla() + " | Sem nota final registada");
-                            }
-                        }
-                    }
-                    break;*/
 
                 case 0:
                     view.mostrarMensagem("A sair do portal do estudante...");
