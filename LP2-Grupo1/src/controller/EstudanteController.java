@@ -1,78 +1,105 @@
 package controller;
 
+import model.Estudante;
+import model.RepositorioDados;
 import view.EstudanteView;
 
 /**
- * O Controlador (Controller) faz a ponte entre a View (Ecrã/Menus) e o Model (Dados).
- * É aqui que definimos a lógica: o que acontece quando o utilizador escolhe uma opção.
+ * Controller responsável por gerir as interações do perfil do Estudante.
+ * Faz a ponte entre o modelo (Dados) e a interface (View).
  */
 public class EstudanteController {
-
+    private RepositorioDados repositorio;
+    private Estudante estudanteAtivo;
     private EstudanteView view;
 
-    /**
-     * Construtor do Controller.
-     * Inicializa a View para poder comunicar com o utilizador.
-     */
-    public EstudanteController() {
+    // O Construtor recebe o Repositório e o Aluno que acabou de fazer Login
+    public EstudanteController(RepositorioDados repositorio, Estudante estudanteAtivo) {
+        this.repositorio = repositorio;
+        this.estudanteAtivo = estudanteAtivo;
         this.view = new EstudanteView();
     }
 
     /**
-     * Método principal que arranca o menu do Estudante.
-     * Mantém o programa a correr num ciclo (loop) até o utilizador escolher "Sair" (0).
+     * Inicia o ciclo de vida do menu do estudante.
+     * Mantém o utilizador no sistema até que a opção de saída (0) seja selecionada.
      */
     public void iniciar() {
         boolean aExecutar = true;
 
         while (aExecutar) {
-            // 1. Pede à View para mostrar o menu e devolver a opção escolhida
+            // Obtém a escolha do utilizador através da View
             int opcao = view.mostrarMenuPrincipal();
 
-            // 2. O Controller decide que método chamar com base na opção
             switch (opcao) {
                 case 1:
-                    verDadosPessoais();
+                    // Exibição de leitura: Acede diretamente aos atributos do objeto estudanteAtivo
+                    view.mostrarMensagem("\n--- DADOS PESSOAIS ---");
+                    view.mostrarMensagem("Nome: " + estudanteAtivo.getNome());
+                    view.mostrarMensagem("Email: " + estudanteAtivo.getEmail());
+                    view.mostrarMensagem("NIF: " + estudanteAtivo.getNif());
+                    view.mostrarMensagem("Morada: " + estudanteAtivo.getMorada());
+                    view.mostrarMensagem("Data de Nascimento: " + estudanteAtivo.getDataNascimento());
                     break;
+
                 case 2:
-                    atualizarDados();
+                    // Fluxo de atualização de dados (Escrita)
+                    view.mostrarMensagem("\n--- ATUALIZAR DADOS ---");
+                    String novaMorada = view.pedirInputString("Introduza a nova Morada");
+                    estudanteAtivo.setMorada(novaMorada);
+
+                    // Validação simples: só altera a password se o campo não estiver vazio
+                    String novaPass = view.pedirInputString("Introduza a nova Password (ou deixe em branco para manter a atual)");
+                    if (!novaPass.trim().isEmpty()) {
+                        estudanteAtivo.setPassword(novaPass);
+                    }
+
+                    view.mostrarMensagem("Dados atualizados com sucesso!");
                     break;
-                case 3:
-                    verPercursoAcademico();
+
+                //Retirar em estado de comentario quando se inserir os metodos
+                /*case 3:
+                    view.mostrarMensagem("\n--- CERTIFICADO DE HABILITAÇÕES ---");
+                    // Vamos buscar a "mochila" do aluno
+                    PercursoAcademico percurso = estudanteAtivo.getPercursoAcademico();
+
+                    if (percurso == null || percurso.getTotalAvaliacoes() == 0) {
+                        view.mostrarMensagem("Ainda não possui histórico de avaliações registadas.");
+                    } else {
+                        // Percorrer todas as disciplinas que ele já fez
+                        for (int i = 0; i < percurso.getTotalAvaliacoes(); i++) {
+                            Avaliacao aval = percurso.getHistoricoAvaliacoes()[i];
+                            double notaMaisAlta = -1.0;
+
+                            // Procurar a melhor nota entre a Normal, Recurso e Especial
+                            for (int j = 0; j < aval.getTotalAvaliacoesLancadas(); j++) {
+                                if (aval.getResultados()[j] > notaMaisAlta) {
+                                    notaMaisAlta = aval.getResultados()[j];
+                                }
+                            }
+
+                            // Se a nota for diferente de -1.0 (falta), imprimimos no ecrã
+                            if (notaMaisAlta != -1.0) {
+                                String estado = (notaMaisAlta >= 10.0) ? "APROVADO" : "REPROVADO";
+                                view.mostrarMensagem(aval.getUc().getSigla() + " | Melhor Nota: " + notaMaisAlta + " | " + estado);
+                            } else {
+                                view.mostrarMensagem(aval.getUc().getSigla() + " | Sem nota final registada");
+                            }
+                        }
+                    }
                     break;
+                */
+
                 case 0:
-                    view.mostrarMensagem("A sair do menu do estudante... Até logo!");
-                    aExecutar = false; // Quebra o ciclo while e termina o menu
+                    // Termina o loop while e volta ao menu de login (ou encerra)
+                    view.mostrarMensagem("A sair do portal do estudante...");
+                    aExecutar = false;
                     break;
-                case -1:
-                    //  Aqui o Controller trata esse erro.
-                    view.mostrarMensagem("Erro: Por favor, insira um número válido.");
-                    break;
+
                 default:
-                    // Para qualquer número que não esteja no menu (ex: 9)
-                    view.mostrarMensagem("Opção inválida. Escolha um número do menu.");
-                    break;
+                    // Tratamento de inputs fora do intervalo esperado
+                    view.mostrarMensagem("Opção inválida. Tente novamente.");
             }
         }
-    }
-
-    // --- MÉTODOS DE LÓGICA DO CONTROLLER ---
-
-    // exemplos nada defenido
-    private void verDadosPessoais() {
-        // Exemplo: O Controller iria pedir ao Model os dados do aluno e mandar a View mostrar.
-        view.mostrarMensagem("A carregar os seus dados pessoais...");
-    }
-
-    private void atualizarDados() {
-        // O Controller usa a View para pedir um dado novo...
-        String novoEmail = view.pedirInputString("Insira o seu novo email");
-
-        //  (no futuro) mandaria o Model guardar esse novo email.
-        view.mostrarMensagem("Email atualizado com sucesso para: " + novoEmail);
-    }
-
-    private void verPercursoAcademico() {
-        view.mostrarMensagem("A carregar o seu percurso académico...");
     }
 }
