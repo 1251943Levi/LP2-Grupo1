@@ -23,26 +23,36 @@ public class MainController {
 
             switch (opcao) {
                 case 1:
-                    String email = view.pedirInputString("Email");
-                    String pass = view.pedirInputString("Password");
 
+                    String email = view.pedirInputString("Email").trim();
+                    String pass = view.pedirInputString("Password").trim();
 
-                    if (email.equals("admin@issmf.pt") && pass.equals("admin123")) {
+                    if ((email.equals("admin@issmf.pt") || email.equals("backoffice@issmf.ipp.pt")) && pass.equals("admin123")) {
                         view.mostrarMensagem("Login de Gestor detetado! A reencaminhar...");
+
+                        model.Gestor admin = new model.Gestor("backoffice@issmf.ipp.pt", "admin123", "Admin Geral", "123456789", "Sede", "01-01-1980");
+
+                        GestorController gestorController = new GestorController(repositorio, admin);
+                        gestorController.iniciar();
                         break;
                     }
-
 
                     model.Utilizador userLogado = repositorio.autenticar(email, pass);
 
                     if (userLogado == null) {
-                        view.mostrarMensagem("Erro: Credenciais inválidas!");
+                        view.mostrarMensagem("Erro: Credenciais inválidas! (Lembre-se de usar a Opção 3 primeiro)");
 
                     } else if (userLogado instanceof model.Estudante) {
                         view.mostrarMensagem("Login de Estudante detetado! A reencaminhar...");
 
+                        EstudanteController estudanteController = new EstudanteController(repositorio, (model.Estudante) userLogado);
+                        estudanteController.iniciar();
+
                     } else if (userLogado instanceof model.Docente) {
                         view.mostrarMensagem("Login de Docente detetado! A reencaminhar...");
+
+                        DocenteController docenteController = new DocenteController(repositorio, (model.Docente) userLogado);
+                        docenteController.iniciar();
                     }
                     break;
                 case 2:
