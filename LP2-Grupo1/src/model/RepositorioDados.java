@@ -102,7 +102,7 @@ public class RepositorioDados {
             }
         }
 
-        return null; // Login falhou
+        return null;
     }
 
     // --- GETTERS ---

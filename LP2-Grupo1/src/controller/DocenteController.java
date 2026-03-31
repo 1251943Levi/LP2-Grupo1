@@ -27,7 +27,6 @@ public class DocenteController {
 
                 case 1:
                     view.mostrarMensagem("A listar UCs lecionadas...");
-                    // (Aqui depois podes melhorar para mostrar mesmo as UCs)
                     break;
 
                 case 2:
@@ -48,7 +47,6 @@ public class DocenteController {
                             view.pedirInput("Nota Especial (ou -1 se faltou)")
                     );
 
-                    // 🔍 Procurar aluno
                     Estudante aluno = null;
                     for (int i = 0; i < repo.getTotalEstudantes(); i++) {
                         if (repo.getEstudantes()[i].getNumeroMecanografico() == numAluno) {
@@ -57,7 +55,6 @@ public class DocenteController {
                         }
                     }
 
-                    // 🔍 Procurar UC
                     UnidadeCurricular uc = null;
                     for (int i = 0; i < repo.getTotalUcs(); i++) {
                         if (repo.getUcs()[i].getSigla().equalsIgnoreCase(siglaUc)) {
@@ -66,7 +63,6 @@ public class DocenteController {
                         }
                     }
 
-                    // ✅ Lançar notas
                     if (aluno != null && uc != null) {
 
                         Avaliacao aval = new Avaliacao(uc, 2026);

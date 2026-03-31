@@ -1,12 +1,13 @@
 package model;
 
+import model.UnidadeCurricular;
+
 public class Avaliacao {
 
     // ---------- ATRIBUTOS ----------
     private UnidadeCurricular uc;
     private int anoLetivo;
 
-    // Array para guardar até 3 notas da mesma UC
     private double[] resultados;
     private int totalAvaliacoesLancadas;
 
@@ -14,7 +15,7 @@ public class Avaliacao {
     public Avaliacao(UnidadeCurricular uc, int anoLetivo) {
         this.uc = uc;
         this.anoLetivo = anoLetivo;
-        this.resultados = new double[3]; // Limite rigoroso de 3 avaliações
+        this.resultados = new double[3];
         this.totalAvaliacoesLancadas = 0;
     }
 
@@ -30,7 +31,7 @@ public class Avaliacao {
             totalAvaliacoesLancadas++;
             return true;
         }
-        return false; // Bloqueia a 4ª tentativa!
+        return false;
     }
 
     /**
