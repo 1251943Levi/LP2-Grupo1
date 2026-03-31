@@ -3,30 +3,27 @@ package model;
 public class PercursoAcademico {
 
     // ---------- ATRIBUTOS ----------
-    // UCs que o aluno está a frequentar no ano atual
     private UnidadeCurricular[] ucsInscrito;
     private int totalUcsInscrito;
 
-    // Histórico de todas as avaliações (pautas) do aluno ao longo do curso
     private Avaliacao[] historicoAvaliacoes;
     private int totalAvaliacoes;
 
     // ---------- CONSTRUTOR ----------
     public PercursoAcademico() {
-        this.ucsInscrito = new UnidadeCurricular[15]; // Limite de inscrições ativas
+        this.ucsInscrito = new UnidadeCurricular[15];
         this.totalUcsInscrito = 0;
 
-        this.historicoAvaliacoes = new Avaliacao[100]; // Limite de histórico do curso
+        this.historicoAvaliacoes = new Avaliacao[100];
         this.totalAvaliacoes = 0;
     }
 
     // ---------- MÉTODOS DE LÓGICA ----------
 
     public boolean inscreverEmUc(UnidadeCurricular uc) {
-        // Regra de segurança: Verificar se o aluno já não está inscrito na mesma UC
         for (int i = 0; i < totalUcsInscrito; i++) {
             if (ucsInscrito[i].getSigla().equals(uc.getSigla())) {
-                return false; // Já está inscrito!
+                return false;
             }
         }
 
@@ -35,7 +32,7 @@ public class PercursoAcademico {
             totalUcsInscrito++;
             return true;
         }
-        return false; // Atingiu o limite máximo de inscrições
+        return false;
     }
 
     public boolean registarAvaliacao(Avaliacao avaliacao) {
