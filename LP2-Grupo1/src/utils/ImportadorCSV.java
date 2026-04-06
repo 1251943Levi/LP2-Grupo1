@@ -10,13 +10,23 @@ import java.util.List;
 
 
 /**
- * Classe responsável pela importação de dados a partir de ficheiros CSV individuais por entidade.
- * Cada entidade tem o seu próprio ficheiro, garantindo organização e integridade estrutural.
+ * Utilitário responsável pela leitura e processamento de ficheiros CSV.
+ * Esta classe converte dados brutos de texto em objetos (Estudantes, Docentes, ...),
+ * garantindo que as dependências entre entidades sejam respeitadas durante a importação.
  */
 public class ImportadorCSV {
 
+    /**
+     * Construtor privado para impedir a instanciação de uma classe utilitária.
+     */
     private ImportadorCSV(){}
 
+    /**
+     * Coordena a importação global de todas as entidades do sistema.
+     * A ordem de chamada dos métodos respeita a hierarquia de dados (ex: departamentos antes de cursos).
+     * @param pastaBase Caminho da pasta que contém os ficheiros CSV.
+     * @param repo Repositório de dados onde os objetos criados serão armazenados.
+     */
     public static void importarTodos(String pastaBase, RepositorioDados repo){
         String pasta = pastaBase.endsWith(File.separator) ? pastaBase : pastaBase + File.separator;
 
@@ -32,6 +42,12 @@ public class ImportadorCSV {
 
     // --- METODO AUXILIAR DE LEITURA ---
 
+    /**
+     * Método auxiliar que centraliza a lógica de leitura de ficheiros.
+     * Lê o ficheiro linha a linha, ignora o cabeçalho e divide cada linha em campos usando o separador ';'.
+     * @param caminho O caminho completo do ficheiro a ser lido.
+     * @return List de arrays de String, onde cada array representa os campos de uma linha.
+     */
     private static List<String[]> lerLinhasCSV(String caminho){
         List<String[]> linhasLidas = new ArrayList<>();
         try(BufferedReader leitura = new BufferedReader(new FileReader(caminho))){
@@ -39,6 +55,7 @@ public class ImportadorCSV {
             String linha;
             while ((linha = leitura.readLine()) != null){
                 if(!linha.trim().isEmpty()){
+                    // O limite -1 preserva campos vazios no final da linha
                     linhasLidas.add(linha.split(";", -1));
                 }
             }
@@ -51,6 +68,11 @@ public class ImportadorCSV {
 
     //  -------- METODOS DE IMPORTAÇÃO INDIVIDUAIS --------
 
+    /**
+     * Importa departamentos e adiciona-os ao repositório.
+     * @param caminho Caminho do ficheiro departamentos.csv.
+     * @param repo Destino dos dados.
+     */
    public static void importarDepartamentos(String caminho, RepositorioDados repo){
         for(String[] departamento : lerLinhasCSV(caminho)){
             if(departamento.length< 2) continue;
@@ -59,6 +81,12 @@ public class ImportadorCSV {
         System.out.println(">> Departamentos importados.");
    }
 
+    /**
+     * Importa docentes do ficheiro CSV para o repositório.
+     * Formato esperado: sigla;email;password;nome;nif;morada;dataNascimento
+     * @param caminho Caminho do ficheiro docentes.csv.
+     * @param repo Repositório de destino.
+     */
    public static void importarDocentes(String caminho, RepositorioDados repo){
         for(String[] docente : lerLinhasCSV(caminho)){
             if(docente.length < 7) continue;
@@ -70,6 +98,11 @@ public class ImportadorCSV {
         System.out.println(">> Docentes importados.");
    }
 
+    /**
+     * Importa cursos, associando-os ao departamento correspondente já existente no repositório.
+     * @param caminho Caminho do ficheiro cursos.csv.
+     * @param repo Repositório de destino.
+     */
     public static void importarCursos(String caminho, RepositorioDados repo) {
         for (String[] curso : lerLinhasCSV(caminho)) {
             if (curso.length < 3) continue;
@@ -88,6 +121,11 @@ public class ImportadorCSV {
         System.out.println(">> Cursos importados.");
     }
 
+    /**
+     * Importa Unidades Curriculares (UCs), vinculando o docente responsável e o curso associado[cite: 19].
+     * @param caminho Caminho do ficheiro ucs.csv.
+     * @param repo Repositório de destino.
+     */
     public static void importarUCs(String caminho, RepositorioDados repo) {
         for (String[] ucs : lerLinhasCSV(caminho)) {
             if (ucs.length < 5) continue;
@@ -114,6 +152,11 @@ public class ImportadorCSV {
         System.out.println(">> UCs importadas.");
     }
 
+    /**
+     * Importa estudantes e inscreve-os automaticamente nas UCs do seu respetivo curso e ano[cite: 20].
+     * @param caminho Caminho do ficheiro estudantes.csv.
+     * @param repo Repositório de destino.
+     */
     public static void importarEstudantes(String caminho, RepositorioDados repo) {
         for (String[] estudante : lerLinhasCSV(caminho)) {
             if (estudante.length < 8) continue;
@@ -148,6 +191,11 @@ public class ImportadorCSV {
         System.out.println(">> Estudantes importados.");
     }
 
+    /**
+     * Importa o histórico de avaliações e associa-o ao percurso académico do estudante[cite: 15, 16].
+     * @param caminho Caminho do ficheiro avaliacoes.csv.
+     * @param repo Repositório de destino.
+     */
     public static void importarAvaliacoes(String caminho, RepositorioDados repo) {
         for (String[] avaliacoes : lerLinhasCSV(caminho)) {
             if (avaliacoes.length < 4) continue;
@@ -179,6 +227,14 @@ public class ImportadorCSV {
 
     // --- MÉTODOS AUXILIARES DE PESQUISA
 
+    /**
+     * Procura um Departamento no repositório através da sua sigla.
+     * Este método é essencial para validar a existência de um departamento antes de
+     * associá-lo a um novo curso
+     * @param sigla A sigla identificadora do departamento (ex: "DEI").
+     * @param repo  O repositório central onde os dados estão carregados.
+     * @return O objeto Departamento correspondente, ou null se não for encontrado.
+     */
     private static Departamento procurarDepartamento(String sigla, RepositorioDados repo) {
         for (int i = 0; i < repo.getTotalDepartamentos(); i++) {
             Departamento departamento = repo.getDepartamentos()[i];
@@ -186,7 +242,14 @@ public class ImportadorCSV {
         }
         return null;
     }
-
+    /**
+     * Procura um Curso no repositório através da sua sigla.
+     * Utilizado durante a importação de Unidades Curriculares e Estudantes para garantir
+     * que estes são vinculados a cursos válidos.
+     * * @param sigla A sigla identificadora do curso (ex: "LEI").
+     * @param repo  O repositório central onde os dados estão carregados.
+     * @return O objeto curso correspondente, ou null se não for encontrado.
+     */
     private static Curso procurarCurso(String sigla, RepositorioDados repo) {
         for (int i = 0; i < repo.getTotalCursos(); i++) {
             Curso curso = repo.getCursos()[i];
@@ -195,6 +258,14 @@ public class ImportadorCSV {
         return null;
     }
 
+    /**
+     * Procura um Docente no repositório através da sua sigla.
+     * Garante que uma Unidade Curricular só é importada se tiver um docente
+     * responsável previamente registado no sistema.
+     * * @param sigla A sigla de 3 letras do docente (atribuída no registo)[cite: 21].
+     * @param repo  O repositório central onde os dados estão carregados.
+     * @return O objeto Docente correspondente, ou null se não for encontrado.
+     */
     private static Docente procurarDocente(String sigla, RepositorioDados repo) {
         for (int i = 0; i < repo.getTotalDocentes(); i++) {
             Docente docente = repo.getDocentes()[i];
@@ -203,6 +274,14 @@ public class ImportadorCSV {
         return null;
     }
 
+    /**
+     * Procura um Estudante no repositório através do seu número mecanográfico.
+     * Este método é utilizado principalmente na importação de avaliações para identificar
+     * o aluno a quem as notas pertencem.
+     * * @param numMec O número mecanográfico único do estudante.
+     * @param repo   O repositório central onde os dados estão carregados.
+     * @return O objeto Estudante correspondente, ou null se não for encontrado.
+     */
     private static Estudante procurarEstudante(int numMec, RepositorioDados repo) {
         for (int i = 0; i < repo.getTotalEstudantes(); i++) {
             Estudante estudante = repo.getEstudantes()[i];
@@ -211,6 +290,14 @@ public class ImportadorCSV {
         return null;
     }
 
+    /**
+     * Procura uma Unidade Curricular (UC) no repositório através da sua sigla.
+     * Fundamental para o registo de momentos de avaliação, permitindo associar
+     * as notas à disciplina correta.
+     * * @param sigla A sigla identificadora da UC (ex: "LP2").
+     * @param repo  O repositório central onde os dados estão carregados.
+     * @return O objeto UnidadeCurricular correspondente, ou nuill se não for encontrado.
+     */
     private static UnidadeCurricular procurarUC(String sigla, RepositorioDados repo) {
         for (int i = 0; i < repo.getTotalUcs(); i++) {
             UnidadeCurricular uc = repo.getUcs()[i];
