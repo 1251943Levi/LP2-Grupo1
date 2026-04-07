@@ -38,15 +38,18 @@ public class GestorController {
                     String dataNasc = view.pedirInput("Data Nasc. (DD/MM/AAAA)");
                     int anoInscricao = Integer.parseInt(view.pedirInput("Ano de Inscrição"));
 
-                    // GERAÇÃO AUTOMÁTICA!
                     String email = EmailGenerator.gerarEmailEstudante(numMec);
-                    String pass = PasswordGenerator.gerarPassword();
+                    String passLimpa = PasswordGenerator.gerarPasswordSegura();
 
-                    Estudante novo = new Estudante(numMec, email, pass, nome, nif, morada, dataNasc, anoInscricao);
+                    String passSegura = utils.SegurancaPasswords.gerarCredencialMista(passLimpa);
+
+                    Estudante novo = new Estudante(numMec, email, passSegura, nome, nif, morada, dataNasc, anoInscricao);
+
                     if (repo.adicionarEstudante(novo)) {
-                        view.mostrarMensagem("Sucesso! Email: " + email + " | Password: " + pass);
+                        view.mostrarMensagem("Sucesso! Email: " + email + " | Password Temporária: " + passLimpa);
                     }
                     break;
+
                 case 2:
                     view.mostrarMensagem("Avançar Ano Letivo - Em desenvolvimento para o próximo sprint.");
                     break;

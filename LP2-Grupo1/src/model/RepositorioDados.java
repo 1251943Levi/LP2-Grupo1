@@ -88,17 +88,21 @@ public class RepositorioDados {
 
     // --- Autenticação ---
     public Utilizador autenticar(String email, String password) {
-        // Procurar nos Estudantes
         for (int i = 0; i < totalEstudantes; i++) {
-            if (estudantes[i].getEmail().equalsIgnoreCase(email) && estudantes[i].getPassword().equals(password)) {
-                return estudantes[i];
+            if (estudantes[i].getEmail().equalsIgnoreCase(email)) {
+                // Nova verificação segura
+                if (utils.SegurancaPasswords.verificarPassword(password, estudantes[i].getPassword())) {
+                    return estudantes[i];
+                }
             }
         }
 
-        // Procurar nos Docentes
         for (int i = 0; i < totalDocentes; i++) {
-            if (docentes[i].getEmail().equalsIgnoreCase(email) && docentes[i].getPassword().equals(password)) {
-                return docentes[i];
+            if (docentes[i].getEmail().equalsIgnoreCase(email)) {
+                // Nova verificação segura
+                if (utils.SegurancaPasswords.verificarPassword(password, docentes[i].getPassword())) {
+                    return docentes[i];
+                }
             }
         }
 

@@ -37,11 +37,10 @@ public class EstudanteController {
                     String novaMorada = view.pedirInputString("Introduza a nova Morada");
                     estudanteAtivo.setMorada(novaMorada);
 
-                    String novaPass = view.pedirInputString("Introduza a nova Password (ou deixe em branco para manter a atual)");
-                    if (!novaPass.trim().isEmpty()) {
-                        estudanteAtivo.setPassword(novaPass);
+                    String novaPass = view.pedirPassword("Introduza a nova Password (ou deixe em branco para manter a atual)");                    if (!novaPass.trim().isEmpty()) {
+                        String passSegura = utils.SegurancaPasswords.gerarCredencialMista(novaPass);
+                        estudanteAtivo.setPassword(passSegura);
                     }
-
                     view.mostrarMensagem("Dados atualizados com sucesso!");
                     break;
 
