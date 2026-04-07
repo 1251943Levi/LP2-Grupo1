@@ -1,5 +1,5 @@
-numMec;email;password;nome;nif;morada;dataNascimento;anoInscricao;siglaCurso
-20260001;20260001@issmf.ipp.pt;3VMgzRBpL3R+zs07hN1z5g==:KDyDM+bcbQV/uAA19ElGGW7I3MOXQ3Vxn9xEJWmkdJ0=;Joao Silva;123123123;Rua Um;01-01-2005;2026;LEI
-20260002;20260002@issmf.ipp.pt;06yX7WE9r3wFfZHE1Emo6w==:mpJ8O8jXSti1lJPRddtZsleWzF6oKCZbU6Pvk0K8cog=;Ana Santos;234234234;Rua Dois;02-02-2005;2026;LEI
-20260003;20260003@issmf.ipp.pt;JwOkznnnIjfpQqV29okJmQ==:2fHiiZOBF+QBBbiwLMz6H0036Q5F5Yv6iLVlOE7e5vw=;Pedro Costa;345345345;Rua Tres;03-03-2004;2026;LGE
-20260004;20260004@issmf.ipp.pt;XS9vdbTIzSNL3MsxmK+BCA==:MYTp8eJt/iyESiu6l8t8502KRClhkh5+fIMHqsiQIF0=;Sofia Oliveira;456456456;Rua Quatro;04-04-2005;2026;LGE
+numMec;email;nome;nif;morada;dataNascimento;anoInscricao;siglaCurso
+20260001;20260001@issmf.ipp.pt;Joao Silva;123123123;Rua Um;01-01-2005;2026;LEI
+20260002;20260002@issmf.ipp.pt;Ana Santos;234234234;Rua Dois;02-02-2005;2026;LEI
+20260003;20260003@issmf.ipp.pt;Pedro Costa;345345345;Rua Tres;03-03-2004;2026;LGE
+20260004;20260004@issmf.ipp.pt;Sofia Oliveira;456456456;Rua Quatro;04-04-2005;2026;LGE

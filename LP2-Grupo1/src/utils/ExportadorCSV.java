@@ -1,7 +1,9 @@
 package utils;
 
 import model.*;
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -9,197 +11,270 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Utilitário responsável pela exportação e persistência de dados do sistema em formato CSV.
- * Esta classe converte os objetos presentes no RepositorioDados em linhas de texto formatadas,
- * permitindo que a informação seja guardada permanentemente no disco rígido.
+ * Utilitário responsável pela escrita e atualização "On-Demand" de ficheiros CSV.
+ * Aplica uma abordagem relacional (separando credenciais de perfis) e utiliza
+ * operações de Append (adicionar) e Update (atualizar linha) para poupar memória.
  */
 public class ExportadorCSV {
 
-    /**
-     * Construtor privado para garantir que a classe seja utilizada apenas de forma estática,
-     * impedindo a criação de instâncias desnecessárias.
-     */
     private ExportadorCSV() {}
 
     /**
-     * Coordena a exportação total do sistema, gerando ficheiros individuais para cada entidade.
-     * Verifica se a diretoria de destino existe e cria-a automaticamente se necessário.
-     * @param pastaBase O caminho do diretório onde os ficheiros serão guardados (ex: "bd/").
-     * @param repo O repositório central que contém os dados a exportar.
+     * Verifica se a pasta e o ficheiro existem. Se não existirem, cria-os e insere o cabeçalho.
+     * @param caminho Caminho completo do ficheiro CSV.
+     * @param cabecalho String com o nome das colunas separadas por ponto e vírgula.
      */
-    public static void exportarTodos(String pastaBase, RepositorioDados repo) {
-        File pasta = new File(pastaBase);
-        if (!pasta.exists()) {
-            pasta.mkdirs();
+    private static void garantirFicheiroECabecalho(String caminho, String cabecalho) {
+        File ficheiro = new File(caminho);
+        File pasta = ficheiro.getParentFile();
+        if (pasta != null && !pasta.exists()) pasta.mkdirs();
+
+        if (!ficheiro.exists()) {
+            try (PrintWriter pw = new PrintWriter(new FileWriter(ficheiro))) {
+                pw.println(cabecalho);
+            } catch (IOException e) {
+                System.out.println(">> ERRO ao criar ficheiro inicial: " + caminho);
+            }
         }
-
-        String prefixo = pastaBase.endsWith(File.separator) ? pastaBase : pastaBase + File.separator;
-
-        exportarDepartamentos(prefixo + "departamentos.csv", repo);
-        exportarDocentes(prefixo + "docentes.csv", repo);
-        exportarCursos(prefixo + "cursos.csv", repo);
-        exportarUCs(prefixo + "ucs.csv", repo);
-        exportarEstudantes(prefixo + "estudantes.csv", repo);
-        exportarAvaliacoes(prefixo + "avaliacoes.csv", repo);
-
-        System.out.println(">> Exportação global concluída para a pasta: " + prefixo);
     }
 
-    // --- MÉTODO AUXILIAR DE ESCRITA ---
-
     /**
-     * Método auxiliar interno que centraliza a lógica de escrita em ficheiro.
-     * Abre um fluxo de escrita, grava o cabeçalho e todas as linhas de dados fornecidas.
-     * @param caminho O caminho completo do ficheiro de destino.
-     * @param cabecalho A primeira linha do ficheiro CSV (nomes das colunas).
-     * @param linhas Uma lista de Strings, onde cada String representa uma linha de dados formatada.
+     * Adiciona uma nova linha de texto ao final de um ficheiro existente (modo Append).
+     * @param caminho Caminho do ficheiro de destino.
+     * @param linha Dados formatados em CSV a inserir.
      */
-    private static void escreverLinhasCSV(String caminho, String cabecalho, List<String> linhas) {
-        try (PrintWriter pw = new PrintWriter(new FileWriter(caminho))) {
-            pw.println(cabecalho);
-            for (String linha : linhas) {
-                pw.println(linha);
-            }
-            System.out.println(">> Exportado com sucesso: " + caminho);
+    private static void adicionarLinhaCSV(String caminho, String linha) {
+        try (PrintWriter pw = new PrintWriter(new FileWriter(caminho, true))) {
+            pw.println(linha);
         } catch (IOException e) {
-            System.err.println(">> ERRO: Falha ao exportar para: " + caminho + " (" + e.getMessage() + ")");
+            System.err.println(">> ERRO: Falha ao guardar dados em: " + caminho);
         }
     }
 
-    // --- MÉTODOS DE EXPORTAÇÃO INDIVIDUAIS ---
 
     /**
-     * Exporta a lista de Departamentos para um ficheiro CSV.
-     * @param caminho Destino do ficheiro departamentos.csv.
-     * @param repo Fonte dos dados.
+     * Regista as credenciais de acesso de um utilizador no ficheiro central.
+     * @param email Email do utilizador (funciona como Chave Estrangeira).
+     * @param passwordSegura Password já com o Hash aplicado.
+     * @param tipo Tipo de utilizador (ESTUDANTE, DOCENTE ou GESTOR).
+     * @param pastaBase Caminho da diretoria de dados.
      */
-    public static void exportarDepartamentos(String caminho, RepositorioDados repo) {
+    private static void adicionarCredencial(String email, String passwordSegura, String tipo, String pastaBase) {
+        String caminho = pastaBase + File.separator + "credenciais.csv";
+        garantirFicheiroECabecalho(caminho, "email;password_hash;tipo");
+        adicionarLinhaCSV(caminho, email + ";" + passwordSegura + ";" + tipo);
+    }
+
+    /**
+     * Atualiza a password de um utilizador específico no ficheiro de credenciais.
+     * @param email Email do utilizador a atualizar.
+     * @param novaPasswordSegura Nova credencial encriptada.
+     * @param pastaBase Caminho da diretoria de dados.
+     */
+    public static void atualizarPasswordCentralizada(String email, String novaPasswordSegura, String pastaBase) {
+        String caminho = pastaBase + File.separator + "credenciais.csv";
         List<String> linhas = new ArrayList<>();
-        for (int i = 0; i < repo.getTotalDepartamentos(); i++) {
-            Departamento departamento = repo.getDepartamentos()[i];
-            if (departamento != null) {
-                linhas.add(departamento.getSigla() + ";" + departamento.getNome());
+
+        try (BufferedReader br = new BufferedReader(new FileReader(caminho))) {
+            String cabecalho = br.readLine();
+            if (cabecalho != null) linhas.add(cabecalho);
+
+            String linha;
+            while ((linha = br.readLine()) != null) {
+                if (linha.trim().isEmpty()) continue;
+                String[] dados = linha.split(";", -1);
+
+                if (dados[0].trim().equalsIgnoreCase(email)) {
+                    linhas.add(dados[0] + ";" + novaPasswordSegura + ";" + dados[2]);
+                } else {
+                    linhas.add(linha);
+                }
             }
+            reescreverFicheiro(caminho, linhas);
+        } catch (IOException e) {
+            System.out.println(">> ERRO ao atualizar password nas credenciais.");
         }
-        escreverLinhasCSV(caminho, "sigla;nome", linhas);
+    }
+
+
+    /**
+     * Adiciona um novo estudante ao sistema, criando as credenciais e o perfil.
+     * @param estudante Objeto com os dados do estudante.
+     * @param pastaBase Caminho da diretoria de dados.
+     * @param siglaCurso Sigla do curso onde o estudante foi inscrito.
+     */
+    public static void adicionarEstudante(Estudante estudante, String pastaBase, String siglaCurso) {
+        adicionarCredencial(estudante.getEmail(), estudante.getPassword(), "ESTUDANTE", pastaBase);
+
+        String caminho = pastaBase + File.separator + "estudantes.csv";
+        garantirFicheiroECabecalho(caminho, "numMec;email;nome;nif;morada;dataNascimento;anoInscricao;siglaCurso");
+
+        String linha = estudante.getNumeroMecanografico() + ";" + estudante.getEmail() + ";" +
+                estudante.getNome() + ";" + estudante.getNif() + ";" + estudante.getMorada() + ";" +
+                estudante.getDataNascimento() + ";" + estudante.getAnoPrimeiraInscricao() + ";" + siglaCurso;
+
+        adicionarLinhaCSV(caminho, linha);
     }
 
     /**
-     * Exporta a lista de Docentes para um ficheiro CSV.
-     * @param caminho Destino do ficheiro docentes.csv.
-     * @param repo Fonte dos dados.
+     * Adiciona um novo docente ao sistema, registando credenciais e perfil.
+     * @param docente Objeto com os dados do docente.
+     * @param pastaBase Caminho da diretoria de dados.
      */
-    public static void exportarDocentes(String caminho, RepositorioDados repo) {
-        List<String> linhas = new ArrayList<>();
-        for (int i = 0; i < repo.getTotalDocentes(); i++) {
-            Docente docente = repo.getDocentes()[i];
-            if (docente != null) {
-                linhas.add(docente.getSigla() + ";" + docente.getEmail() + ";" + docente.getPassword() + ";" +
-                        docente.getNome() + ";" + docente.getNif() + ";" + docente.getMorada() + ";" + docente.getDataNascimento());
-            }
-        }
-        escreverLinhasCSV(caminho, "sigla;email;password;nome;nif;morada;dataNascimento", linhas);
+    public static void adicionarDocente(Docente docente, String pastaBase) {
+        adicionarCredencial(docente.getEmail(), docente.getPassword(), "DOCENTE", pastaBase);
+
+        String caminho = pastaBase + File.separator + "docentes.csv";
+        garantirFicheiroECabecalho(caminho, "sigla;email;nome;nif;morada;dataNascimento");
+
+        String linha = docente.getSigla() + ";" + docente.getEmail() + ";" + docente.getNome() + ";" +
+                docente.getNif() + ";" + docente.getMorada() + ";" + docente.getDataNascimento();
+
+        adicionarLinhaCSV(caminho, linha);
     }
 
     /**
-     * Exporta a lista de Cursos, incluindo a relação com o respetivo departamento.
-     * @param caminho Destino do ficheiro cursos.csv.
-     * @param repo Fonte dos dados.
+     * Adiciona um novo gestor (backoffice) ao sistema.
+     * @param gestor Objeto com os dados do gestor.
+     * @param pastaBase Caminho da diretoria de dados.
      */
-    public static void exportarCursos(String caminho, RepositorioDados repo) {
-        List<String> linhas = new ArrayList<>();
-        for (int i = 0; i < repo.getTotalCursos(); i++) {
-            Curso curso = repo.getCursos()[i];
-            if (curso != null) {
-                String siglaDep = (curso.getDepartamento() != null) ? curso.getDepartamento().getSigla() : "N/A";
-                linhas.add(curso.getSigla() + ";" + curso.getNome() + ";" + siglaDep);
-            }
-        }
-        escreverLinhasCSV(caminho, "sigla;nome;siglaDepartamento", linhas);
+    public static void adicionarGestor(Gestor gestor, String pastaBase) {
+        adicionarCredencial(gestor.getEmail(), gestor.getPassword(), "GESTOR", pastaBase);
+
+        String caminho = pastaBase + File.separator + "gestores.csv";
+        garantirFicheiroECabecalho(caminho, "email;nome;nif;morada;dataNascimento");
+
+        String linha = gestor.getEmail() + ";" + gestor.getNome() + ";" + gestor.getNif() + ";" +
+                gestor.getMorada() + ";" + gestor.getDataNascimento();
+
+        adicionarLinhaCSV(caminho, linha);
     }
 
     /**
-     * Exporta as Unidades Curriculares, gerando múltiplas entradas caso uma UC pertença a vários cursos.
-     * @param caminho Destino do ficheiro ucs.csv.
-     * @param repo Fonte dos dados.
+     * Regista as notas de um momento de avaliação para um estudante.
+     * @param avaliacao Objeto com as notas e a UC associada.
+     * @param numMec Número mecanográfico do estudante.
+     * @param pastaBase Caminho da diretoria de dados.
      */
-    public static void exportarUCs(String caminho, RepositorioDados repo) {
-        List<String> linhas = new ArrayList<>();
-        for (int i = 0; i < repo.getTotalUcs(); i++) {
-            UnidadeCurricular uc = repo.getUcs()[i];
-            if (uc == null) continue;
+    public static void adicionarAvaliacao(Avaliacao avaliacao, int numMec, String pastaBase) {
+        String caminho = pastaBase + File.separator + "avaliacoes.csv";
+        garantirFicheiroECabecalho(caminho, "numMec;siglaUC;anoLetivo;nota1;nota2;nota3");
 
-            String siglaDoc = (uc.getDocenteResponsavel() != null) ? uc.getDocenteResponsavel().getSigla() : "N/A";
+        double[] notas = avaliacao.getResultados();
+        String nota1 = (notas.length > 0) ? String.valueOf(notas[0]) : "-1.0";
+        String nota2 = (notas.length > 1) ? String.valueOf(notas[1]) : "-1.0";
+        String nota3 = (notas.length > 2) ? String.valueOf(notas[2]) : "-1.0";
 
-            if (uc.getTotalCursos() == 0) {
-                linhas.add(uc.getSigla() + ";" + uc.getNome() + ";" + uc.getAnoCurricular() + ";" + siglaDoc + ";N/A");
-            } else {
-                for (int j = 0; j < uc.getTotalCursos(); j++) {
-                    Curso c = uc.getCursos()[j];
-                    if (c != null) {
-                        linhas.add(uc.getSigla() + ";" + uc.getNome() + ";" + uc.getAnoCurricular() + ";" + siglaDoc + ";" + c.getSigla());
-                    }
+        String linha = numMec + ";" + avaliacao.getUc().getSigla() + ";" + avaliacao.getAnoLetivo() + ";" + nota1 + ";" + nota2 + ";" + nota3;
+        adicionarLinhaCSV(caminho, linha);
+    }
+
+    /**
+     * Adiciona um novo departamento à base de dados.
+     * @param departamento Objeto departamento.
+     * @param pastaBase Caminho da diretoria de dados.
+     */
+    public static void adicionarDepartamento(Departamento departamento, String pastaBase) {
+        String caminho = pastaBase + File.separator + "departamentos.csv";
+        garantirFicheiroECabecalho(caminho, "sigla;nome");
+
+        String linha = departamento.getSigla() + ";" + departamento.getNome();
+        adicionarLinhaCSV(caminho, linha);
+    }
+
+    /**
+     * Adiciona um novo curso e vincula-o ao respetivo departamento.
+     * @param curso Objeto curso.
+     * @param pastaBase Caminho da diretoria de dados.
+     */
+    public static void adicionarCurso(Curso curso, String pastaBase) {
+        String caminho = pastaBase + File.separator + "cursos.csv";
+        garantirFicheiroECabecalho(caminho, "sigla;nome;siglaDepartamento");
+
+        String siglaDep = (curso.getDepartamento() != null) ? curso.getDepartamento().getSigla() : "N/A";
+        String linha = curso.getSigla() + ";" + curso.getNome() + ";" + siglaDep;
+
+        adicionarLinhaCSV(caminho, linha);
+    }
+
+    /**
+     * Adiciona uma nova Unidade Curricular. Se a UC pertencer a vários cursos,
+     * gera uma linha de registo por cada curso associado.
+     * @param uc Objeto Unidade Curricular.
+     * @param pastaBase Caminho da diretoria de dados.
+     */
+    public static void adicionarUnidadeCurricular(UnidadeCurricular uc, String pastaBase) {
+        String caminho = pastaBase + File.separator + "ucs.csv";
+        garantirFicheiroECabecalho(caminho, "sigla;nome;anoCurricular;siglaDocente;siglaCurso");
+
+        String siglaDoc = (uc.getDocenteResponsavel() != null) ? uc.getDocenteResponsavel().getSigla() : "N/A";
+
+        if (uc.getTotalCursos() == 0) {
+            String linha = uc.getSigla() + ";" + uc.getNome() + ";" + uc.getAnoCurricular() + ";" + siglaDoc + ";N/A";
+            adicionarLinhaCSV(caminho, linha);
+        } else {
+            for (int i = 0; i < uc.getTotalCursos(); i++) {
+                Curso c = uc.getCursos()[i];
+                if (c != null) {
+                    String linha = uc.getSigla() + ";" + uc.getNome() + ";" + uc.getAnoCurricular() + ";" + siglaDoc + ";" + c.getSigla();
+                    adicionarLinhaCSV(caminho, linha);
                 }
             }
         }
-        escreverLinhasCSV(caminho, "sigla;nome;anoCurricular;siglaDocente;siglaCurso", linhas);
     }
 
-    /**
-     * Exporta a lista de Estudantes e identifica o curso principal onde estão integrados.
-     * @param caminho Destino do ficheiro estudantes.csv.
-     * @param repo Fonte dos dados.
-     */
-    public static void exportarEstudantes(String caminho, RepositorioDados repo) {
-        List<String> linhas = new ArrayList<>();
-        for (int i = 0; i < repo.getTotalEstudantes(); i++) {
-            Estudante estudante = repo.getEstudantes()[i];
-            if (estudante == null) continue;
 
-            String siglaCurso = "N/A";
-            if (estudante.getPercurso() != null && estudante.getPercurso().getTotalUcsInscrito() > 0) {
-                UnidadeCurricular primeiraUc = estudante.getPercurso().getUcsInscrito()[0];
-                if (primeiraUc != null && primeiraUc.getTotalCursos() > 0 && primeiraUc.getCursos()[0] != null) {
-                    siglaCurso = primeiraUc.getCursos()[0].getSigla();
+    /**
+     * Atualiza os dados de perfil de um estudante existente (ex: nova morada).
+     * Lê o ficheiro, modifica a linha do estudante e reescreve o ficheiro atualizado.
+     * @param estudanteAtualizado O objeto com os dados mais recentes.
+     * @param pastaBase Caminho da diretoria de dados.
+     */
+    public static void atualizarEstudante(Estudante estudanteAtualizado, String pastaBase) {
+        String caminho = pastaBase + File.separator + "estudantes.csv";
+        List<String> linhas = new ArrayList<>();
+        boolean atualizado = false;
+
+        try (BufferedReader br = new BufferedReader(new FileReader(caminho))) {
+            String cabecalho = br.readLine();
+            if (cabecalho != null) linhas.add(cabecalho);
+
+            String linha;
+            while ((linha = br.readLine()) != null) {
+                if (linha.trim().isEmpty()) continue;
+                String[] dados = linha.split(";", -1);
+
+                if (Integer.parseInt(dados[0].trim()) == estudanteAtualizado.getNumeroMecanografico()) {
+                    String siglaCurso = dados.length > 7 ? dados[7] : "N/A";
+                    String novaLinha = estudanteAtualizado.getNumeroMecanografico() + ";" + estudanteAtualizado.getEmail() + ";" +
+                            estudanteAtualizado.getNome() + ";" + estudanteAtualizado.getNif() + ";" +
+                            estudanteAtualizado.getMorada() + ";" + estudanteAtualizado.getDataNascimento() + ";" +
+                            estudanteAtualizado.getAnoPrimeiraInscricao() + ";" + siglaCurso;
+                    linhas.add(novaLinha);
+                    atualizado = true;
+                } else {
+                    linhas.add(linha);
                 }
             }
-
-            linhas.add(estudante.getNumeroMecanografico() + ";" + estudante.getEmail() + ";" + estudante.getPassword() + ";" +
-                    estudante.getNome() + ";" + estudante.getNif() + ";" + estudante.getMorada() + ";" +
-                    estudante.getDataNascimento() + ";" + estudante.getAnoPrimeiraInscricao() + ";" + siglaCurso);
+        } catch (IOException | NumberFormatException e) {
+            System.out.println(">> ERRO ao ler ficheiro para atualização.");
+            return;
         }
-        escreverLinhasCSV(caminho, "numMec;email;password;nome;nif;morada;dataNascimento;anoInscricao;siglaCurso", linhas);
+
+        if (atualizado) reescreverFicheiro(caminho, linhas);
     }
 
     /**
-     * Exporta o histórico de avaliações de todos os estudantes.
-     * Garante que cada linha contenha exatamente 3 campos de nota, preenchendo com "-1.0"
-     * as avaliações ainda não realizadas, respeitando o limite do portal.
-     * @param caminho Destino do ficheiro avaliacoes.csv.
-     * @param repo Fonte dos dados.
+     * Reescreve totalmente um ficheiro CSV substituindo o conteúdo existente.
+     * Utilizado após uma operação de Update (atualização de uma linha no meio do ficheiro).
+     * @param caminho Caminho do ficheiro a reescrever.
+     * @param linhas Lista em memória contendo as novas linhas a guardar.
      */
-    public static void exportarAvaliacoes(String caminho, RepositorioDados repo) {
-        List<String> linhas = new ArrayList<>();
-        for (int i = 0; i < repo.getTotalEstudantes(); i++) {
-            Estudante estudante = repo.getEstudantes()[i];
-            if (estudante == null || estudante.getPercurso() == null) continue;
-
-            PercursoAcademico pa = estudante.getPercurso();
-            for (int j = 0; j < pa.getTotalAvaliacoes(); j++) {
-                Avaliacao av = pa.getHistoricoAvaliacoes()[j];
-                if (av == null || av.getUc() == null) continue;
-
-                double[] notas = av.getResultados();
-
-                // Proteção: Se a nota existir no array, guarda-a. Se não, guarda -1.0
-                String nota1 = (notas.length > 0) ? String.valueOf(notas[0]) : "-1.0";
-                String nota2 = (notas.length > 1) ? String.valueOf(notas[1]) : "-1.0";
-                String nota3 = (notas.length > 2) ? String.valueOf(notas[2]) : "-1.0";
-
-                linhas.add(estudante.getNumeroMecanografico() + ";" + av.getUc().getSigla() + ";" +
-                        av.getAnoLetivo() + ";" + nota1 + ";" + nota2 + ";" + nota3);
-            }
+    private static void reescreverFicheiro(String caminho, List<String> linhas) {
+        try (PrintWriter pw = new PrintWriter(new FileWriter(caminho, false))) {
+            for (String l : linhas) pw.println(l);
+        } catch (IOException e) {
+            System.err.println(">> ERRO: Falha ao reescrever ficheiro após atualização.");
         }
-        escreverLinhasCSV(caminho, "numMec;siglaUC;anoLetivo;nota1;nota2;nota3", linhas);
     }
 }

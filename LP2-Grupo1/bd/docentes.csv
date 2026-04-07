@@ -1,4 +1,4 @@
-sigla;email;password;nome;nif;morada;dataNascimento
-ABC;abc@issmf.ipp.pt;vDmesezF1McLpK6t5fHRzg==:A+2KLiRd4D4BPl+osY5xFPyz7eZU3Rt6Hc7KB6M+6WI=;Antonio Bernardo Costa;111222333;Rua A;01-01-1970
-XYZ;xyz@issmf.ipp.pt;924IODdlb4KM7ikD8QjqsQ==:JWOSUjCgxYrl9SbHVcYWmnTkddWwixERv2KmF/lYs+c=;Xavier Ygor Zeca;444555666;Rua B;02-02-1975
-MNO;mno@issmf.ipp.pt;lgHkFTTY/SJPbf0SNCjdjA==:gva7Bx66QC0sNI+Yw+5Nk+VXAKjZM0jNnR5vghCMAYY=;Maria Nogueira Oliveira;777888999;Rua C;03-03-1980
+sigla;email;nome;nif;morada;dataNascimento
+ABC;abc@issmf.ipp.pt;Antonio Bernardo Costa;111222333;Rua A;01-01-1970
+XYZ;xyz@issmf.ipp.pt;Xavier Ygor Zeca;444555666;Rua B;02-02-1975
+MNO;mno@issmf.ipp.pt;Maria Nogueira Oliveira;777888999;Rua C;03-03-1980
