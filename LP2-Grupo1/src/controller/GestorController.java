@@ -1,90 +1,94 @@
 package controller;
 
-import model.Gestor;
-import model.Estudante;
-import model.RepositorioDados;
+import model.*;
 import view.GestorView;
-import utils.EmailGenerator;
-import utils.PasswordGenerator;
-import utils.Validador;
-import utils.ExportadorCSV;
+import utils.*;
 
-/**
- * Controlador responsável por gerir as ações e o fluxo do utilizador com perfil de Gestor.
- * Atua como intermediário entre a GestorView e os dados persistidos no disco (CSV),
- * suportando a nova arquitetura relacional e "On-Demand".
- */
 public class GestorController {
-
-    /** Repositório usado agora apenas para manter o estado da sessão atual. */
     private RepositorioDados repo;
-
-    /** O objeto Gestor que tem a sessão iniciada. */
     private Gestor gestor;
-
-    /** A interface de visualização específica para o Gestor. */
     private GestorView view;
-
-    /** Caminho base para a pasta da base de dados. */
     private static final String PASTA_BD = "LP2-Grupo1/bd";
 
-    /**
-     * Construtor do controlador do Gestor.
-     * @param repo O repositório centralizado que guarda a sessão ativa.
-     * @param gestor O utilizador Gestor atualmente autenticado.
-     */
     public GestorController(RepositorioDados repo, Gestor gestor) {
         this.repo = repo;
         this.gestor = gestor;
         this.view = new GestorView();
     }
 
-    /**
-     * Inicia o ciclo principal de execução do painel do Gestor.
-     * Apresenta o menu, recolhe as opções e executa as ações de negócio,
-     * como registar novos estudantes guardando-os diretamente nos ficheiros CSV.
-     */
     public void iniciar() {
         boolean correr = true;
         while (correr) {
             int opcao = view.mostrarMenu();
             switch (opcao) {
-                case 1:
-                    view.mostrarMensagem("\n--- REGISTAR ESTUDANTE ---");
-                    int numMec = Integer.parseInt(view.pedirInput("Nº Mecanográfico"));
-                    String nome = view.pedirInput("Nome");
-
-                    String nif;
-                    do {
-                        nif = view.pedirInput("NIF (9 dígitos)");
-                    } while (!Validador.validarNif(nif));
-
-                    String morada = view.pedirInput("Morada");
-                    String dataNasc = view.pedirInput("Data Nasc. (DD/MM/AAAA)");
-                    int anoInscricao = Integer.parseInt(view.pedirInput("Ano de Inscrição"));
-
-                    String siglaCurso = view.pedirInput("Sigla do Curso (ex: EI, IG)");
-
-                    String email = EmailGenerator.gerarEmailEstudante(numMec);
-                    String passLimpa = PasswordGenerator.gerarPasswordSegura();
-
-                    String passSegura = utils.SegurancaPasswords.gerarCredencialMista(passLimpa);
-
-                    Estudante novo = new Estudante(numMec, email, passSegura, nome, nif, morada, dataNasc, anoInscricao);
-
-                    ExportadorCSV.adicionarEstudante(novo, PASTA_BD, siglaCurso);
-
-                    view.mostrarMensagem("Sucesso! Estudante guardado no disco.");
-                    view.mostrarMensagem("Email: " + email + " | Password Temporária: " + passLimpa);
-                    break;
-
-                case 2:
-                    view.mostrarMensagem("Avançar Ano Letivo - Em desenvolvimento para o próximo sprint.");
-                    break;
-                case 0:
-                    correr = false;
-                    break;
+                case 1: executarRegistoEstudante(); break;
+                case 2: view.mostrarMensagem("Avançar Ano Letivo - Em desenvolvimento."); break;
+                case 3: mostrarMediaGlobal(); break;
+                case 4: mostrarMelhorAluno(); break;
+                case 0: correr = false; break;
+                default: view.mostrarMensagem("Opção inválida.");
             }
         }
+    }
+
+    private void mostrarMediaGlobal() {
+        Estudante[] estudantes = ImportadorCSV.carregarTodosEstudantes(PASTA_BD);
+        double soma = 0;
+        int totalNotas = 0;
+
+        for (Estudante e : estudantes) {
+            if (e == null) continue;
+            for (int i = 0; i < e.getPercurso().getTotalAvaliacoes(); i++) {
+                Avaliacao av = e.getPercurso().getHistoricoAvaliacoes()[i];
+                for (int j = 0; j < av.getTotalAvaliacoesLancadas(); j++) {
+                    soma += av.getResultados()[j];
+                    totalNotas++;
+                }
+            }
+        }
+        if (totalNotas == 0) view.mostrarMensagem("Sem notas registadas.");
+        else view.mostrarMensagem("Média Global Institucional: " + String.format("%.2f", (soma / totalNotas)));
+    }
+
+    private void mostrarMelhorAluno() {
+        Estudante[] estudantes = ImportadorCSV.carregarTodosEstudantes(PASTA_BD);
+        Estudante melhor = null;
+        double maiorMedia = -1;
+
+        for (Estudante e : estudantes) {
+            if (e == null || e.getPercurso().getTotalAvaliacoes() == 0) continue;
+            double somaMedias = 0;
+            for (int i = 0; i < e.getPercurso().getTotalAvaliacoes(); i++) {
+                somaMedias += e.getPercurso().getHistoricoAvaliacoes()[i].calcularMedia();
+            }
+            double mediaAluno = somaMedias / e.getPercurso().getTotalAvaliacoes();
+            if (mediaAluno > maiorMedia) {
+                maiorMedia = mediaAluno;
+                melhor = e;
+            }
+        }
+        if (melhor != null) view.mostrarMensagem("Melhor Aluno: " + melhor.getNome() + " | Média: " + String.format("%.2f", maiorMedia));
+        else view.mostrarMensagem("Nenhum aluno avaliado.");
+    }
+
+    private void executarRegistoEstudante() {
+        view.mostrarMensagem("\n--- REGISTAR ESTUDANTE ---");
+        int numMec = Integer.parseInt(view.pedirInput("Nº Mecanográfico"));
+        String nome = view.pedirInput("Nome");
+        String nif;
+        do { nif = view.pedirInput("NIF (9 dígitos)"); } while (!Validador.validarNif(nif));
+        String morada = view.pedirInput("Morada");
+        String dataNasc = view.pedirInput("Data Nasc. (DD/MM/AAAA)");
+        int anoInscricao = Integer.parseInt(view.pedirInput("Ano de Inscrição"));
+        String siglaCurso = view.pedirInput("Sigla do Curso");
+
+        String email = EmailGenerator.gerarEmailEstudante(numMec);
+        String passLimpa = PasswordGenerator.gerarPasswordSegura();
+        String passSegura = SegurancaPasswords.gerarCredencialMista(passLimpa);
+
+        Estudante novo = new Estudante(numMec, email, passSegura, nome, nif, morada, dataNasc, anoInscricao);
+        ExportadorCSV.adicionarEstudante(novo, PASTA_BD, siglaCurso);
+
+        view.mostrarMensagem("Estudante Registado! Email: " + email + " | Pass: " + passLimpa);
     }
 }

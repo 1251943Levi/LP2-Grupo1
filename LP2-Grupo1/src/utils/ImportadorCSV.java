@@ -68,7 +68,9 @@ public class ImportadorCSV {
                 if (dados[1].trim().equalsIgnoreCase(email)) {
                     int numMec = Integer.parseInt(dados[0].trim());
                     int anoInscricao = Integer.parseInt(dados[6].trim());
-                    return new Estudante(numMec, email, hashGuardado, dados[2].trim(), dados[3].trim(), dados[4].trim(), dados[5].trim(), anoInscricao);
+                    Estudante e = new Estudante(numMec, email, hashGuardado, dados[2].trim(), dados[3].trim(), dados[4].trim(), dados[5].trim(), anoInscricao);
+                    carregarDadosAcademicos(e, pastaBase); // Garante que carrega notas e inscrições
+                    return e;
                 }
             }
         } catch (IOException e) {}
@@ -85,7 +87,9 @@ public class ImportadorCSV {
                 String[] dados = linha.split(";", -1);
 
                 if (dados[1].trim().equalsIgnoreCase(email)) {
-                    return new Docente(dados[0].trim(), email, hashGuardado, dados[2].trim(), dados[3].trim(), dados[4].trim(), dados[5].trim());
+                    Docente d = new Docente(dados[0].trim(), email, hashGuardado, dados[2].trim(), dados[3].trim(), dados[4].trim(), dados[5].trim());
+                    carregarUcsDoDocente(d, pastaBase); // Garante que carrega as UCs que ele leciona
+                    return d;
                 }
             }
         } catch (IOException e) {}
@@ -171,7 +175,9 @@ public class ImportadorCSV {
                 int ficheiroNum = Integer.parseInt(dados[0].trim());
                 if (ficheiroNum == numMec) {
                     int anoInscricao = Integer.parseInt(dados[6].trim());
-                    return new Estudante(ficheiroNum, dados[1].trim(), "", dados[2].trim(), dados[3].trim(), dados[4].trim(), dados[5].trim(), anoInscricao);
+                    Estudante e = new Estudante(ficheiroNum, dados[1].trim(), "", dados[2].trim(), dados[3].trim(), dados[4].trim(), dados[5].trim(), anoInscricao);
+                    carregarDadosAcademicos(e, pastaBase);
+                    return e;
                 }
             }
         } catch (IOException | NumberFormatException e) {}
@@ -204,5 +210,95 @@ public class ImportadorCSV {
         } catch (IOException | NumberFormatException e) {}
 
         return ucEncontrada;
+    }
+
+
+    // NOVOS MÉTODOS (PARA SUPORTAR ESTATÍSTICAS E CRUZAMENTO DE DADOS)
+
+
+    /**
+     * Carrega todos os estudantes para um array (útil para médias globais).
+     */
+    public static Estudante[] carregarTodosEstudantes(String pastaBase) {
+        Estudante[] lista = new Estudante[500]; // Buffer para até 500 alunos
+        int contador = 0;
+        String caminho = pastaBase + File.separator + "estudantes.csv";
+
+        try (BufferedReader br = new BufferedReader(new FileReader(caminho))) {
+            br.readLine();
+            String linha;
+            while ((linha = br.readLine()) != null && contador < lista.length) {
+                if (linha.trim().isEmpty()) continue;
+                String[] dados = linha.split(";", -1);
+
+                int numMec = Integer.parseInt(dados[0].trim());
+                int anoInsc = Integer.parseInt(dados[6].trim());
+
+                Estudante e = new Estudante(numMec, dados[1].trim(), "", dados[2].trim(),
+                        dados[3].trim(), dados[4].trim(), dados[5].trim(), anoInsc);
+
+                carregarDadosAcademicos(e, pastaBase);
+                lista[contador++] = e;
+            }
+        } catch (Exception e) {}
+        return lista;
+    }
+
+    /**
+     * Preenche as UCs que o docente leciona.
+     */
+    public static void carregarUcsDoDocente(Docente d, String pastaBase) {
+        String caminho = pastaBase + File.separator + "ucs.csv";
+        try (BufferedReader br = new BufferedReader(new FileReader(caminho))) {
+            br.readLine();
+            String linha;
+            while ((linha = br.readLine()) != null) {
+                String[] dados = linha.split(";", -1);
+                if (dados[3].trim().equalsIgnoreCase(d.getSigla())) {
+                    UnidadeCurricular uc = new UnidadeCurricular(dados[0].trim(), dados[1].trim(), Integer.parseInt(dados[2].trim()), d);
+                    d.adicionarUcLecionada(uc);
+                }
+            }
+        } catch (Exception e) {}
+    }
+
+    /**
+     * Carrega inscrições e avaliações do aluno.
+     */
+    private static void carregarDadosAcademicos(Estudante e, String pastaBase) {
+        // Carregar Inscrições
+        String caminhoInsc = pastaBase + File.separator + "inscricoes.csv";
+        if (new File(caminhoInsc).exists()) {
+            try (BufferedReader br = new BufferedReader(new FileReader(caminhoInsc))) {
+                br.readLine();
+                String linha;
+                while ((linha = br.readLine()) != null) {
+                    String[] dados = linha.split(";", -1);
+                    if (Integer.parseInt(dados[0].trim()) == e.getNumeroMecanografico()) {
+                        UnidadeCurricular uc = procurarUC(dados[1].trim(), pastaBase);
+                        if (uc != null) e.getPercurso().inscreverEmUc(uc);
+                    }
+                }
+            } catch (Exception ex) {}
+        }
+
+        // Carregar Avaliações (Notas)
+        String caminhoNotas = pastaBase + File.separator + "avaliacoes.csv";
+        if (new File(caminhoNotas).exists()) {
+            try (BufferedReader br = new BufferedReader(new FileReader(caminhoNotas))) {
+                br.readLine();
+                String linha;
+                while ((linha = br.readLine()) != null) {
+                    String[] dados = linha.split(";", -1);
+                    if (Integer.parseInt(dados[0].trim()) == e.getNumeroMecanografico()) {
+                        UnidadeCurricular uc = procurarUC(dados[1].trim(), pastaBase);
+                        Avaliacao av = new Avaliacao(uc, 2026);
+                        av.adicionarResultado(Double.parseDouble(dados[2].trim())); // Nota Normal
+                        if (dados.length > 3) av.adicionarResultado(Double.parseDouble(dados[3].trim())); // Recurso
+                        e.getPercurso().registarAvaliacao(av);
+                    }
+                }
+            } catch (Exception ex) {}
+        }
     }
 }
