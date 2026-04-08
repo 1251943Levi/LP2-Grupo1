@@ -205,4 +205,80 @@ public class ImportadorCSV {
 
         return ucEncontrada;
     }
+
+    /**
+     * Lê o ficheiro de estudantes e calcula o próximo número mecanográfico disponível
+     * com base no ano letivo atual (Prefixo = Ano, Sufixo = 4 dígitos sequenciais).
+     */
+    public static int obterProximoNumeroMecanografico(String pastaBase, int anoAtual) {
+        String caminho = pastaBase + File.separator + "estudantes.csv";
+        int maxSufixo = 0;
+
+        try (BufferedReader br = new BufferedReader(new FileReader(caminho))) {
+            br.readLine(); // Ignorar o cabeçalho
+            String linha;
+            while ((linha = br.readLine()) != null) {
+                if (linha.trim().isEmpty()) continue;
+                String[] dados = linha.split(";", -1);
+
+                try {
+                    int numAtual = Integer.parseInt(dados[0].trim());
+
+                    // Verifica se o número do estudante pertence ao ano atual (ex: 2026)
+                    // Fazemos isto dividindo por 10000 (ex: 20260004 / 10000 = 2026)
+                    if (numAtual / 10000 == anoAtual) {
+                        // Extrai apenas os últimos 4 dígitos (ex: 20260004 % 10000 = 4)
+                        int sufixo = numAtual % 10000;
+                        if (sufixo > maxSufixo) {
+                            maxSufixo = sufixo;
+                        }
+                    }
+                } catch (NumberFormatException e) {
+                    // Ignora se a primeira coluna não for número
+                }
+            }
+        } catch (IOException e) {
+            // Se o ficheiro não existir, o maxSufixo continuará a 0
+        }
+
+        // Constrói o novo número: (Ano * 10000) + Próximo Sufixo
+        // Exemplo: (2026 * 10000) + 5 = 20260005
+        return (anoAtual * 10000) + (maxSufixo + 1);
+    }
+    /**
+     * Lê o ficheiro de cursos e devolve um array de strings com o formato "SIGLA - Nome do Curso".
+     */
+    public static String[] obterListaCursos(String pastaBase) {
+        String caminho = pastaBase + java.io.File.separator + "cursos.csv";
+        int count = 0;
+
+        // Primeira passagem para contar o número de cursos (para criar o array com o tamanho certo)
+        try (BufferedReader br = new BufferedReader(new FileReader(caminho))) {
+            br.readLine(); // Ignorar o cabeçalho
+            while (br.readLine() != null) count++;
+        } catch (IOException e) {
+            return new String[0]; // Retorna array vazio se não houver ficheiro
+        }
+
+        String[] cursos = new String[count];
+
+        // Segunda passagem para extrair a sigla e o nome
+        try (BufferedReader br = new BufferedReader(new FileReader(caminho))) {
+            br.readLine();
+            String linha;
+            int i = 0;
+            while ((linha = br.readLine()) != null) {
+                if (linha.trim().isEmpty()) continue;
+                String[] dados = linha.split(";", -1);
+
+                // dados[0] é a Sigla, dados[1] é o Nome
+                cursos[i] = dados[0].trim() + " - " + dados[1].trim();
+                i++;
+            }
+        } catch (IOException e) {
+            System.out.println(">> AVISO: Não foi possível ler o ficheiro de cursos.");
+        }
+
+        return cursos;
+    }
 }

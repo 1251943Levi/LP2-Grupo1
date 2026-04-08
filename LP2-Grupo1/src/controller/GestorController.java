@@ -3,11 +3,8 @@ package controller;
 import model.Gestor;
 import model.Estudante;
 import model.RepositorioDados;
+import utils.*;
 import view.GestorView;
-import utils.EmailGenerator;
-import utils.PasswordGenerator;
-import utils.Validador;
-import utils.ExportadorCSV;
 
 /**
  * Controlador responsável por gerir as ações e o fluxo do utilizador com perfil de Gestor.
@@ -26,7 +23,7 @@ public class GestorController {
     private GestorView view;
 
     /** Caminho base para a pasta da base de dados. */
-    private static final String PASTA_BD = "LP2-Grupo1/bd";
+    private static final String PASTA_BD = "bd";
 
     /**
      * Construtor do controlador do Gestor.
@@ -51,27 +48,61 @@ public class GestorController {
             switch (opcao) {
                 case 1:
                     view.mostrarMensagem("\n--- REGISTAR ESTUDANTE ---");
-                    int numMec = Integer.parseInt(view.pedirInput("Nº Mecanográfico"));
-                    String nome = view.pedirInput("Nome");
 
+                    // 1. Vai buscar o ano letivo atual ao Repositório!
+                    int anoInscricao = repo.getAnoAtual();
+
+                    // 2. Gera o número passando o ano atual para criar o prefixo correto
+                    int numMec = ImportadorCSV.obterProximoNumeroMecanografico(PASTA_BD, anoInscricao);
+
+                    view.mostrarMensagem("Ano de Inscrição automático: " + anoInscricao);
+                    view.mostrarMensagem("Nº Mecanográfico automático: " + numMec);
+
+                    // Validação do Nome
+                    String nome;
+                    do {
+                        nome = view.pedirNome();
+                        if (!Validador.isNomeValido(nome)) view.mostrarErroNomeInvalido();
+                    } while (!Validador.isNomeValido(nome));
+
+                    // Validação do NIF
                     String nif;
                     do {
-                        nif = view.pedirInput("NIF (9 dígitos)");
-                    } while (!Validador.validarNif(nif));
+                        nif = view.pedirNif();
+                        if (!Validador.isNifValido(nif)) view.mostrarErroNifInvalido();
+                    } while (!Validador.isNifValido(nif));
 
                     String morada = view.pedirInput("Morada");
-                    String dataNasc = view.pedirInput("Data Nasc. (DD/MM/AAAA)");
-                    int anoInscricao = Integer.parseInt(view.pedirInput("Ano de Inscrição"));
 
-                    String siglaCurso = view.pedirInput("Sigla do Curso (ex: EI, IG)");
+                    // Validação da Data de Nascimento
+                    String dataNasc;
+                    do {
+                        dataNasc = view.pedirDataNascimento();
+                        if (!Validador.isDataNascimentoValida(dataNasc)) view.mostrarErroDataInvalida();
+                    } while (!Validador.isDataNascimentoValida(dataNasc));
 
+                    // --- SELEÇÃO DE CURSO ---
+                    String[] listaCursos = ImportadorCSV.obterListaCursos(PASTA_BD);
+                    String siglaCurso = "";
+
+                    if (listaCursos.length == 0) {
+                        view.mostrarAvisoSemCursos();
+                        siglaCurso = view.pedirSiglaCursoManual();
+                    } else {
+                        view.mostrarListaCursos(listaCursos);
+                        int opcaoCurso = view.pedirOpcaoCurso(listaCursos.length);
+                        siglaCurso = listaCursos[opcaoCurso - 1].split(" - ")[0];
+                        view.mostrarCursoSelecionado(siglaCurso);
+                    }
+                    // ---------------------------------
+
+                    // Geração de Credenciais
                     String email = EmailGenerator.gerarEmailEstudante(numMec);
                     String passLimpa = PasswordGenerator.gerarPasswordSegura();
-
                     String passSegura = utils.SegurancaPasswords.gerarCredencialMista(passLimpa);
 
+                    // Criação e gravação do Estudante
                     Estudante novo = new Estudante(numMec, email, passSegura, nome, nif, morada, dataNasc, anoInscricao);
-
                     ExportadorCSV.adicionarEstudante(novo, PASTA_BD, siglaCurso);
 
                     view.mostrarMensagem("Sucesso! Estudante guardado no disco.");
