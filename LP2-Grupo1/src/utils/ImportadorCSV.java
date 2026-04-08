@@ -2,155 +2,207 @@ package utils;
 
 import model.*;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 
+/**
+ * Lê ficheiros de forma cirúrgica apenas quando a informação é solicitada.
+ */
 public class ImportadorCSV {
 
-    // ---------- CONSTRUTOR ----------
     private ImportadorCSV() {}
 
-    // ---------- MÉTODOS DE LÓGICA E AÇÃO ----------
+    /**
+     * Autentica o utilizador de forma centralizada usando o ficheiro credenciais.csv.
+     */
+    public static Utilizador autenticarNoFicheiro(String email, String passwordIntroduzida, String pastaBase) {
+        String caminhoCredenciais = pastaBase + File.separator + "credenciais.csv";
+        String tipoUtilizador = null;
+        String hashGuardado = null;
 
-    public static void importarDados(String caminho, RepositorioDados repositorio) {
-        try (BufferedReader br = new BufferedReader(new FileReader(caminho))) {
-            String linha;
+        try (BufferedReader br = new BufferedReader(new FileReader(caminhoCredenciais))) {
             br.readLine();
-
+            String linha;
             while ((linha = br.readLine()) != null) {
                 if (linha.trim().isEmpty()) continue;
+                String[] dados = linha.split(";", -1);
 
-                String[] dados = linha.split(";");
-                String tipo = dados[0].toUpperCase();
-
-                switch (tipo) {
-
-                    case "DEPARTAMENTO":
-                        repositorio.adicionarDepartamento(new Departamento(dados[1], dados[2]));
-                        break;
-
-                    case "DOCENTE":
-                        repositorio.adicionarDocente(new Docente(dados[1], dados[2], dados[3], dados[4], dados[5], dados[6], dados[7]));
-                        break;
-
-                    case "CURSO":
-                        Departamento dep = procurarDepartamento(dados[3], repositorio);
-                        if (dep != null) {
-                            Curso novoCurso = new Curso(dados[1], dados[2], dep);
-                            if (repositorio.adicionarCurso(novoCurso)) {
-                                dep.adicionarCurso(novoCurso);
-                            }
-                        }
-                        break;
-
-                    case "UC":
-                        Docente doc = procurarDocente(dados[4], repositorio);
-                        Curso cursoUC = procurarCurso(dados[5], repositorio);
-                        if (doc != null && cursoUC != null) {
-                            UnidadeCurricular novaUc = new UnidadeCurricular(dados[1], dados[2], Integer.parseInt(dados[3]), doc);
-                            if (repositorio.adicionarUnidadeCurricular(novaUc)) {
-                                cursoUC.adicionarUnidadeCurricular(novaUc);
-                                novaUc.adicionarCurso(cursoUC);
-                                doc.adicionarUcResponsavel(novaUc);
-                                doc.adicionarUcLecionada(novaUc);
-                            }
-                        }
-                        break;
-
-                    case "ESTUDANTE":
-                        Curso cursoEst = null;
-                        if (dados.length > 9) {
-                            cursoEst = procurarCurso(dados[9], repositorio);
-                        }
-
-                        Estudante est = new Estudante(
-                                Integer.parseInt(dados[1]), dados[2], dados[3], dados[4],
-                                dados[5], dados[6], dados[7], Integer.parseInt(dados[8])
-                        );
-
-                        if (cursoEst != null && est.getPercurso() != null) {
-                            for (int i = 0; i < cursoEst.getTotalUCs(); i++) {
-                                UnidadeCurricular uc = cursoEst.getUnidadesCurriculares()[i];
-                                if (uc != null && uc.getAnoCurricular() == est.getAnoFrequencia()) {
-                                    est.getPercurso().inscreverEmUc(uc);
-                                }
-                            }
-                        }
-                        repositorio.adicionarEstudante(est);
-                        break;
-
-                    case "AVALIACAO":
-                    case "HISTORICO":
-                        int numMecHist = Integer.parseInt(dados[1]);
-                        String siglaUCHist = dados[2];
-                        int anoAvaliacao = Integer.parseInt(dados[3]);
-
-                        Estudante estHist = procurarEstudante(numMecHist, repositorio);
-                        UnidadeCurricular ucHist = procurarUC(siglaUCHist, repositorio);
-
-                        if (estHist != null && ucHist != null) {
-                            Avaliacao avaliacao = new Avaliacao(ucHist, anoAvaliacao);
-
-                            for (int i = 4; i <= 6 && i < dados.length; i++) {
-                                double valorNota = Double.parseDouble(dados[i]);
-                                if (valorNota > 0) {
-                                    avaliacao.adicionarResultado(valorNota);
-                                }
-                            }
-                            estHist.getPercurso().registarAvaliacao(avaliacao);
-                        }
-                        break;
+                if (dados[0].trim().equalsIgnoreCase(email)) {
+                    hashGuardado = dados[1].trim();
+                    tipoUtilizador = dados[2].trim().toUpperCase();
+                    break;
                 }
             }
         } catch (IOException e) {
-            System.out.println("Erro ao ler o ficheiro: " + e.getMessage());
+            System.out.println(">> Aviso: Ficheiro credenciais.csv não encontrado.");
+            return null;
+        }
+
+        if (hashGuardado == null || !SegurancaPasswords.verificarPassword(passwordIntroduzida, hashGuardado)) {
+            return null;
+        }
+
+        switch (tipoUtilizador) {
+            case "ESTUDANTE":
+                return carregarPerfilEstudante(email, hashGuardado, pastaBase);
+            case "DOCENTE":
+                return carregarPerfilDocente(email, hashGuardado, pastaBase);
+            case "GESTOR":
+                return carregarPerfilGestor(email, hashGuardado, pastaBase);
+            default:
+                return null;
         }
     }
 
-    // ---------- MÉTODOS AUXILIARES PRIVADOS ----------
 
-    private static Departamento procurarDepartamento(String sigla, RepositorioDados repo) {
-        for (int i = 0; i < repo.getTotalDepartamentos(); i++) {
-            if (repo.getDepartamentos()[i] != null && repo.getDepartamentos()[i].getSigla().equalsIgnoreCase(sigla)) {
-                return repo.getDepartamentos()[i];
+    private static Estudante carregarPerfilEstudante(String email, String hashGuardado, String pastaBase) {
+        String caminho = pastaBase + File.separator + "estudantes.csv";
+        try (BufferedReader br = new BufferedReader(new FileReader(caminho))) {
+            br.readLine();
+            String linha;
+            while ((linha = br.readLine()) != null) {
+                if (linha.trim().isEmpty()) continue;
+                String[] dados = linha.split(";", -1);
+
+                if (dados[1].trim().equalsIgnoreCase(email)) {
+                    int numMec = Integer.parseInt(dados[0].trim());
+                    int anoInscricao = Integer.parseInt(dados[6].trim());
+                    return new Estudante(numMec, email, hashGuardado, dados[2].trim(), dados[3].trim(), dados[4].trim(), dados[5].trim(), anoInscricao);
+                }
             }
-        }
+        } catch (IOException e) {}
         return null;
     }
 
-    private static Curso procurarCurso(String sigla, RepositorioDados repo) {
-        for (int i = 0; i < repo.getTotalCursos(); i++) {
-            if (repo.getCursos()[i] != null && repo.getCursos()[i].getSigla().equalsIgnoreCase(sigla)) {
-                return repo.getCursos()[i];
+    private static Docente carregarPerfilDocente(String email, String hashGuardado, String pastaBase) {
+        String caminho = pastaBase + File.separator + "docentes.csv";
+        try (BufferedReader br = new BufferedReader(new FileReader(caminho))) {
+            br.readLine();
+            String linha;
+            while ((linha = br.readLine()) != null) {
+                if (linha.trim().isEmpty()) continue;
+                String[] dados = linha.split(";", -1);
+
+                if (dados[1].trim().equalsIgnoreCase(email)) {
+                    return new Docente(dados[0].trim(), email, hashGuardado, dados[2].trim(), dados[3].trim(), dados[4].trim(), dados[5].trim());
+                }
             }
-        }
+        } catch (IOException e) {}
         return null;
     }
 
-    private static Docente procurarDocente(String sigla, RepositorioDados repo) {
-        for (int i = 0; i < repo.getTotalDocentes(); i++) {
-            if (repo.getDocentes()[i] != null && repo.getDocentes()[i].getSigla().equalsIgnoreCase(sigla)) {
-                return repo.getDocentes()[i];
+    private static Gestor carregarPerfilGestor(String email, String hashGuardado, String pastaBase) {
+        String caminho = pastaBase + File.separator + "gestores.csv";
+        try (BufferedReader br = new BufferedReader(new FileReader(caminho))) {
+            br.readLine();
+            String linha;
+            while ((linha = br.readLine()) != null) {
+                if (linha.trim().isEmpty()) continue;
+                String[] dados = linha.split(";", -1);
+
+                if (dados[0].trim().equalsIgnoreCase(email)) {
+                    return new Gestor(email, hashGuardado, dados[1].trim(), dados[2].trim(), dados[3].trim(), dados[4].trim());
+                }
             }
-        }
+        } catch (IOException e) {}
         return null;
     }
 
-    private static Estudante procurarEstudante(int numMec, RepositorioDados repo) {
-        for (int i = 0; i < repo.getTotalEstudantes(); i++) {
-            if (repo.getEstudantes()[i] != null && repo.getEstudantes()[i].getNumeroMecanografico() == numMec) {
-                return repo.getEstudantes()[i];
+
+    public static Departamento procurarDepartamento(String sigla, String pastaBase) {
+        String caminho = pastaBase + File.separator + "departamentos.csv";
+        try (BufferedReader br = new BufferedReader(new FileReader(caminho))) {
+            br.readLine();
+            String linha;
+            while ((linha = br.readLine()) != null) {
+                if (linha.trim().isEmpty()) continue;
+                String[] dados = linha.split(";", -1);
+                if (dados[0].trim().equalsIgnoreCase(sigla)) {
+                    return new Departamento(dados[0].trim(), dados[1].trim());
+                }
             }
-        }
+        } catch (IOException e) {}
         return null;
     }
 
-    private static UnidadeCurricular procurarUC(String sigla, RepositorioDados repo) {
-        for (int i = 0; i < repo.getTotalUcs(); i++) {
-            if (repo.getUcs()[i] != null && repo.getUcs()[i].getSigla().equalsIgnoreCase(sigla)) {
-                return repo.getUcs()[i];
+    public static Curso procurarCurso(String sigla, String pastaBase) {
+        String caminho = pastaBase + File.separator + "cursos.csv";
+        try (BufferedReader br = new BufferedReader(new FileReader(caminho))) {
+            br.readLine();
+            String linha;
+            while ((linha = br.readLine()) != null) {
+                if (linha.trim().isEmpty()) continue;
+                String[] dados = linha.split(";", -1);
+                if (dados[0].trim().equalsIgnoreCase(sigla)) {
+                    Departamento dep = procurarDepartamento(dados[2].trim(), pastaBase);
+                    return new Curso(dados[0].trim(), dados[1].trim(), dep);
+                }
             }
-        }
+        } catch (IOException e) {}
         return null;
+    }
+
+    public static Docente procurarDocentePorSigla(String sigla, String pastaBase) {
+        String caminho = pastaBase + File.separator + "docentes.csv";
+        try (BufferedReader br = new BufferedReader(new FileReader(caminho))) {
+            br.readLine();
+            String linha;
+            while ((linha = br.readLine()) != null) {
+                if (linha.trim().isEmpty()) continue;
+                String[] dados = linha.split(";", -1);
+                if (dados[0].trim().equalsIgnoreCase(sigla)) {
+                    return new Docente(dados[0].trim(), dados[1].trim(), "", dados[2].trim(), dados[3].trim(), dados[4].trim(), dados[5].trim());
+                }
+            }
+        } catch (IOException e) {}
+        return null;
+    }
+
+    public static Estudante procurarEstudantePorNumMec(int numMec, String pastaBase) {
+        String caminho = pastaBase + File.separator + "estudantes.csv";
+        try (BufferedReader br = new BufferedReader(new FileReader(caminho))) {
+            br.readLine();
+            String linha;
+            while ((linha = br.readLine()) != null) {
+                if (linha.trim().isEmpty()) continue;
+                String[] dados = linha.split(";", -1);
+
+                int ficheiroNum = Integer.parseInt(dados[0].trim());
+                if (ficheiroNum == numMec) {
+                    int anoInscricao = Integer.parseInt(dados[6].trim());
+                    return new Estudante(ficheiroNum, dados[1].trim(), "", dados[2].trim(), dados[3].trim(), dados[4].trim(), dados[5].trim(), anoInscricao);
+                }
+            }
+        } catch (IOException | NumberFormatException e) {}
+        return null;
+    }
+
+    public static UnidadeCurricular procurarUC(String sigla, String pastaBase) {
+        String caminho = pastaBase + File.separator + "ucs.csv";
+        UnidadeCurricular ucEncontrada = null;
+
+        try (BufferedReader br = new BufferedReader(new FileReader(caminho))) {
+            br.readLine();
+            String linha;
+            while ((linha = br.readLine()) != null) {
+                if (linha.trim().isEmpty()) continue;
+                String[] dados = linha.split(";", -1);
+
+                if (dados[0].trim().equalsIgnoreCase(sigla)) {
+                    if (ucEncontrada == null) {
+                        int ano = Integer.parseInt(dados[2].trim());
+                        Docente doc = procurarDocentePorSigla(dados[3].trim(), pastaBase);
+                        ucEncontrada = new UnidadeCurricular(dados[0].trim(), dados[1].trim(), ano, doc);
+                    }
+                    if (dados.length > 4 && !dados[4].trim().equalsIgnoreCase("N/A")) {
+                        Curso c = procurarCurso(dados[4].trim(), pastaBase);
+                        if (c != null) ucEncontrada.adicionarCurso(c);
+                    }
+                }
+            }
+        } catch (IOException | NumberFormatException e) {}
+
+        return ucEncontrada;
     }
 }

@@ -1,91 +1,101 @@
 package controller;
 
-
-import view.MainView;
 import model.RepositorioDados;
+import utils.ExportadorCSV;
+import utils.ImportadorCSV;
+import view.MainView;
 
+/**
+ * Controlador principal da aplicação ISSMF.
+ * Adaptado para Arquitetura Relacional com Lazy Loading (On-Demand).
+ * Já não carrega arrays de dados para a memória no arranque.
+ */
 public class MainController {
 
-    private MainView view;
-    private RepositorioDados repositorio;
+    private static final String PASTA_BD = "LP2-Grupo1/bd";
+    private final MainView view;
 
-    public MainController() {
-        this.view = new MainView();
+    /** Agora o repositório serve apenas para manter a sessão (saber quem está logado) */
+    private final RepositorioDados repositorio;
+
+    public MainController(MainView view) {
+        this.view = view;
         this.repositorio = new RepositorioDados();
     }
 
+    /**
+     * Inicia o sistema.
+     * Como usamos Lazy Loading, apenas garantimos que a pasta de Base de Dados existe.
+     * Já não existe o "ImportadorCSV.importarTodos()".
+     */
     public void iniciarSistema() {
-        boolean aExecutar = true;
-        view.mostrarMensagem("Bem-vindo ao Sistema do ISSMF!");
-
-        while (aExecutar) {
-            int opcao = view.mostrarMenu();
-
-            switch (opcao) {
-                case 1:
-
-                    String email = view.pedirInputString("Email").trim();
-                    String pass = view.pedirInputString("Password").trim();
-
-                    if ((email.equals("admin@issmf.pt") || email.equals("backoffice@issmf.ipp.pt")) && pass.equals("admin123")) {
-                        view.mostrarMensagem("Login de Gestor detetado! A reencaminhar...");
-
-                        model.Gestor admin = new model.Gestor("backoffice@issmf.ipp.pt", "admin123", "Admin Geral", "123456789", "Sede", "01-01-1980");
-
-                        GestorController gestorController = new GestorController(repositorio, admin);
-                        gestorController.iniciar();
-                        break;
-                    }
-
-                    model.Utilizador userLogado = repositorio.autenticar(email, pass);
-
-                    if (userLogado == null) {
-                        view.mostrarMensagem("Erro: Credenciais inválidas! (Lembre-se de usar a Opção 3 primeiro)");
-
-                    } else if (userLogado instanceof model.Estudante) {
-                        view.mostrarMensagem("Login de Estudante detetado! A reencaminhar...");
-
-                        EstudanteController estudanteController = new EstudanteController(repositorio, (model.Estudante) userLogado);
-                        estudanteController.iniciar();
-
-                    } else if (userLogado instanceof model.Docente) {
-                        view.mostrarMensagem("Login de Docente detetado! A reencaminhar...");
-
-                        DocenteController docenteController = new DocenteController(repositorio, (model.Docente) userLogado);
-                        docenteController.iniciar();
-                    }
-                    break;
-                case 2:
-                    view.mostrarMensagem("\n--- NOVO REGISTO DE ESTUDANTE ---");
-                    break;
-                case 3:
-                    view.mostrarMensagem("\n--- IMPORTAÇÃO DE DADOS ---");
-                    String nomeIntroduzido = view.pedirInputString("Introduza o nome do ficheiro (ex: dados.csv)");
-
-                    java.io.File ficheiro = new java.io.File(nomeIntroduzido);
-
-                    if (!ficheiro.exists()) {
-                        ficheiro = new java.io.File("bd/" + nomeIntroduzido);
-                    }
-
-                    if (ficheiro.exists()) {
-                        try {
-                            utils.ImportadorCSV.importarDados(ficheiro.getPath(), repositorio);
-                            view.mostrarMensagem("SUCESSO: Dados importados de " + ficheiro.getPath());
-                        } catch (Exception e) {
-                            view.mostrarMensagem("FALHA: Erro ao processar o conteúdo do ficheiro.");
-                        }
-                    } else {
-                        view.mostrarMensagem("FALHA: O ficheiro '" + nomeIntroduzido + "' não foi encontrado.");
-                    }
-                    break;
-                case 0:
-                    view.mostrarMensagem("A encerrar o sistema...");
-                    aExecutar = false;
-                    break;
-                default:
-                    view.mostrarMensagem("Opção inválida.");
-            }
+        java.io.File pasta = new java.io.File(PASTA_BD);
+        if (!pasta.exists() || !pasta.isDirectory()) {
+            pasta.mkdirs();
+            view.mostrarMensagem(">> Pasta de base de dados criada.");
         }
+    }
+
+    /**
+     * O método guardarDados geral fica vazio porque a gravação é feita
+     * automaticamente (On-Demand) pelos outros controladores quando há alterações.
+     */
+    public void guardarDados() {
+        // Nada a fazer aqui.
+    }
+
+    /**
+     * Processa o login do utilizador validando diretamente nos ficheiros .csv.
+     */
+    public boolean processarLogin(String email, String pass, boolean aExecutar) {
+        String credencialAdmin = "A67KdOiGgwLZQTdjXrCPUg==:1Emuaac5kl+mA0SKMMRX1m+5bpOXaLVPqcttF1EPyG4=";
+        boolean isEmailAdmin = email.equals("admin@issmf.pt") || email.equals("backoffice@issmf.ipp.pt");
+
+        // 1. Validação do Admin Estático
+        if (isEmailAdmin && utils.SegurancaPasswords.verificarPassword(pass, credencialAdmin)) {
+            view.mostrarMensagem("Login de Gestor detetado!");
+            model.Gestor admin = new model.Gestor("backoffice@issmf.ipp.pt", credencialAdmin, "Admin Geral", "123456789", "Sede", "01-01-1980");
+            repositorio.setUtilizadorLogado(admin); // Guarda na sessão
+            new GestorController(repositorio, admin).iniciar();
+            repositorio.limparSessao();
+            return aExecutar;
+        }
+
+        // 2. Validação On-Demand (consulta o ficheiro credenciais.csv)
+        model.Utilizador userLogado = ImportadorCSV.autenticarNoFicheiro(email, pass, PASTA_BD);
+
+        if (userLogado == null) {
+            view.mostrarMensagem("Credenciais inválidas ou utilizador não encontrado.");
+        } else if (userLogado instanceof model.Estudante) {
+            view.mostrarMensagem("Login de Estudante detetado!");
+            repositorio.setUtilizadorLogado(userLogado);
+            new EstudanteController(repositorio, (model.Estudante) userLogado).iniciar();
+            repositorio.limparSessao(); // Limpa a RAM no logout
+        } else if (userLogado instanceof model.Docente) {
+            view.mostrarMensagem("Login de Docente detetado!");
+            repositorio.setUtilizadorLogado(userLogado);
+            new DocenteController(repositorio, (model.Docente) userLogado).iniciar();
+            repositorio.limparSessao(); // Limpa a RAM no logout
+        }
+
+        return aExecutar;
+    }
+
+    /**
+     * Recupera a palavra-passe atualizando diretamente a tabela de credenciais.
+     */
+    public void recuperarPassword(String email) {
+        // Gera a password aleatória (limpa e segura com Hash)
+        String novaPassLimpa = utils.PasswordGenerator.gerarPasswordSegura();
+        String novaPassSegura = utils.SegurancaPasswords.gerarCredencialMista(novaPassLimpa);
+
+        // Atualiza diretamente no ficheiro "credenciais.csv" sem carregar arrays!
+        ExportadorCSV.atualizarPasswordCentralizada(email, novaPassSegura, PASTA_BD);
+
+        view.mostrarMensagem("Processo de recuperação de conta registado no sistema.");
+
+       // aguarda implementação de modulo de email
+        view.mostrarMensagem("[A aguardar módulo de email] -> Email pronto a ser despachado para: " + email);
+        view.mostrarMensagem("A password temporária enviada por email será: " + novaPassLimpa);
     }
 }

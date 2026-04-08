@@ -31,4 +31,14 @@ public class EstudanteView {
     public void mostrarMensagem(String mensagem) {
         System.out.println(">> " + mensagem);
     }
+
+    public String pedirPassword(String mensagem) {
+        System.out.print(mensagem + ": ");
+        if (System.console() != null) {
+            char[] passwordChars = System.console().readPassword();
+            return new String(passwordChars);
+        } else {
+            return scanner.nextLine();
+        }
+    }
 }
