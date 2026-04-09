@@ -41,6 +41,3 @@ bin/
 
 # Ficheiros temporários de conflitos
 *.orig
-
-# Pasta da Base de Dados local (ficheiros CSV)
-LP2-Grupo1/bd/

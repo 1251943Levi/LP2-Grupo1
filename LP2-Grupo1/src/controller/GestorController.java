@@ -182,17 +182,14 @@ public class GestorController {
         String dataNasc = view.pedirDataNascimento();
         int anoInscricao = Integer.parseInt(view.pedirAnoInscricao());
         String siglaCurso = view.pedirSiglaCurso();
-
-        // Geração de Credenciais
+        
         String email = EmailGenerator.gerarEmailEstudante(numMec);
         String passLimpa = PasswordGenerator.gerarPasswordSegura();
         String passSegura = SegurancaPasswords.gerarCredencialMista(passLimpa);
 
-        // Criação e Gravação
         Estudante novo = new Estudante(numMec, email, passSegura, nome, nif, morada, dataNasc, anoInscricao);
         ExportadorCSV.adicionarEstudante(novo, PASTA_BD, siglaCurso);
 
-        // Mensagem final de sucesso (chamando a view!)
         view.mostrarSucessoRegistoEstudante(email, passLimpa);
     }
 }
