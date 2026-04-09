@@ -37,4 +37,16 @@ public class RepositorioDados {
     public void limparSessao() {
         this.utilizadorLogado = null;
     }
+
+    // Só permite se existirem menos de 5 UCs
+    public boolean podeAdicionarUc(String siglaCurso, int ano, String pastaBase) {
+        int ucsAtuais = utils.ImportadorCSV.contarUcsPorCursoEAno(siglaCurso, ano, pastaBase);
+        return ucsAtuais < 5;
+    }
+
+    // Só permite se NÃO tiver estudantes
+    public boolean podeEditarCurso(String siglaCurso, String pastaBase) {
+        boolean temEstudantes = utils.ImportadorCSV.existeEstudanteNoCurso(siglaCurso, pastaBase);
+        return !temEstudantes;
+    }
 }
