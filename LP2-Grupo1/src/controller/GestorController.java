@@ -8,7 +8,7 @@ public class GestorController {
     private RepositorioDados repo;
     private Gestor gestor;
     private GestorView view;
-    private static final String PASTA_BD = "bd"; // Caminho corrigido
+    private static final String PASTA_BD = "bd";
 
     public GestorController(RepositorioDados repo, Gestor gestor) {
         this.repo = repo;
