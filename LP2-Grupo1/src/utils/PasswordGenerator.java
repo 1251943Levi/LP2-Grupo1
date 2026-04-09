@@ -1,14 +1,27 @@
 package utils;
-import java.util.Random;
+
+import java.security.SecureRandom;
 
 public class PasswordGenerator {
-    public static String gerarPassword() {
-        String caracteres = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-        StringBuilder password = new StringBuilder();
-        Random rnd = new Random();
-        for (int i = 0; i < 8; i++) {
-            password.append(caracteres.charAt(rnd.nextInt(caracteres.length())));
+
+    private static final String CARACTERES_PERMITIDOS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%";
+    private static final int TAMANHO_MINIMO = 12;
+
+    private PasswordGenerator() {}
+
+    /**
+     * Gera uma palavra-passe forte de forma criptograficamente segura.
+     * @return Uma String contendo a password gerada.
+     */
+    public static String gerarPasswordSegura() {
+        SecureRandom geradorSeguro = new SecureRandom();
+        StringBuilder password = new StringBuilder(TAMANHO_MINIMO);
+
+        for (int i = 0; i < TAMANHO_MINIMO; i++) {
+            int index = geradorSeguro.nextInt(CARACTERES_PERMITIDOS.length());
+            password.append(CARACTERES_PERMITIDOS.charAt(index));
         }
+
         return password.toString();
     }
 }
