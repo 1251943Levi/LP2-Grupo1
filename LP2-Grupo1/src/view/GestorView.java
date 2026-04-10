@@ -10,6 +10,7 @@ public class GestorView {
         System.out.println("2 - Avançar Ano Letivo");
         System.out.println("3 - Ver Média Global da Instituição");
         System.out.println("4 - Identificar Melhor Aluno");
+        System.out.println("5 - Listar Devedores");
         System.out.println("0 - Sair / Logout");
         System.out.print("Opção: ");
         try {
