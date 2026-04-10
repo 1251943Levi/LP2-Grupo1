@@ -107,11 +107,11 @@ public class ExportadorCSV {
         adicionarCredencial(estudante.getEmail(), estudante.getPassword(), "ESTUDANTE", pastaBase);
 
         String caminho = pastaBase + File.separator + "estudantes.csv";
-        garantirFicheiroECabecalho(caminho, "numMec;email;nome;nif;morada;dataNascimento;anoInscricao;siglaCurso");
+        garantirFicheiroECabecalho(caminho, "numMec;email;nome;nif;morada;dataNascimento;anoInscricao;siglaCurso;saldoDevedor");
 
         String linha = estudante.getNumeroMecanografico() + ";" + estudante.getEmail() + ";" +
                 estudante.getNome() + ";" + estudante.getNif() + ";" + estudante.getMorada() + ";" +
-                estudante.getDataNascimento() + ";" + estudante.getAnoPrimeiraInscricao() + ";" + siglaCurso;
+                estudante.getDataNascimento() + ";" + estudante.getAnoPrimeiraInscricao() + ";" + siglaCurso + ";" + estudante.getSaldoDevedor();
 
         adicionarLinhaCSV(caminho, linha);
     }
@@ -249,7 +249,7 @@ public class ExportadorCSV {
                     String novaLinha = estudanteAtualizado.getNumeroMecanografico() + ";" + estudanteAtualizado.getEmail() + ";" +
                             estudanteAtualizado.getNome() + ";" + estudanteAtualizado.getNif() + ";" +
                             estudanteAtualizado.getMorada() + ";" + estudanteAtualizado.getDataNascimento() + ";" +
-                            estudanteAtualizado.getAnoPrimeiraInscricao() + ";" + siglaCurso;
+                            estudanteAtualizado.getAnoPrimeiraInscricao() + ";" + siglaCurso + ";" + estudanteAtualizado.getSaldoDevedor();
                     linhas.add(novaLinha);
                     atualizado = true;
                 } else {
