@@ -74,6 +74,14 @@ public class EstudanteController {
                     view.mostrarMensagem("Dados atualizados com sucesso e guardados no sistema!");
                     break;
 
+                /**
+                 * US01 - Gestão Financeira:
+                 * Permite ao estudante consultar a sua dívida atual e efetuar pagamentos totais ou parciais.
+                 * O sistema valida defensivamente se o valor inserido não excede a dívida real.
+                 * Em caso de sucesso matemático, deduz o valor e atualiza imediatamente o ficheiro
+                 * estudantes.csv usando o ExportadorCSV (Abordagem On-Demand).
+                 */
+
                 case 3:
                     view.mostrarMensagem("\n--- DADOS FINANCEIROS ---");
                     view.mostrarMensagem("Saldo Devedor Atual: " + String.format("%.2f", estudanteAtivo.getSaldoDevedor()) + "€");

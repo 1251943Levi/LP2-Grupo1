@@ -179,6 +179,11 @@ public class ImportadorCSV {
                 if (ficheiroNum == numMec) {
                     int anoInscricao = Integer.parseInt(dados[6].trim());
                     Estudante e = new Estudante(ficheiroNum, dados[1].trim(), "", dados[2].trim(), dados[3].trim(), dados[4].trim(), dados[5].trim(), anoInscricao);
+
+                    /** Verifica  se a linha do ficheiro CSV possui a coluna do saldo devedor (índice 8).
+                     * O 'dados.length > 8' evita erros de 'IndexOutOfBoundsException' ao ler estudantes muito antigos.
+                     * O '!dados[8].trim().isEmpty()' evita erros de formatação caso a coluna exista mas esteja vazia.
+                     */
                     if (dados.length > 8 && !dados[8].trim().isEmpty()) {
                         e.setSaldoDevedor(Double.parseDouble(dados[8].trim()));
                     }

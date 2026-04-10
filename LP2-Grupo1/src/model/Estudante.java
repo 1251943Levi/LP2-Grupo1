@@ -8,6 +8,12 @@ public class Estudante extends Utilizador {
     private int anoCurricular;
     private int anoFrequencia;
     private PercursoAcademico percurso;
+
+    /**
+     * Saldo devedor atual do estudante referente a propinas.
+     * Inicializado a 0.0 por defeito, sendo atualizado no momento da inscrição num curso
+     * ou aquando da realização de pagamentos.
+     */
     private double SaldoDevedor = 0.0;
 
     // ---------- CONSTRUTOR ----------

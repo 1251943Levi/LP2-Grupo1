@@ -71,7 +71,13 @@ public class GestorController {
         if (melhor != null) view.mostrarMensagem("Melhor Aluno: " + melhor.getNome() + " | Média: " + String.format("%.2f", maiorMedia));
         else view.mostrarMensagem("Nenhum aluno avaliado.");
     }
-
+    /**
+     * Regista um novo estudante no sistema.
+     * Além de recolher os dados pessoais e gerar as credenciais de acesso,
+     * associa o estudante a um Curso específico e inicializa automaticamente
+     * o seu saldo devedor com o valor da propina anual desse curso.
+     * Todos os dados são exportados e guardados imediatamente na base de dados (CSV).
+     */
     private void executarRegistoEstudante() {
         view.mostrarMensagem("\n--- REGISTAR ESTUDANTE ---");
         int numMec = Integer.parseInt(view.pedirInput("Nº Mecanográfico"));
@@ -99,7 +105,11 @@ public class GestorController {
 
         view.mostrarMensagem("Estudante Registado! Email: " + email + " | Pass: " + passLimpa);
     }
-
+    /**
+     * Lista todos os estudantes do instituto que possuam um saldo devedor superior a zero.
+     * Este método faz o carregamento dos alunos de forma "On-Demand" (Lazy Loading) a partir
+     * do CSV e imprime na consola o número mecanográfico, nome e o valor exato em dívida.
+     */
     private void listarDevedores() {
         view.mostrarMensagem("\n--- LISTA DE DEVEDORES ---");
         Estudante[] estudantes = ImportadorCSV.carregarTodosEstudantes(PASTA_BD);

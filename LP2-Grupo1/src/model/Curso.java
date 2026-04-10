@@ -11,7 +11,10 @@ public class Curso {
 
     private UnidadeCurricular[] unidadesCurriculares;
     private int totalUCs;
-
+    /**
+     * Valor base da propina anual estipulada para a frequência deste curso.
+     * Este valor é atribuído como saldo devedor aos estudantes no momento da sua primeira inscrição.
+     */
     private double valorPropinaAnual = 0.0; //ver que valor meter
 
     // ---------- CONSTRUTOR ----------
