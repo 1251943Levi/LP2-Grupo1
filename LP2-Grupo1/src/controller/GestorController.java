@@ -25,6 +25,7 @@ public class GestorController {
                 case 2: view.mostrarMensagem("Avançar Ano Letivo - Em desenvolvimento."); break;
                 case 3: mostrarMediaGlobal(); break;
                 case 4: mostrarMelhorAluno(); break;
+                case 5: listarDevedores(); break;
                 case 0: correr = false; break;
                 default: view.mostrarMensagem("Opção inválida.");
             }
@@ -87,8 +88,29 @@ public class GestorController {
         String passSegura = SegurancaPasswords.gerarCredencialMista(passLimpa);
 
         Estudante novo = new Estudante(numMec, email, passSegura, nome, nif, morada, dataNasc, anoInscricao);
+        //Herda a propina do curso
+        Curso cursoEscolhido = ImportadorCSV.procurarCurso(siglaCurso, PASTA_BD);
+        if (cursoEscolhido != null) {
+            novo.setSaldoDevedor(cursoEscolhido.getValorPropinaAnual());
+        } else {
+            novo.setSaldoDevedor(1000.0); // Valor caso o curso não seja encontrado
+        }
         ExportadorCSV.adicionarEstudante(novo, PASTA_BD, siglaCurso);
 
         view.mostrarMensagem("Estudante Registado! Email: " + email + " | Pass: " + passLimpa);
+    }
+
+    private void listarDevedores() {
+        view.mostrarMensagem("\n--- LISTA DE DEVEDORES ---");
+        Estudante[] estudantes = ImportadorCSV.carregarTodosEstudantes(PASTA_BD);
+        boolean encontrou = false;
+
+        for (Estudante e : estudantes) {
+            if (e != null && e.getSaldoDevedor() > 0) {
+                view.mostrarMensagem("Nº: " + e.getNumeroMecanografico() + " | Nome: " + e.getNome() + " | Dívida: " + String.format("%.2f", e.getSaldoDevedor()) + "€");
+                encontrou = true;
+            }
+        }
+        if (!encontrou) view.mostrarMensagem("Neste momento não existem alunos com propinas em atraso.");
     }
 }
