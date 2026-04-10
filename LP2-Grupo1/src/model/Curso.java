@@ -12,6 +12,8 @@ public class Curso {
     private UnidadeCurricular[] unidadesCurriculares;
     private int totalUCs;
 
+    private double valorPropinaAnual = 0.0; //ver que valor meter
+
     // ---------- CONSTRUTOR ----------
     public Curso(String sigla, String nome, Departamento departamento) {
         this.sigla = sigla;
@@ -29,12 +31,14 @@ public class Curso {
     public int getDuracaoAnos() { return duracaoAnos; }
     public UnidadeCurricular[] getUnidadesCurriculares() { return unidadesCurriculares; }
     public int getTotalUCs() { return totalUCs; }
+    public double getValorPropinaAnual() { return valorPropinaAnual; }
 
     // ---------- SETTERS ----------
     public void setSigla(String sigla) { this.sigla = sigla; }
     public void setNome(String nome) { this.nome = nome; }
     public void setDepartamento(Departamento departamento) { this.departamento = departamento; }
     public void setDocenteResponsavel(Docente docenteResponsavel) { this.docenteResponsavel = docenteResponsavel; }
+    public void setValorPropinaAnual(double valorPropinaAnual) { this.valorPropinaAnual = valorPropinaAnual; }
 
     // ---------- MÉTODOS DE LÓGICA E AÇÃO ----------
 

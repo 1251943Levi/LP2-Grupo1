@@ -8,6 +8,7 @@ public class Estudante extends Utilizador {
     private int anoCurricular;
     private int anoFrequencia;
     private PercursoAcademico percurso;
+    private double SaldoDevedor = 0.0;
 
     // ---------- CONSTRUTOR ----------
     public Estudante(int numeroMecanografico, String email, String password, String nome, String nif, String morada, String dataNascimento, int anoPrimeiraInscricao) {
@@ -29,10 +30,12 @@ public class Estudante extends Utilizador {
     public int getAnoCurricular() { return anoCurricular; }
     public int getAnoFrequencia() { return anoFrequencia; }
     public PercursoAcademico getPercurso() { return percurso; }
+    public double getSaldoDevedor() { return SaldoDevedor;}
 
     // ---------- SETTERS ----------
     public void setAnoCurricular(int anoCurricular) { this.anoCurricular = anoCurricular; }
     public void setAnoFrequencia(int anoFrequencia) { this.anoFrequencia = anoFrequencia; }
+    public void setSaldoDevedor(double saldoDevedor) { this.SaldoDevedor = saldoDevedor;}
 
     // ---------- MÉTODOS ----------
     @Override
