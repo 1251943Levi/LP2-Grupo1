@@ -69,6 +69,9 @@ public class ImportadorCSV {
                     int numMec = Integer.parseInt(dados[0].trim());
                     int anoInscricao = Integer.parseInt(dados[6].trim());
                     Estudante e = new Estudante(numMec, email, hashGuardado, dados[2].trim(), dados[3].trim(), dados[4].trim(), dados[5].trim(), anoInscricao);
+                    if (dados.length > 8 && !dados[8].trim().isEmpty()) {
+                        e.setSaldoDevedor(Double.parseDouble(dados[8].trim()));
+                    }
                     carregarDadosAcademicos(e, pastaBase); // Garante que carrega notas e inscrições
                     return e;
                 }
@@ -176,6 +179,9 @@ public class ImportadorCSV {
                 if (ficheiroNum == numMec) {
                     int anoInscricao = Integer.parseInt(dados[6].trim());
                     Estudante e = new Estudante(ficheiroNum, dados[1].trim(), "", dados[2].trim(), dados[3].trim(), dados[4].trim(), dados[5].trim(), anoInscricao);
+                    if (dados.length > 8 && !dados[8].trim().isEmpty()) {
+                        e.setSaldoDevedor(Double.parseDouble(dados[8].trim()));
+                    }
                     carregarDadosAcademicos(e, pastaBase);
                     return e;
                 }
@@ -236,6 +242,10 @@ public class ImportadorCSV {
 
                 Estudante e = new Estudante(numMec, dados[1].trim(), "", dados[2].trim(),
                         dados[3].trim(), dados[4].trim(), dados[5].trim(), anoInsc);
+
+                if (dados.length > 8 && !dados[8].trim().isEmpty()) {
+                    e.setSaldoDevedor(Double.parseDouble(dados[8].trim()));
+                }
 
                 carregarDadosAcademicos(e, pastaBase);
                 lista[contador++] = e;
