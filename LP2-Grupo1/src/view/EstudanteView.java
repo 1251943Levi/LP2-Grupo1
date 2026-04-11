@@ -41,4 +41,11 @@ public class EstudanteView {
             return scanner.nextLine();
         }
     }
+    public void mostrarDespedida() {
+        mostrarMensagem("A sair do portal do estudante...");
+    }
+
+    public void mostrarOpcaoInvalida() {
+        mostrarMensagem("Opção inválida. Tente novamente.");
+    }
 }

@@ -32,10 +32,11 @@ public class EstudanteController {
                 case 1: mostrarDadosPessoais(); break;
                 case 2: atualizarDadosPerfil(); break;
                 case 0:
-                    view.mostrarMensagem("A sair do portal do estudante...");
+                    view.mostrarDespedida();;
                     aExecutar = false;
                     break;
-                default: view.mostrarMensagem("Opção inválida.");
+                default:
+                    view.mostrarOpcaoInvalida();
             }
         }
     }
