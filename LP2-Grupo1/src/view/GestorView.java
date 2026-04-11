@@ -7,8 +7,8 @@ public class GestorView {
     public int mostrarMenu() {
         mostrarMensagem("\n=== MENU GESTOR ===");
         mostrarMensagem("1 - Registar Novo Estudante");
-        mostrarMensagem("2 - Gerir Unidades Curriculares (CRUD)");
-        mostrarMensagem("3 - Gerir Cursos (CRUD)");
+        mostrarMensagem("2 - Gerir Unidades Curriculares");
+        mostrarMensagem("3 - Gerir Cursos");
         mostrarMensagem("4 - Ver Estatísticas");
         mostrarMensagem("5 - Avançar Ano Letivo");
         mostrarMensagem("0 - Sair / Logout");
@@ -21,6 +21,12 @@ public class GestorView {
         mostrarMensagem("2 - Listar " + entidade);
         mostrarMensagem("3 - Editar " + entidade);
         mostrarMensagem("4 - Remover " + entidade);
+        if (entidade.equalsIgnoreCase("Unidades Curriculares")) {
+            mostrarMensagem("5 - Associar UC Existente a um Curso");
+        }
+        if (entidade.equalsIgnoreCase("Cursos")) {
+            mostrarMensagem("5 - Listar UCs do Curso por Ano");
+        }
         mostrarMensagem("0 - Voltar");
         try { return Integer.parseInt(pedirInput("Opção")); } catch (Exception e) { return -1; }
     }
@@ -111,7 +117,7 @@ public class GestorView {
     }
 
     public String pedirDataNascimento() {
-        return pedirInput("Data Nasc. (DD/MM/AAAA)");
+        return pedirInput("Data Nasc. (DD-MM-AAAA)");
     }
 
     public String pedirAnoInscricao() {
@@ -119,7 +125,7 @@ public class GestorView {
     }
 
     public void mostrarErroEdicaoCurso() {
-        mostrarMensagem(">> ERRO: Ação bloqueada! Já existem estudantes inscritos neste curso (Risco de corrupção de histórico).");
+        mostrarMensagem(">> ERRO: Ação bloqueada! Já existem estudantes inscritos neste curso.");
     }
 
     public void mostrarErroLimiteUcs(int ano) {
@@ -150,4 +156,71 @@ public class GestorView {
         mostrarMensagem(">> Estudante Registado com Sucesso!");
         mostrarMensagem(">> Email: " + email + " | Password Temporária: " + passwordLimpa);
     }
+
+    public void mostrarListaCursos(String[] cursos) {
+        mostrarMensagem("\n--- SELEÇÃO DE CURSO ---");
+        for (int i = 0; i < cursos.length; i++) {
+            if (cursos[i] != null) {
+                 mostrarMensagem((i + 1) + " - " + cursos[i]);
+            }
+        }
+    }
+
+    public int pedirOpcaoCurso(int max) {
+        while (true) {
+            try {
+                int opcao = Integer.parseInt(pedirInput("Selecione o número do Curso"));
+                if (opcao > 0 && opcao <= max) {
+                    return opcao;
+                }
+                mostrarMensagem(">> Erro: Opção inválida. Escolha entre 1 e " + max + ".");
+            } catch (NumberFormatException e) {
+                mostrarMensagem(">> Erro: Introduza um número válido.");
+            }
+        }
+    }
+
+    public void mostrarAvisoSemCursos() {
+        mostrarMensagem(">> Aviso: Não existem cursos registados. Introduza a sigla manualmente.");
+    }
+
+    public void mostrarNumMecanograficoAtribuido(int numMec) {
+        mostrarMensagem("Nº Mecanográfico atribuído: " + numMec);
+    }
+
+    public void mostrarErroNomeInvalido() {
+        mostrarMensagem("ERRO: Nome inválido. Utilize apenas letras e espaços.");
+    }
+
+    public void mostrarErroNifInvalido() {
+        mostrarMensagem("ERRO: NIF inválido. Deve conter exatamente 9 dígitos.");
+    }
+
+    public void mostrarErroDataInvalida() {
+        mostrarMensagem("ERRO: Data inválida. Utilize rigorosamente o formato DD-MM-AAAA.");
+    }
+
+    public void mostrarListaUcs(String[] ucs) {
+        mostrarMensagem("\n--- SELEÇÃO DE UNIDADE CURRICULAR ---");
+        for (int i = 0; i < ucs.length; i++) {
+            if (ucs[i] != null) {
+                mostrarMensagem((i + 1) + " - " + ucs[i]);
+            }
+        }
+    }
+
+    public int pedirOpcaoUc(int max) {
+        while (true) {
+            try {
+                int opcao = Integer.parseInt(pedirInput("Selecione o número da UC"));
+                if (opcao > 0 && opcao <= max) {
+                    return opcao;
+                }
+                mostrarMensagem("ERRO: Opção inválida. Escolha entre 1 e " + max + ".");
+            } catch (NumberFormatException e) {
+                mostrarMensagem("ERRO: Introduza um número válido.");
+            }
+        }
+    }
+
 }

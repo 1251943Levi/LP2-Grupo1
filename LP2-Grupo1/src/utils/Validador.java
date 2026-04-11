@@ -1,9 +1,7 @@
 package utils;
 
 public class Validador {
-    public static boolean validarNif(String nif) {
-        return nif != null && nif.matches("\\d{9}");
-    }
+
     /**
      * Valida se um nome contém pelo menos o primeiro e último nome (separados por espaço)
      * e se é constituído unicamente por letras (incluindo acentuadas).
@@ -13,8 +11,6 @@ public class Validador {
             return false;
         }
 
-        // Retirámos a verificação do "partes.length < 2".
-        // Agora apenas valida se tem letras e/ou espaços.
         return nome.matches("^[a-zA-ZÀ-ÿ\\s]+$");
     }
 

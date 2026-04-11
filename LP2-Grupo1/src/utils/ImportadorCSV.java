@@ -252,28 +252,32 @@ public class ImportadorCSV {
         String caminho = pastaBase + java.io.File.separator + "cursos.csv";
         int count = 0;
 
-        // Primeira passagem para contar o número de cursos (para criar o array com o tamanho certo)
+        // 1ª Passagem: Conta apenas as linhas que são válidas
         try (BufferedReader br = new BufferedReader(new FileReader(caminho))) {
-            br.readLine(); // Ignorar o cabeçalho
-            while (br.readLine() != null) count++;
+            br.readLine();
+            String linha;
+            while ((linha = br.readLine()) != null) {
+                if (!linha.trim().isEmpty() && linha.contains(";")) count++;
+            }
         } catch (IOException e) {
-            return new String[0]; // Retorna array vazio se não houver ficheiro
+            return new String[0];
         }
 
         String[] cursos = new String[count];
 
-        // Segunda passagem para extrair a sigla e o nome
+        // 2ª Passagem: Extrai os dados em segurança
         try (BufferedReader br = new BufferedReader(new FileReader(caminho))) {
             br.readLine();
             String linha;
             int i = 0;
             while ((linha = br.readLine()) != null) {
-                if (linha.trim().isEmpty()) continue;
+                if (linha.trim().isEmpty() || !linha.contains(";")) continue;
                 String[] dados = linha.split(";", -1);
 
-                // dados[0] é a Sigla, dados[1] é o Nome
-                cursos[i] = dados[0].trim() + " - " + dados[1].trim();
-                i++;
+                if (dados.length >= 2 && i < count) {
+                    cursos[i] = dados[0].trim() + " - " + dados[1].trim();
+                    i++;
+                }
             }
         } catch (IOException e) {
             System.out.println(">> AVISO: Não foi possível ler o ficheiro de cursos.");
@@ -344,11 +348,18 @@ public class ImportadorCSV {
             while ((linha = br.readLine()) != null) {
                 if (linha.trim().isEmpty()) continue;
                 String[] dados = linha.split(";", -1);
-                sb.append("Sigla: ").append(dados[0]).append(" | Nome: ").append(dados[1])
-                        .append(" | Ano: ").append(dados[2]).append(" | Docente: ").append(dados[3])
-                        .append(" | Curso: ").append(dados[4]).append("\n");
+
+                if (dados.length >= 5) {
+                    sb.append("Sigla: ").append(dados[0].trim())
+                            .append(" | Nome: ").append(dados[1].trim())
+                            .append(" | Ano: ").append(dados[2].trim())
+                            .append(" | Docente: ").append(dados[3].trim())
+                            .append(" | Curso: ").append(dados[4].trim()).append("\n");
+                }
             }
-        } catch (Exception e) { return ">> Erro ao ler ficheiro de UCs."; }
+        } catch (Exception e) {
+            return ">> Erro ao ler UCs: " + e.getClass().getSimpleName() + " - " + e.getMessage();
+        }
         return sb.toString();
     }
 
@@ -356,15 +367,21 @@ public class ImportadorCSV {
         String caminho = pastaBase + java.io.File.separator + "cursos.csv";
         StringBuilder sb = new StringBuilder("\n--- LISTA DE CURSOS ---\n");
         try (java.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader(caminho))) {
-            br.readLine();
+            br.readLine(); // Ignorar cabeçalho
             String linha;
             while ((linha = br.readLine()) != null) {
                 if (linha.trim().isEmpty()) continue;
                 String[] dados = linha.split(";", -1);
-                sb.append("Sigla: ").append(dados[0]).append(" | Nome: ").append(dados[1])
-                        .append(" | Departamento: ").append(dados[2]).append("\n");
+
+                if (dados.length >= 3) {
+                    sb.append("Sigla: ").append(dados[0].trim())
+                            .append(" | Nome: ").append(dados[1].trim())
+                            .append(" | Departamento: ").append(dados[2].trim()).append("\n");
+                }
             }
-        } catch (Exception e) { return ">> Erro ao ler ficheiro de Cursos."; }
+        } catch (Exception e) {
+            return ">> Erro ao ler Cursos: " + e.getClass().getSimpleName() + " - " + e.getMessage();
+        }
         return sb.toString();
     }
 // ==========================================
@@ -449,5 +466,65 @@ public class ImportadorCSV {
             }
         } catch (Exception ex) {}
     }
+    /**
+     * Lê o ficheiro de UCs e devolve um array com "SIGLA - Nome".
+     */
+    public static String[] obterListaUcs(String pastaBase) {
+        String caminho = pastaBase + java.io.File.separator + "ucs.csv";
+        java.util.List<String> lista = new java.util.ArrayList<>();
+        try (BufferedReader br = new BufferedReader(new FileReader(caminho))) {
+            br.readLine(); // Ignorar cabeçalho
+            String linha;
+            while ((linha = br.readLine()) != null) {
+                if (linha.trim().isEmpty() || !linha.contains(";")) continue;
+                String[] dados = linha.split(";", -1);
+                if (dados.length >= 2) {
+                    lista.add(dados[0].trim() + " - " + dados[1].trim());
+                }
+            }
+        } catch (IOException e) {
+            return new String[0];
+        }
+        return lista.toArray(new String[0]);
+    }
+    /**
+     * Lista todas as UCs de um determinado curso, agrupando-as por Ano Curricular.
+     */
+    public static String listarUcsPorCurso(String siglaCurso, String pastaBase) {
+        String caminho = pastaBase + java.io.File.separator + "ucs.csv";
+        java.util.Map<Integer, java.util.List<String>> ucsPorAno = new java.util.TreeMap<>();
 
+        try (java.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader(caminho))) {
+            br.readLine(); // Ignora o cabeçalho
+            String linha;
+            while ((linha = br.readLine()) != null) {
+                if (linha.trim().isEmpty()) continue;
+                String[] dados = linha.split(";", -1);
+
+                if (dados.length >= 5 && dados[4].trim().equalsIgnoreCase(siglaCurso)) {
+                    try {
+                        int ano = Integer.parseInt(dados[2].trim());
+                        ucsPorAno.putIfAbsent(ano, new java.util.ArrayList<>());
+                        ucsPorAno.get(ano).add("[" + dados[0].trim() + "] " + dados[1].trim() + " (Doc. Resp: " + dados[3].trim() + ")");
+                    } catch (NumberFormatException ex) {}
+                }
+            }
+        } catch (Exception e) {
+            return ">> Erro ao ler UCs: " + e.getClass().getSimpleName() + " - " + e.getMessage();
+        }
+
+        if (ucsPorAno.isEmpty()) {
+            return ">> Não existem Unidades Curriculares associadas ao curso " + siglaCurso + ".";
+        }
+
+        StringBuilder sb = new StringBuilder("\n--- PLANO DE ESTUDOS: " + siglaCurso + " ---\n");
+        for (java.util.Map.Entry<Integer, java.util.List<String>> entry : ucsPorAno.entrySet()) {
+            sb.append(">> Ano ").append(entry.getKey()).append(":\n");
+            for (String ucStr : entry.getValue()) {
+                sb.append("   - ").append(ucStr).append("\n");
+            }
+        }
+
+        return sb.toString();
+    }
 }

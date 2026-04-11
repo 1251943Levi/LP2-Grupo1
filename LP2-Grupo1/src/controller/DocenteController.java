@@ -15,7 +15,7 @@ public class DocenteController {
     private DocenteView view;
 
     /** Caminho atualizado para a raiz do projeto */
-    private static final String PASTA_BD = "bd";
+    private static final String PASTA_BD = "LP2-Grupo1/bd";
 
     public DocenteController(RepositorioDados repo, Docente docente) {
         this.repo = repo;
