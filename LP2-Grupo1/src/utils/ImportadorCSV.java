@@ -69,8 +69,25 @@ public class ImportadorCSV {
                     int numMec = Integer.parseInt(dados[0].trim());
                     int anoInscricao = Integer.parseInt(dados[6].trim());
                     Estudante e = new Estudante(numMec, email, hashGuardado, dados[2].trim(), dados[3].trim(), dados[4].trim(), dados[5].trim(), anoInscricao);
+
+                    /* *
+                     * Este bloco garante que o sistema não de erro ao ler estudantes de ficheiros CSV antigos.
+                     * Verifica a existência e validade de colunas adicionadas em versões mais recentes do sistema:
+                     * - Índice 7 (Sigla do Curso): Necessário para associar o aluno a um curso e validar quórum.
+                     * - Índice 8 (Saldo Devedor): Necessário para a gestão financeira e bloqueio de progressões.
+                     * - Índice 9 (Ano Curricular): Necessário para o avanço de ano letivo.
+                     * * O 'dados.length > X' impede o 'IndexOutOfBoundsException' em linhas curtas.
+                     * O '!dados[X].trim().isEmpty()' previne erros de conversão (NumberFormatException) em colunas vazias.
+                     */
+
+                    if (dados.length > 7 && !dados[7].trim().isEmpty()) {
+                        e.setSiglaCurso(dados[7].trim());
+                    }
                     if (dados.length > 8 && !dados[8].trim().isEmpty()) {
                         e.setSaldoDevedor(Double.parseDouble(dados[8].trim()));
+                    }
+                    if (dados.length > 9 && !dados[9].trim().isEmpty()) {
+                        e.setAnoCurricular(Integer.parseInt(dados[9].trim()));
                     }
                     carregarDadosAcademicos(e, pastaBase); // Garante que carrega notas e inscrições
                     return e;
@@ -143,7 +160,17 @@ public class ImportadorCSV {
                 String[] dados = linha.split(";", -1);
                 if (dados[0].trim().equalsIgnoreCase(sigla)) {
                     Departamento dep = procurarDepartamento(dados[2].trim(), pastaBase);
-                    return new Curso(dados[0].trim(), dados[1].trim(), dep);
+
+                    //Para ler o Valor (euro) de cada curso
+                    Curso cursoEncontrado = new Curso(dados[0].trim(), dados[1].trim(), dep);
+
+                    // Le coluna da propina (índice 3) e aplica ao curso
+                    if (dados.length > 3 && !dados[3].trim().isEmpty()) {
+                        cursoEncontrado.setValorPropinaAnual(Double.parseDouble(dados[3].trim()));
+                    }
+
+                    // Devolve o curso  com a propina correta
+                    return cursoEncontrado;
                 }
             }
         } catch (IOException e) {}
@@ -180,12 +207,14 @@ public class ImportadorCSV {
                     int anoInscricao = Integer.parseInt(dados[6].trim());
                     Estudante e = new Estudante(ficheiroNum, dados[1].trim(), "", dados[2].trim(), dados[3].trim(), dados[4].trim(), dados[5].trim(), anoInscricao);
 
-                    /** Verifica  se a linha do ficheiro CSV possui a coluna do saldo devedor (índice 8).
-                     * O 'dados.length > 8' evita erros de 'IndexOutOfBoundsException' ao ler estudantes muito antigos.
-                     * O '!dados[8].trim().isEmpty()' evita erros de formatação caso a coluna exista mas esteja vazia.
-                     */
+                    if (dados.length > 7 && !dados[7].trim().isEmpty()) {
+                        e.setSiglaCurso(dados[7].trim());
+                    }
                     if (dados.length > 8 && !dados[8].trim().isEmpty()) {
                         e.setSaldoDevedor(Double.parseDouble(dados[8].trim()));
+                    }
+                    if (dados.length > 9 && !dados[9].trim().isEmpty()) {
+                        e.setAnoCurricular(Integer.parseInt(dados[9].trim()));
                     }
                     carregarDadosAcademicos(e, pastaBase);
                     return e;
@@ -248,8 +277,14 @@ public class ImportadorCSV {
                 Estudante e = new Estudante(numMec, dados[1].trim(), "", dados[2].trim(),
                         dados[3].trim(), dados[4].trim(), dados[5].trim(), anoInsc);
 
+                if (dados.length > 7 && !dados[7].trim().isEmpty()) {
+                    e.setSiglaCurso(dados[7].trim());
+                }
                 if (dados.length > 8 && !dados[8].trim().isEmpty()) {
                     e.setSaldoDevedor(Double.parseDouble(dados[8].trim()));
+                }
+                if (dados.length > 9 && !dados[9].trim().isEmpty()) {
+                    e.setAnoCurricular(Integer.parseInt(dados[9].trim()));
                 }
 
                 carregarDadosAcademicos(e, pastaBase);
