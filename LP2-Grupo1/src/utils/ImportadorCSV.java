@@ -68,7 +68,12 @@ public class ImportadorCSV {
                 if (dados[1].trim().equalsIgnoreCase(email)) {
                     int numMec = Integer.parseInt(dados[0].trim());
                     int anoInscricao = Integer.parseInt(dados[6].trim());
-                    return new Estudante(numMec, email, hashGuardado, dados[2].trim(), dados[3].trim(), dados[4].trim(), dados[5].trim(), anoInscricao);
+                    Estudante e = new Estudante(numMec, email, hashGuardado, dados[2].trim(), dados[3].trim(), dados[4].trim(), dados[5].trim(), anoInscricao);
+                    //Extrair o saldo devedor da coluna 9 (índice 8)
+                    double saldoDevedor = (dados.length > 8 && !dados[8].trim().isEmpty()) ? Double.parseDouble(dados[8].trim()) : 0.0;
+                    e.setSaldoDevedor(saldoDevedor);
+
+                    return e;
                 }
             }
         } catch (IOException e) {}
@@ -136,7 +141,9 @@ public class ImportadorCSV {
                 String[] dados = linha.split(";", -1);
                 if (dados[0].trim().equalsIgnoreCase(sigla)) {
                     Departamento dep = procurarDepartamento(dados[2].trim(), pastaBase);
-                    return new Curso(dados[0].trim(), dados[1].trim(), dep);
+                    double propina = (dados.length > 3 && !dados[3].trim().isEmpty()) ? Double.parseDouble(dados[3].trim()) : 0.0;
+
+                    return new Curso(dados[0].trim(), dados[1].trim(), dep, propina);
                 }
             }
         } catch (IOException e) {}
@@ -171,7 +178,13 @@ public class ImportadorCSV {
                 int ficheiroNum = Integer.parseInt(dados[0].trim());
                 if (ficheiroNum == numMec) {
                     int anoInscricao = Integer.parseInt(dados[6].trim());
-                    return new Estudante(ficheiroNum, dados[1].trim(), "", dados[2].trim(), dados[3].trim(), dados[4].trim(), dados[5].trim(), anoInscricao);
+                    Estudante e = new Estudante(ficheiroNum, dados[1].trim(), "", dados[2].trim(), dados[3].trim(), dados[4].trim(), dados[5].trim(), anoInscricao);
+
+                    //Extrair o saldo devedor
+                    double saldoDevedor = (dados.length > 8 && !dados[8].trim().isEmpty()) ? Double.parseDouble(dados[8].trim()) : 0.0;
+                    e.setSaldoDevedor(saldoDevedor);
+
+                    return e;
                 }
             }
         } catch (IOException | NumberFormatException e) {}
@@ -418,6 +431,10 @@ public class ImportadorCSV {
                 int numMec = Integer.parseInt(dados[0].trim());
                 int anoInsc = Integer.parseInt(dados[6].trim());
                 Estudante e = new Estudante(numMec, dados[1].trim(), "", dados[2].trim(), dados[3].trim(), dados[4].trim(), dados[5].trim(), anoInsc);
+
+                // Ligar o saldo devedor às estatísticas
+                double saldoDevedor = (dados.length > 8 && !dados[8].trim().isEmpty()) ? Double.parseDouble(dados[8].trim()) : 0.0;
+                e.setSaldoDevedor(saldoDevedor);
 
                 // 3. Carregar as notas deste estudante
                 carregarAvaliacoesDoEstudante(e, pastaBase);
