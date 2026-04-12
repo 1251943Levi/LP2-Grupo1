@@ -1,10 +1,10 @@
 
-import controller.MainController;
+import view.MainView;
 
 public class Main {
     public static void main(String[] args) {
 
-        MainController mc = new MainController();
-        mc.iniciarSistema();
+        MainView vistaPrincipal = new MainView();
+        vistaPrincipal.iniciar();
     }
 }
