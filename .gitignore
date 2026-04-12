@@ -29,3 +29,15 @@
 /out/production/LP2-Grupo1/view/GestorView.class
 /out/production/LP2-Grupo1/view/MainView.class
 /out/production/LP2-Grupo1/Main.class
+
+# Pasta de configurações do IntelliJ
+.idea/
+*.iml
+
+# Pasta de ficheiros compilados (binários)
+out/
+bin/
+*.class
+
+# Ficheiros temporários de conflitos
+*.orig

@@ -277,4 +277,70 @@ public class ExportadorCSV {
             System.err.println(">> ERRO: Falha ao reescrever ficheiro após atualização.");
         }
     }
+
+    /**
+     * Adiciona uma nova linha de texto ao final de um ficheiro CSV (modo append).
+     * * <p>Esta operação corresponde à ação de "Create" (Criar) num CRUD.
+     * Abre o ficheiro sem apagar o seu conteúdo anterior e insere os novos dados.
+     * É ideal para registar um novo Estudante, uma nova UC ou um novo Curso.</p>
+     *
+     * @param nomeFicheiro O nome do ficheiro onde os dados serão guardados (ex: "ucs.csv").
+     * @param novaLinha    A string contendo os dados já formatados e separados por ponto e vírgula.
+     * @param pastaBase    O caminho da pasta onde o ficheiro se encontra (ex: "bd").
+     */
+    public static void adicionarLinhaCSV(String nomeFicheiro, String novaLinha, String pastaBase) {
+        String caminho = pastaBase + java.io.File.separator + nomeFicheiro;
+        try (java.io.FileWriter fw = new java.io.FileWriter(caminho, true);
+             java.io.BufferedWriter bw = new java.io.BufferedWriter(fw);
+             java.io.PrintWriter out = new java.io.PrintWriter(bw)) {
+            out.println(novaLinha);
+        } catch (java.io.IOException e) {
+            System.out.println(">> Erro ao guardar em " + nomeFicheiro);
+        }
+    }
+
+    /**
+     * Remove uma linha específica de um ficheiro CSV com base num identificador único.
+     * * <p>Esta operação corresponde às ações de "Delete" (Apagar) e "Update" (Atualizar) num CRUD.
+     * Como não é possível apagar diretamente uma linha num ficheiro de texto, este método
+     * utiliza uma abordagem segura: cria um ficheiro temporário, copia todo o conteúdo do original
+     * (exceto a linha a apagar) e, no final, substitui o ficheiro original pelo temporário.</p>
+     * * <p><b>Nota para Atualizações (Update):</b> Para editar um registo, utilize este método
+     * primeiro para "apagar" o registo antigo e, logo a seguir, chame o método
+     * {@link #adicionarLinhaCSV(String, String, String)} para gravar os novos dados.</p>
+     *
+     * @param nomeFicheiro O nome do ficheiro de onde a linha será removida (ex: "ucs.csv").
+     * @param idAProcurar  O identificador (ex: Sigla ou Número) que se encontra na primeira coluna da linha a apagar.
+     * @param pastaBase    O caminho da pasta onde o ficheiro se encontra (ex: "bd").
+     * @return {@code true} se a linha foi encontrada e removida com sucesso; {@code false} caso contrário.
+     */
+    public static boolean removerLinhaCSV(String nomeFicheiro, String idAProcurar, String pastaBase) {
+        String caminho = pastaBase + java.io.File.separator + nomeFicheiro;
+        java.io.File ficheiroOriginal = new java.io.File(caminho);
+        java.io.File ficheiroTemporario = new java.io.File(pastaBase + java.io.File.separator + "temp.csv");
+        boolean encontrou = false;
+
+        try (java.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader(ficheiroOriginal));
+             java.io.PrintWriter pw = new java.io.PrintWriter(new java.io.FileWriter(ficheiroTemporario))) {
+
+            String linha;
+            while ((linha = br.readLine()) != null) {
+                if (linha.trim().isEmpty()) continue;
+                String[] dados = linha.split(";", -1);
+                if (dados[0].equalsIgnoreCase(idAProcurar)) {
+                    encontrou = true;
+                    continue;
+                }
+                pw.println(linha);
+            }
+        } catch (Exception e) { return false; }
+
+        if (encontrou) {
+            ficheiroOriginal.delete();
+            ficheiroTemporario.renameTo(ficheiroOriginal);
+        } else {
+            ficheiroTemporario.delete();
+        }
+        return encontrou;
+    }
 }
