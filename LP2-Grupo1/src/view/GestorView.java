@@ -11,8 +11,13 @@ public class GestorView {
         mostrarMensagem("3 - Gerir Cursos");
         mostrarMensagem("4 - Ver Estatísticas");
         mostrarMensagem("5 - Avançar Ano Letivo");
+        mostrarMensagem("6 - Listar Devedores");
         mostrarMensagem("0 - Sair / Logout");
-        try { return Integer.parseInt(pedirInput("Opção")); } catch (Exception e) { return -1; }
+        try {
+            return Integer.parseInt(pedirInput("Opção"));
+        } catch (Exception e) {
+            return -1;
+        }
     }
 
     public int mostrarMenuCRUD(String entidade) {
@@ -28,7 +33,11 @@ public class GestorView {
             mostrarMensagem("5 - Listar UCs do Curso por Ano");
         }
         mostrarMensagem("0 - Voltar");
-        try { return Integer.parseInt(pedirInput("Opção")); } catch (Exception e) { return -1; }
+        try {
+            return Integer.parseInt(pedirInput("Opção"));
+        } catch (Exception e) {
+            return -1;
+        }
     }
 
     public int mostrarMenuEstatisticas() {
@@ -36,7 +45,11 @@ public class GestorView {
         mostrarMensagem("1 - Média Global Institucional");
         mostrarMensagem("2 - Melhor Aluno");
         mostrarMensagem("0 - Voltar");
-        try { return Integer.parseInt(pedirInput("Opção")); } catch (Exception e) { return -1; }
+        try {
+            return Integer.parseInt(pedirInput("Opção"));
+        } catch (Exception e) {
+            return -1;
+        }
     }
 
     public String pedirInput(String msg) {
@@ -161,7 +174,7 @@ public class GestorView {
         mostrarMensagem("\n--- SELEÇÃO DE CURSO ---");
         for (int i = 0; i < cursos.length; i++) {
             if (cursos[i] != null) {
-                 mostrarMensagem((i + 1) + " - " + cursos[i]);
+                mostrarMensagem((i + 1) + " - " + cursos[i]);
             }
         }
     }
@@ -223,4 +236,11 @@ public class GestorView {
         }
     }
 
+    public double pedirValorDouble(String msg) {
+        try {
+            return Double.parseDouble(pedirInput(msg));
+        } catch (Exception e) {
+            return 0.0;
+        }
+    }
 }
