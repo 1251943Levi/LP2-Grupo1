@@ -107,11 +107,12 @@ public class ExportadorCSV {
         adicionarCredencial(estudante.getEmail(), estudante.getPassword(), "ESTUDANTE", pastaBase);
 
         String caminho = pastaBase + File.separator + "estudantes.csv";
-        garantirFicheiroECabecalho(caminho, "numMec;email;nome;nif;morada;dataNascimento;anoInscricao;siglaCurso;saldoDevedor");
+        garantirFicheiroECabecalho(caminho, "numMec;email;nome;nif;morada;dataNascimento;anoInscricao;siglaCurso;saldoDevedor;anoCurricular");
 
         String linha = estudante.getNumeroMecanografico() + ";" + estudante.getEmail() + ";" +
                 estudante.getNome() + ";" + estudante.getNif() + ";" + estudante.getMorada() + ";" +
-                estudante.getDataNascimento() + ";" + estudante.getAnoPrimeiraInscricao() + ";" + siglaCurso + ";" + estudante.getSaldoDevedor();
+                estudante.getDataNascimento() + ";" + estudante.getAnoPrimeiraInscricao() + ";" + siglaCurso + ";" + estudante.getSaldoDevedor() + ";" +
+                estudante.getAnoCurricular();
 
         adicionarLinhaCSV(caminho, linha);
     }
@@ -189,10 +190,10 @@ public class ExportadorCSV {
      */
     public static void adicionarCurso(Curso curso, String pastaBase) {
         String caminho = pastaBase + File.separator + "cursos.csv";
-        garantirFicheiroECabecalho(caminho, "sigla;nome;siglaDepartamento");
+        garantirFicheiroECabecalho(caminho, "sigla;nome;siglaDepartamento:valorPropina");
 
         String siglaDep = (curso.getDepartamento() != null) ? curso.getDepartamento().getSigla() : "N/A";
-        String linha = curso.getSigla() + ";" + curso.getNome() + ";" + siglaDep;
+        String linha = curso.getSigla() + ";" + curso.getNome() + ";" + siglaDep + ";" + curso.getValorPropinaAnual();
 
         adicionarLinhaCSV(caminho, linha);
     }
@@ -249,7 +250,8 @@ public class ExportadorCSV {
                     String novaLinha = estudanteAtualizado.getNumeroMecanografico() + ";" + estudanteAtualizado.getEmail() + ";" +
                             estudanteAtualizado.getNome() + ";" + estudanteAtualizado.getNif() + ";" +
                             estudanteAtualizado.getMorada() + ";" + estudanteAtualizado.getDataNascimento() + ";" +
-                            estudanteAtualizado.getAnoPrimeiraInscricao() + ";" + siglaCurso + ";" + estudanteAtualizado.getSaldoDevedor();
+                            estudanteAtualizado.getAnoPrimeiraInscricao() + ";" + siglaCurso + ";" + estudanteAtualizado.getSaldoDevedor() + ";"+
+                            estudanteAtualizado.getAnoCurricular();
                     linhas.add(novaLinha);
                     atualizado = true;
                 } else {
