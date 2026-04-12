@@ -78,5 +78,35 @@ public class EstudanteController {
         // Grava os dados do perfil no ficheiro de estudantes
         ExportadorCSV.atualizarEstudante(estudanteAtivo, PASTA_BD);
         view.mostrarMensagem("Dados atualizados com sucesso e guardados no sistema!");
+                /**
+                 * US01 - Gestão Financeira:
+                 * Permite ao estudante consultar a sua dívida atual e efetuar pagamentos totais ou parciais.
+                 * O sistema valida defensivamente se o valor inserido não excede a dívida real.
+                 * Em caso de sucesso matemático, deduz o valor e atualiza imediatamente o ficheiro
+                 * estudantes.csv usando o ExportadorCSV (Abordagem On-Demand).
+                 */
+
+                case 3:
+                    view.mostrarMensagem("\n--- DADOS FINANCEIROS ---");
+                    view.mostrarMensagem("Saldo Devedor Atual: " + String.format("%.2f", estudanteAtivo.getSaldoDevedor()) + "€");
+
+                    if (estudanteAtivo.getSaldoDevedor() > 0) {
+                        String input = view.pedirInputString("Introduza o valor a pagar (ou 0 para cancelar)");
+                        try {
+                            double pagamento = Double.parseDouble(input);
+                            if (pagamento > 0 && pagamento <= estudanteAtivo.getSaldoDevedor()) {
+                                estudanteAtivo.setSaldoDevedor(estudanteAtivo.getSaldoDevedor() - pagamento);
+                                ExportadorCSV.atualizarEstudante(estudanteAtivo, PASTA_BD);
+                                view.mostrarMensagem("Pagamento efetuado com sucesso!");
+                                view.mostrarMensagem("Novo Saldo Devedor: " + String.format("%.2f", estudanteAtivo.getSaldoDevedor()) + "€");
+                            } else if (pagamento > estudanteAtivo.getSaldoDevedor()) {
+                                view.mostrarMensagem("O valor introduzido é superior à dívida atual.");
+                            }
+                        } catch (NumberFormatException e) {
+                            view.mostrarMensagem("Valor inválido.");
+                        }
+                    }
+                    break;
+
     }
 }
