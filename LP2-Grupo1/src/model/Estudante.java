@@ -8,6 +8,7 @@ public class Estudante extends Utilizador {
     private int anoCurricular;
     private int anoFrequencia;
     private PercursoAcademico percurso;
+    private String siglaCurso;
 
     /**
      * Saldo devedor atual do estudante referente a propinas.
@@ -37,11 +38,13 @@ public class Estudante extends Utilizador {
     public int getAnoFrequencia() { return anoFrequencia; }
     public PercursoAcademico getPercurso() { return percurso; }
     public double getSaldoDevedor() { return SaldoDevedor;}
+    public String getSiglaCurso() { return siglaCurso; }
 
     // ---------- SETTERS ----------
     public void setAnoCurricular(int anoCurricular) { this.anoCurricular = anoCurricular; }
     public void setAnoFrequencia(int anoFrequencia) { this.anoFrequencia = anoFrequencia; }
     public void setSaldoDevedor(double saldoDevedor) { this.SaldoDevedor = saldoDevedor;}
+    public void setSiglaCurso(String siglaCurso) { this.siglaCurso = siglaCurso; }
 
     // ---------- MÉTODOS ----------
     @Override
