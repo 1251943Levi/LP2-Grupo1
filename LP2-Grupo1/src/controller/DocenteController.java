@@ -9,13 +9,12 @@ public class DocenteController {
     private RepositorioDados repo;
     private Docente docente;
     private DocenteView view;
-    private static final String PASTA_BD = "LP2-Grupo1/bd";
+    private static final String PASTA_BD = "bd";
 
     public DocenteController(RepositorioDados repo, Docente docente) {
         this.repo = repo;
         this.docente = docente;
         this.view = new DocenteView();
-        // Carregar as UCs que este docente leciona para filtrar alunos
         ImportadorCSV.carregarUcsDoDocente(this.docente, PASTA_BD);
     }
 
@@ -26,6 +25,7 @@ public class DocenteController {
             switch (opcao) {
                 case 1: listarMeusAlunos(); break;
                 case 2: lancarNotas(); break;
+                case 3: alterarPassword(); break;
                 case 0: correr = false; break;
                 default: view.mostrarMensagem("Opção inválida.");
             }
@@ -92,6 +92,23 @@ public class DocenteController {
             view.mostrarMensagem("Nota registada!");
         } else {
             view.mostrarMensagem("Aluno não encontrado.");
+        }
+    }
+
+    private void alterarPassword() {
+        view.mostrarMensagem("\n--- ALTERAR PASSWORD ---");
+        String novaPass = view.pedirInput("Introduza a nova Password (ou prima Enter para cancelar)");
+
+        if (!novaPass.trim().isEmpty()) {
+            String passSegura = utils.SegurancaPasswords.gerarCredencialMista(novaPass);
+
+            docente.setPassword(passSegura);
+
+            ExportadorCSV.atualizarPasswordCentralizada(docente.getEmail(), passSegura, PASTA_BD);
+
+            view.mostrarMensagem("Password alterada com sucesso!");
+        } else {
+            view.mostrarMensagem("Operação cancelada. A password não foi alterada.");
         }
     }
 }

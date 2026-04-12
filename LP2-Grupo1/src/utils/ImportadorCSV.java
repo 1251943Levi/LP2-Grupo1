@@ -213,9 +213,6 @@ public class ImportadorCSV {
     }
 
 
-    // NOVOS MÉTODOS (PARA SUPORTAR ESTATÍSTICAS E CRUZAMENTO DE DADOS)
-
-
     /**
      * Carrega todos os estudantes para um array (útil para médias globais).
      */

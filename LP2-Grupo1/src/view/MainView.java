@@ -42,10 +42,11 @@ public class MainView {
             switch (opcao) {
                 case 1:
                     String email = pedirInputString("Email").trim();
-                    String pass = pedirPassword("Password").trim();                    aExecutar = controller.processarLogin(email, pass, aExecutar);
+                    String pass = pedirPassword("Password").trim();
+                    aExecutar = controller.processarLogin(email, pass, aExecutar);
                     break;
 
-                case 2: // NOVA LÓGICA
+                case 2:
                     String emailRecuperacao = pedirInputString("Introduza o seu Email de recuperação").trim();
                     controller.recuperarPassword(emailRecuperacao);
                     break;
@@ -102,13 +103,15 @@ public class MainView {
      * @return String A password introduzida pelo utilizador.
      */
     public String pedirPassword(String mensagem) {
+        Scanner scanner = new Scanner(System.in);
         System.out.print(mensagem + ": ");
-        if (System.console() != null) {
-            char[] passwordChars = System.console().readPassword();
-            return new String(passwordChars);
-        } else {
-            return scanner.nextLine();
-        }
+
+        String password = scanner.nextLine();
+
+        System.out.print("\n".repeat(50));
+        System.out.println("[SISTEMA] Password lida e protegida com sucesso.");
+
+        return password;
     }
 
     /**

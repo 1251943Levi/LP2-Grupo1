@@ -3,12 +3,14 @@ package controller;
 import model.*;
 import view.GestorView;
 import utils.*;
+import utils.EmailService;
+
 
 public class GestorController {
     private RepositorioDados repo;
     private Gestor gestor;
     private GestorView view;
-    private static final String PASTA_BD = "LP2-Grupo1/bd";
+    private static final String PASTA_BD = "bd";
 
     public GestorController(RepositorioDados repo, Gestor gestor) {
         this.repo = repo;
@@ -25,6 +27,7 @@ public class GestorController {
                 case 2: view.mostrarMensagem("Avançar Ano Letivo - Em desenvolvimento."); break;
                 case 3: mostrarMediaGlobal(); break;
                 case 4: mostrarMelhorAluno(); break;
+                case 5: alterarPassword(); break;
                 case 0: correr = false; break;
                 default: view.mostrarMensagem("Opção inválida.");
             }
@@ -73,22 +76,52 @@ public class GestorController {
 
     private void executarRegistoEstudante() {
         view.mostrarMensagem("\n--- REGISTAR ESTUDANTE ---");
+
         int numMec = Integer.parseInt(view.pedirInput("Nº Mecanográfico"));
         String nome = view.pedirInput("Nome");
-        String nif;
-        do { nif = view.pedirInput("NIF (9 dígitos)"); } while (!Validador.validarNif(nif));
-        String morada = view.pedirInput("Morada");
-        String dataNasc = view.pedirInput("Data Nasc. (DD/MM/AAAA)");
-        int anoInscricao = Integer.parseInt(view.pedirInput("Ano de Inscrição"));
-        String siglaCurso = view.pedirInput("Sigla do Curso");
 
-        String email = EmailGenerator.gerarEmailEstudante(numMec);
+        String nif;
+        do {
+            nif = view.pedirInput("NIF (9 dígitos)");
+        } while (!Validador.validarNif(nif));
+
+        String morada   = view.pedirInput("Morada");
+        String dataNasc = view.pedirInput("Data Nasc. (DD/MM/AAAA)");
+
+        String siglaCurso  = view.pedirInput("Sigla do Curso");
+        int    anoInscricao = java.time.Year.now().getValue();
+
+        String email    = EmailGenerator.gerarEmailEstudante(numMec);
+
         String passLimpa = PasswordGenerator.gerarPasswordSegura();
+
+       EmailService.enviarCredenciaisTodos(nome, email, passLimpa);
+
         String passSegura = SegurancaPasswords.gerarCredencialMista(passLimpa);
 
-        Estudante novo = new Estudante(numMec, email, passSegura, nome, nif, morada, dataNasc, anoInscricao);
+        passLimpa = null;
+
+        Estudante novo = new Estudante(
+                numMec, email, passSegura, nome, nif, morada, dataNasc, anoInscricao
+        );
         ExportadorCSV.adicionarEstudante(novo, PASTA_BD, siglaCurso);
 
-        view.mostrarMensagem("Estudante Registado! Email: " + email + " | Pass: " + passLimpa);
+        view.mostrarMensagem("Estudante registado com sucesso!");
+        view.mostrarMensagem("E-mail institucional : " + email);
+        view.mostrarMensagem("Credenciais enviadas.");
+    }
+
+    private void alterarPassword() {
+        view.mostrarMensagem("\n--- ALTERAR PASSWORD ---");
+        String novaPass = view.pedirInput("Introduza a nova Password (ou prima Enter para cancelar)");
+
+        if (!novaPass.trim().isEmpty()) {
+            String passSegura = utils.SegurancaPasswords.gerarCredencialMista(novaPass);
+            gestor.setPassword(passSegura);
+            ExportadorCSV.atualizarPasswordCentralizada(gestor.getEmail(), passSegura, PASTA_BD);
+            view.mostrarMensagem("Password alterada com sucesso!");
+        } else {
+            view.mostrarMensagem("Operação cancelada. A password não foi alterada.");
+        }
     }
 }

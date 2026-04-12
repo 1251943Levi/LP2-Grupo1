@@ -22,7 +22,7 @@ public class EstudanteController {
     private EstudanteView view;
 
     /** Caminho da diretoria da base de dados. */
-    private static final String PASTA_BD = "LP2-Grupo1/bd";
+    private static final String PASTA_BD = "bd";
 
     /**
      * Construtor do EstudanteController.
@@ -74,6 +74,10 @@ public class EstudanteController {
                     view.mostrarMensagem("Dados atualizados com sucesso e guardados no sistema!");
                     break;
 
+                case 3:
+                    alterarPassword();
+                    break;
+
                 case 0:
                     view.mostrarMensagem("A sair do portal do estudante...");
                     aExecutar = false;
@@ -82,6 +86,23 @@ public class EstudanteController {
                 default:
                     view.mostrarMensagem("Opção inválida. Tente novamente.");
             }
+        }
+    }
+
+    private void alterarPassword() {
+        view.mostrarMensagem("\n--- ALTERAR PASSWORD ---");
+        String novaPass = view.pedirPassword("Introduza a nova Password (ou prima Enter para cancelar)");
+
+        if (!novaPass.trim().isEmpty()) {
+            String passSegura = utils.SegurancaPasswords.gerarCredencialMista(novaPass);
+
+            estudanteAtivo.setPassword(passSegura);
+
+            utils.ExportadorCSV.atualizarPasswordCentralizada(estudanteAtivo.getEmail(), passSegura, PASTA_BD);
+
+            view.mostrarMensagem("Password alterada com sucesso!");
+        } else {
+            view.mostrarMensagem("Operação cancelada.");
         }
     }
 }
