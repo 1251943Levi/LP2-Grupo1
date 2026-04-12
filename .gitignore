@@ -29,3 +29,17 @@
 /out/production/LP2-Grupo1/view/GestorView.class
 /out/production/LP2-Grupo1/view/MainView.class
 /out/production/LP2-Grupo1/Main.class
+# Ficheiros de compilação (Código gerado)
+out/
+bin/
+*.class
+
+# Configurações locais do IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Ficheiros do Sistema Operativo (Mac / Windows)
+.DS_Store
+Thumbs.db
