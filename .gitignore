@@ -30,17 +30,17 @@
 /out/production/LP2-Grupo1/view/MainView.class
 /out/production/LP2-Grupo1/Main.class
 
-/.idea/workspace.xml
-/LP2-Grupo1/.idea/misc.xml
-/LP2-Grupo1/.idea/modules.xml
-/LP2-Grupo1/.idea/vcs.xml
-/LP2-Grupo1/.idea/workspace.xml
-/LP2-Grupo1/production/LP2-Grupo1/.idea/misc.xml
-/LP2-Grupo1/production/LP2-Grupo1/.idea/modules.xml
-/LP2-Grupo1/production/LP2-Grupo1/.idea/vcs.xml
-/LP2-Grupo1/production/LP2-Grupo1/.idea/workspace.xml
-/LP2-Grupo1/production/LP2-Grupo1/bd/dados.csv
-/LP2-Grupo1/production/LP2-Grupo1/controller/DocenteController.class
+# Pasta de configurações do IntelliJ
+.idea/
+*.iml
+
+# Pasta de ficheiros compilados (binários)
+out/
+bin/
+*.class
+
+# Ficheiros temporários de conflitos
+*.orig
 /LP2-Grupo1/production/LP2-Grupo1/controller/EstudanteController.class
 /LP2-Grupo1/production/LP2-Grupo1/controller/GestorController.class
 /LP2-Grupo1/production/LP2-Grupo1/controller/MainController.class
