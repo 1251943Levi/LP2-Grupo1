@@ -16,7 +16,7 @@ public class Curso {
      * Este valor é atribuído como saldo devedor aos estudantes no momento da sua primeira inscrição.
      */
     private double valorPropinaAnual = 0.0; //ver que valor meter
-
+    private String estado= "Inativo";
     // ---------- CONSTRUTOR ----------
     public Curso(String sigla, String nome, Departamento departamento) {
         this.sigla = sigla;
@@ -35,6 +35,7 @@ public class Curso {
     public UnidadeCurricular[] getUnidadesCurriculares() { return unidadesCurriculares; }
     public int getTotalUCs() { return totalUCs; }
     public double getValorPropinaAnual() { return valorPropinaAnual; }
+    public String getEstado() { return estado; }
 
     // ---------- SETTERS ----------
     public void setSigla(String sigla) { this.sigla = sigla; }
@@ -42,6 +43,7 @@ public class Curso {
     public void setDepartamento(Departamento departamento) { this.departamento = departamento; }
     public void setDocenteResponsavel(Docente docenteResponsavel) { this.docenteResponsavel = docenteResponsavel; }
     public void setValorPropinaAnual(double valorPropinaAnual) { this.valorPropinaAnual = valorPropinaAnual; }
+    public void setEstado(String estado) { this.estado = estado; }
 
     // ---------- MÉTODOS DE LÓGICA E AÇÃO ----------
 
