@@ -2,13 +2,21 @@ package controller;
 
 import model.Estudante;
 import model.RepositorioDados;
-
 import view.EstudanteView;
+import utils.ExportadorCSV;
+import utils.SegurancaPasswords;
 
+/**
+ * Controlador responsável por gerir o painel do Estudante.
+ */
 public class EstudanteController {
+
     private RepositorioDados repositorio;
     private Estudante estudanteAtivo;
     private EstudanteView view;
+
+    /** Caminho atualizado para a raiz do projeto */
+    private static final String PASTA_BD = "LP2-Grupo1/bd";
 
     public EstudanteController(RepositorioDados repositorio, Estudante estudanteAtivo) {
         this.repositorio = repositorio;
@@ -18,68 +26,57 @@ public class EstudanteController {
 
     public void iniciar() {
         boolean aExecutar = true;
-
         while (aExecutar) {
             int opcao = view.mostrarMenuPrincipal();
-
             switch (opcao) {
-                case 1:
-                    view.mostrarMensagem("\n--- DADOS PESSOAIS ---");
-                    view.mostrarMensagem("Nome: " + estudanteAtivo.getNome());
-                    view.mostrarMensagem("Email: " + estudanteAtivo.getEmail());
-                    view.mostrarMensagem("NIF: " + estudanteAtivo.getNif());
-                    view.mostrarMensagem("Morada: " + estudanteAtivo.getMorada());
-                    view.mostrarMensagem("Data de Nascimento: " + estudanteAtivo.getDataNascimento());
-                    break;
-
-                case 2:
-                    view.mostrarMensagem("\n--- ATUALIZAR DADOS ---");
-                    String novaMorada = view.pedirInputString("Introduza a nova Morada");
-                    estudanteAtivo.setMorada(novaMorada);
-
-                    String novaPass = view.pedirInputString("Introduza a nova Password (ou deixe em branco para manter a atual)");
-                    if (!novaPass.trim().isEmpty()) {
-                        estudanteAtivo.setPassword(novaPass);
-                    }
-
-                    view.mostrarMensagem("Dados atualizados com sucesso!");
-                    break;
-                //Futuro encremento
-               /* case 3:
-                    view.mostrarMensagem("\n--- CERTIFICADO DE HABILITAÇÕES ---");
-                    PercursoAcademico percurso = estudanteAtivo.getPercurso();
-
-                    if (percurso == null || percurso.getTotalAvaliacoes() == 0) {
-                        view.mostrarMensagem("Ainda não possui histórico de avaliações registadas.");
-                    } else {
-                        for (int i = 0; i < percurso.getTotalAvaliacoes(); i++) {
-                            Avaliacao aval = percurso.getHistoricoAvaliacoes()[i];
-                            double notaMaisAlta = -1.0;
-
-                            for (int j = 0; j < aval.getTotalAvaliacoesLancadas(); j++) {
-                                if (aval.getResultados()[j] > notaMaisAlta) {
-                                    notaMaisAlta = aval.getResultados()[j];
-                                }
-                            }
-
-                            if (notaMaisAlta != -1.0) {
-                                String estado = (notaMaisAlta >= 10.0) ? "APROVADO" : "REPROVADO";
-                                view.mostrarMensagem(aval.getUc().getSigla() + " | Melhor Nota: " + notaMaisAlta + " | " + estado);
-                            } else {
-                                view.mostrarMensagem(aval.getUc().getSigla() + " | Sem nota final registada");
-                            }
-                        }
-                    }
-                    break;*/
-
+                case 1: mostrarDadosPessoais(); break;
+                case 2: atualizarDadosPerfil(); break;
                 case 0:
-                    view.mostrarMensagem("A sair do portal do estudante...");
+                    view.mostrarDespedida();;
                     aExecutar = false;
                     break;
-
                 default:
-                    view.mostrarMensagem("Opção inválida. Tente novamente.");
+                    view.mostrarOpcaoInvalida();
             }
         }
+    }
+
+    /**
+     * Extraído do Case 1: Exibe as informações do perfil.
+     */
+    private void mostrarDadosPessoais() {
+        view.mostrarMensagem("\n--- DADOS PESSOAIS ---");
+        view.mostrarMensagem("Nome: " + estudanteAtivo.getNome());
+        view.mostrarMensagem("Email: " + estudanteAtivo.getEmail());
+        view.mostrarMensagem("NIF: " + estudanteAtivo.getNif());
+        view.mostrarMensagem("Morada: " + estudanteAtivo.getMorada());
+        view.mostrarMensagem("Data de Nascimento: " + estudanteAtivo.getDataNascimento());
+    }
+
+    /**
+     * Extraído do Case 2: Gere a atualização de morada e password.
+     */
+    private void atualizarDadosPerfil() {
+        view.mostrarMensagem("\n--- ATUALIZAR DADOS ---");
+
+        // Atualização de Morada
+        String novaMorada = view.pedirInputString("Introduza a nova Morada (ou prima Enter para manter)");
+        if (!novaMorada.trim().isEmpty()) {
+            estudanteAtivo.setMorada(novaMorada);
+        }
+
+        // Atualização de Password
+        String novaPass = view.pedirPassword("Introduza a nova Password (ou prima Enter para manter)");
+        if (!novaPass.trim().isEmpty()) {
+            String passSegura = SegurancaPasswords.gerarCredencialMista(novaPass);
+            estudanteAtivo.setPassword(passSegura);
+
+            // Grava na tabela central de credenciais
+            ExportadorCSV.atualizarPasswordCentralizada(estudanteAtivo.getEmail(), passSegura, PASTA_BD);
+        }
+
+        // Grava os dados do perfil no ficheiro de estudantes
+        ExportadorCSV.atualizarEstudante(estudanteAtivo, PASTA_BD);
+        view.mostrarMensagem("Dados atualizados com sucesso e guardados no sistema!");
     }
 }

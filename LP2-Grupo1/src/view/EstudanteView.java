@@ -13,7 +13,6 @@ public class EstudanteView {
         System.out.println("\n=== MENU ESTUDANTE ===");
         System.out.println("1 - Ver Dados Pessoais");
         System.out.println("2 - Atualizar Dados");
-        System.out.println("3 - Percurso Académico");
         System.out.println("0 - Sair / Logout");
         System.out.print("Escolha uma opção: ");
 
@@ -31,5 +30,22 @@ public class EstudanteView {
 
     public void mostrarMensagem(String mensagem) {
         System.out.println(">> " + mensagem);
+    }
+
+    public String pedirPassword(String mensagem) {
+        System.out.print(mensagem + ": ");
+        if (System.console() != null) {
+            char[] passwordChars = System.console().readPassword();
+            return new String(passwordChars);
+        } else {
+            return scanner.nextLine();
+        }
+    }
+    public void mostrarDespedida() {
+        mostrarMensagem("A sair do portal do estudante...");
+    }
+
+    public void mostrarOpcaoInvalida() {
+        mostrarMensagem("Opção inválida. Tente novamente.");
     }
 }
