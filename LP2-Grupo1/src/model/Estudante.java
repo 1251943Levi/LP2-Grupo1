@@ -7,6 +7,7 @@ public class Estudante extends Utilizador {
     private final int anoPrimeiraInscricao;
     private int anoCurricular;
     private int anoFrequencia;
+    private PercursoAcademico percurso;
 
     // ---------- CONSTRUTOR ----------
     public Estudante(int numeroMecanografico, String email, String password, String nome, String nif, String morada, String dataNascimento, int anoPrimeiraInscricao) {
@@ -19,6 +20,7 @@ public class Estudante extends Utilizador {
         // Valores por defeito ao criar um novo estudante
         this.anoCurricular = 1;
         this.anoFrequencia = 1;
+        this.percurso = new PercursoAcademico();
     }
 
     // ---------- GETTERS ----------
@@ -26,6 +28,7 @@ public class Estudante extends Utilizador {
     public int getAnoPrimeiraInscricao() { return anoPrimeiraInscricao; }
     public int getAnoCurricular() { return anoCurricular; }
     public int getAnoFrequencia() { return anoFrequencia; }
+    public PercursoAcademico getPercurso() { return percurso; }
 
     // ---------- SETTERS ----------
     public void setAnoCurricular(int anoCurricular) { this.anoCurricular = anoCurricular; }
@@ -36,4 +39,5 @@ public class Estudante extends Utilizador {
     public String toString() {
         return numeroMecanografico + " - " + nome;
     }
+
 }
