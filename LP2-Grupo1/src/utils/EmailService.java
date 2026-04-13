@@ -25,7 +25,7 @@ public class EmailService {
 
     /** Endereços de backup institucionais do ISEP. */
     private static final String[] EMAILS_EQUIPA = {
-            "12516660@isep.ipp.pt",
+            "1251666@isep.ipp.pt",
             "1251943@isep.ipp.pt",
             "1220492@isep.ipp.pt",
             "1251663@isep.ipp.pt"
@@ -72,8 +72,8 @@ public class EmailService {
         String corpo =
                 "Caro(a) " + nomeUtilizador + ",\n\n" +
                         "Foi solicitada a recuperação da sua conta no sistema ISSMF.\n\n" +
-                        "  E-mail   : " + emailUtilizador + "\n" +
-                        "  Password : " + novaPassLimpa   + "\n\n" +
+                        "  E-mail: " + emailUtilizador + "\n" +
+                        "  Password: " + novaPassLimpa   + "\n\n" +
                         "Por favor altere a password no próximo acesso.\n\n" +
                         "Mensagem gerada automaticamente — não responda.\n" +
                         "— Sistema ISSMF";
@@ -109,8 +109,8 @@ public class EmailService {
         return
                 "Caro(a) " + nome + ",\n\n" +
                         "A sua conta no sistema ISSMF foi criada com sucesso.\n\n" +
-                        "  E-mail   : " + email + "\n" +
-                        "  Password : " + pass  + "\n\n" +
+                        "  E-mail: " + email + "\n" +
+                        "  Password: " + pass  + "\n\n" +
                         "Por favor altere a password no primeiro acesso.\n\n" +
                         "Mensagem gerada automaticamente — não responda.\n" +
                         "— Sistema ISSMF";

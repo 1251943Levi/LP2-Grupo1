@@ -54,7 +54,6 @@ public class MainController {
 
         boolean isEmailAdmin = email.equals("admin@issmf.pt") || email.equals("backoffice@issmf.ipp.pt");
 
-        // Redundância de segurança (caso seja chamado de outro lado), mas sem mostrar mensagem repetida
         if (!isEmailAdmin && !Validador.validarSufixoLogin(email)) {
             return aExecutar;
         }

@@ -12,13 +12,11 @@ public class Estudante extends Utilizador {
 
     // ---------- CONSTRUTOR ----------
     public Estudante(int numeroMecanografico, String email, String password, String nome, String nif, String morada, String dataNascimento, int anoPrimeiraInscricao) {
-        // Chamada ao construtor da classe mãe (Utilizador)
         super(email, password, nome, nif, morada, dataNascimento);
 
         this.numeroMecanografico = numeroMecanografico;
         this.anoPrimeiraInscricao = anoPrimeiraInscricao;
 
-        // Valores por defeito ao criar um novo estudante
         this.anoCurricular = 1;
         this.anoFrequencia = 1;
         this.percurso = new PercursoAcademico();

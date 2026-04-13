@@ -416,7 +416,6 @@ public class ExportadorCSV {
                 if (linha.trim().isEmpty()) continue;
                 String[] dados = linha.split(";", -1);
 
-                // Coluna 7 é a siglaCurso, Coluna 9 é o anoCurricular
                 if (dados.length > 7 && dados[7].trim().equalsIgnoreCase(siglaCurso)) {
                     int anoAluno = (dados.length > 9 && !dados[9].trim().isEmpty()) ? Integer.parseInt(dados[9].trim()) : 1;
                     if (anoAluno == anoCurricular) {

@@ -24,13 +24,10 @@ public class MainView {
                 case 1:
                     String email = pedirInputString("Email").trim();
 
-                    // NOVA LÓGICA: O travão de UX!
-                    // Se o formato do email for inválido, paramos por aqui e voltamos ao menu.
                     if (!controller.validarFormatoEmailLogin(email)) {
                         break;
                     }
 
-                    // Só pede a password se o email passou no teste acima.
                     String pass = pedirPassword("Password").trim();
                     aExecutar = controller.processarLogin(email, pass, aExecutar);
                     break;

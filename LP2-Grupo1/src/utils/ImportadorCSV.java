@@ -29,7 +29,7 @@ public class ImportadorCSV {
         }
 
         try (BufferedReader br = new BufferedReader(new FileReader(ficheiro))) {
-            br.readLine(); // Ignorar cabeçalho
+            br.readLine();
             String linha;
             while ((linha = br.readLine()) != null) {
                 if (linha.trim().isEmpty()) continue;
@@ -215,7 +215,6 @@ public class ImportadorCSV {
                             return e;
                         }
                     } catch (NumberFormatException ex) {
-                        // Linha mal formatada, ignorar silenciosamente e tentar a próxima
                     }
                 }
             }
@@ -336,7 +335,7 @@ public class ImportadorCSV {
         String caminho = pastaBase + java.io.File.separator + "ucs.csv";
         StringBuilder sb = new StringBuilder("\n--- LISTA DE UNIDADES CURRICULARES ---\n");
         try (java.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader(caminho))) {
-            br.readLine(); // Ignorar cabeçalho
+            br.readLine();
             String linha;
             while ((linha = br.readLine()) != null) {
                 if (linha.trim().isEmpty()) continue;
@@ -360,7 +359,7 @@ public class ImportadorCSV {
         String caminho = pastaBase + java.io.File.separator + "cursos.csv";
         StringBuilder sb = new StringBuilder("\n--- LISTA DE CURSOS ---\n");
         try (java.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader(caminho))) {
-            br.readLine(); // Ignorar cabeçalho
+            br.readLine();
             String linha;
             while ((linha = br.readLine()) != null) {
                 if (linha.trim().isEmpty()) continue;
@@ -402,7 +401,6 @@ public class ImportadorCSV {
                         carregarDadosAcademicos(e, pastaBase);
                         lista[contador++] = e;
                     } catch (NumberFormatException ex) {
-                        // Ignorar linha mal formatada
                     }
                 }
             }
@@ -424,7 +422,6 @@ public class ImportadorCSV {
                 if (linha.trim().isEmpty()) continue;
                 String[] dados = linha.split(";", -1);
 
-                // Se a nota pertencer a este aluno, adicionamos ao percurso dele
                 if (Integer.parseInt(dados[0].trim()) == e.getNumeroMecanografico()) {
                     UnidadeCurricular uc = procurarUC(dados[1].trim(), pastaBase);
                     if (uc != null) {
@@ -435,7 +432,6 @@ public class ImportadorCSV {
                         double n2 = Double.parseDouble(dados[4].trim());
                         double n3 = Double.parseDouble(dados[5].trim());
 
-                        // Só regista se a nota for válida (>= 0)
                         if (n1 >= 0) av.adicionarResultado(n1);
                         if (n2 >= 0) av.adicionarResultado(n2);
                         if (n3 >= 0) av.adicionarResultado(n3);
@@ -454,7 +450,7 @@ public class ImportadorCSV {
         String caminho = pastaBase + java.io.File.separator + "ucs.csv";
         java.util.List<String> lista = new java.util.ArrayList<>();
         try (BufferedReader br = new BufferedReader(new FileReader(caminho))) {
-            br.readLine(); // Ignorar cabeçalho
+            br.readLine();
             String linha;
             while ((linha = br.readLine()) != null) {
                 if (linha.trim().isEmpty() || !linha.contains(";")) continue;
@@ -477,7 +473,7 @@ public class ImportadorCSV {
         java.util.Map<Integer, java.util.List<String>> ucsPorAno = new java.util.TreeMap<>();
 
         try (java.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader(caminho))) {
-            br.readLine(); // Ignora o cabeçalho
+            br.readLine();
             String linha;
             while ((linha = br.readLine()) != null) {
                 if (linha.trim().isEmpty()) continue;
@@ -561,7 +557,7 @@ public class ImportadorCSV {
             try (BufferedReader br = new BufferedReader(new FileReader(caminhoNotas))) {
                 br.readLine();
                 String linha;
-                int anoAtual = Year.now().getValue(); // Evita usar o ano 2026 fixo
+                int anoAtual = Year.now().getValue();
 
                 while ((linha = br.readLine()) != null) {
                     if (linha.trim().isEmpty()) continue;
@@ -601,13 +597,12 @@ public class ImportadorCSV {
         if (!ficheiro.exists()) return 0;
 
         try (BufferedReader br = new BufferedReader(new FileReader(ficheiro))) {
-            br.readLine(); // Ignorar cabeçalho
+            br.readLine();
             String linha;
             while ((linha = br.readLine()) != null) {
                 if (linha.trim().isEmpty()) continue;
                 String[] dados = linha.split(";", -1);
 
-                // Em ucs.csv o ano está no índice 2 e a siglaCurso no índice 4
                 if (dados.length >= 5) {
                     try {
                         int anoCurricular = Integer.parseInt(dados[2].trim());
@@ -617,7 +612,6 @@ public class ImportadorCSV {
                             contagem++;
                         }
                     } catch (NumberFormatException e) {
-                        // Ignorar linha mal formatada silenciosamente
                     }
                 }
             }
@@ -638,15 +632,14 @@ public class ImportadorCSV {
         if (!ficheiro.exists()) return false;
 
         try (BufferedReader br = new BufferedReader(new FileReader(ficheiro))) {
-            br.readLine(); // Ignorar cabeçalho
+            br.readLine();
             String linha;
             while ((linha = br.readLine()) != null) {
                 if (linha.trim().isEmpty()) continue;
                 String[] dados = linha.split(";", -1);
 
-                // Em estudantes.csv, a sigla do curso está no índice 7 (oitava coluna)
                 if (dados.length >= 8 && dados[7].trim().equalsIgnoreCase(siglaCurso)) {
-                    return true; // Encontrou logo um aluno, pode parar a pesquisa
+                    return true;
                 }
             }
         } catch (IOException e) {
