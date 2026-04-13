@@ -79,4 +79,22 @@ public class Validador {
         }
         return data.matches("^(0[1-9]|[12][0-9]|3[01])-(0[1-9]|1[0-2])-[0-9]{4}$");
     }
+
+    /**
+     * Valida se um NIF já se encontra registado na base de dados.
+     * @param nif O NIF a verificar.
+     * @param pastaBD O caminho da base de dados.
+     * @return true se o NIF já existir noutro aluno, false caso contrário.
+     */
+    public static boolean isNifDuplicado(String nif, String pastaBD) {
+        model.Estudante[] todos = ImportadorCSV.carregarTodosEstudantes(pastaBD);
+        if (todos == null) return false;
+
+        for (model.Estudante e : todos) {
+            if (e != null && e.getNif().equals(nif)) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

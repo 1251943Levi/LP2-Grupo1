@@ -16,7 +16,7 @@ public class EstudanteController {
     private RepositorioDados repositorio;
     private Estudante estudanteAtivo;
     private EstudanteView view;
-    private static final String PASTA_BD = "bd";
+    private static final String PASTA_BD = "LP2-Grupo1/bd";
 
     public EstudanteController(RepositorioDados repositorio, Estudante estudanteAtivo) {
         this.repositorio = repositorio;
@@ -45,71 +45,64 @@ public class EstudanteController {
                         consultarDadosFinanceiros();
                         break;
                     case 0:
-                        view.mostrarMensagem("A sair do portal do estudante...");
+                        view.mostrarDespedida();
                         repositorio.limparSessao(); // Garante que a sessão é limpa ao sair
                         aExecutar = false;
                         break;
                     default:
-                        view.mostrarMensagem("Opção inválida. Tente novamente.");
+                        view.mostrarOpcaoInvalida();
                 }
             } catch (Exception e) {
-                view.mostrarMensagem("Erro na leitura da opção. Por favor, insira um número válido.");
+                view.mostrarErroLeitura();
             }
         }
     }
 
     private void visualizarDadosPessoais() {
-        view.mostrarMensagem("\n--- DADOS PESSOAIS ---");
-        view.mostrarMensagem("Nome: " + estudanteAtivo.getNome());
-        view.mostrarMensagem("Email: " + estudanteAtivo.getEmail());
-        view.mostrarMensagem("NIF: " + estudanteAtivo.getNif());
-        view.mostrarMensagem("Morada: " + estudanteAtivo.getMorada());
-        view.mostrarMensagem("Data de Nascimento: " + estudanteAtivo.getDataNascimento());
+        // Envia o modelo diretamente para a View formatar
+        view.mostrarDadosPessoais(estudanteAtivo);
     }
 
     private void atualizarDadosPessoais() {
-        view.mostrarMensagem("\n--- ATUALIZAR DADOS ---");
-        String novaMorada = view.pedirInputString("Introduza a nova Morada (ou prima Enter para manter a atual)");
+        String novaMorada = view.pedirNovaMorada();
 
-        if (!novaMorada.trim().isEmpty()) {
+        if (!novaMorada.isEmpty()) {
             estudanteAtivo.setMorada(novaMorada);
             ExportadorCSV.atualizarEstudante(estudanteAtivo, PASTA_BD);
-            view.mostrarMensagem("Morada atualizada com sucesso e guardada no sistema!");
+            view.mostrarSucessoAtualizacaoMorada();
         } else {
-            view.mostrarMensagem("Nenhuma alteração efetuada na morada.");
+            view.mostrarSemAlteracaoMorada();
         }
     }
 
     private void alterarPassword() {
-        view.mostrarMensagem("\n--- ALTERAR PASSWORD ---");
-        String novaPass = view.pedirPassword("Introduza a nova Password (ou prima Enter para cancelar)");
+        String novaPass = view.pedirNovaPassword();
 
-        if (!novaPass.trim().isEmpty()) {
+        if (!novaPass.isEmpty()) {
             String passSegura = SegurancaPasswords.gerarCredencialMista(novaPass);
 
             estudanteAtivo.setPassword(passSegura);
             ExportadorCSV.atualizarPasswordCentralizada(estudanteAtivo.getEmail(), passSegura, PASTA_BD);
 
-            view.mostrarMensagem("Password alterada com sucesso!");
+            view.mostrarSucessoAtualizacaoPassword();
         } else {
-            view.mostrarMensagem("Operação cancelada. A password não foi alterada.");
+            view.mostrarCancelamentoPassword();
         }
     }
 
     private void consultarDadosFinanceiros() {
-        view.mostrarMensagem("\n--- DADOS FINANCEIROS ---");
         double divida = estudanteAtivo.getSaldoDevedor();
-        view.mostrarMensagem("O seu saldo devedor atual (propinas) é: " + divida + "€");
+        view.mostrarSaldoDevedor(divida);
 
         if (divida > 0) {
-            String resp = view.pedirInputString("Deseja efetuar o pagamento agora? (S/N)");
+            String resp = view.pedirConfirmacaoPagamento();
             if (resp.equalsIgnoreCase("S")) {
                 estudanteAtivo.efetuarPagamento(divida);
-                ExportadorCSV.atualizarEstudante(estudanteAtivo, "bd");
-                view.mostrarMensagem("Pagamento efetuado com sucesso. Saldo regularizado!");
+                ExportadorCSV.atualizarEstudante(estudanteAtivo, PASTA_BD);
+                view.mostrarSucessoPagamento();
             }
         } else {
-            view.mostrarMensagem("Não tem pagamentos pendentes. Bom trabalho!");
+            view.mostrarSemPagamentosPendentes();
         }
     }
 }

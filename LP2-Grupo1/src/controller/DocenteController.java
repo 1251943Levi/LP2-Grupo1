@@ -4,12 +4,15 @@ import model.*;
 import view.DocenteView;
 import utils.ImportadorCSV;
 import utils.ExportadorCSV;
+import utils.SegurancaPasswords;
 
 public class DocenteController {
     private RepositorioDados repo;
     private Docente docente;
     private DocenteView view;
-    private static final String PASTA_BD = "bd";
+
+    // Caminho da BD corrigido
+    private static final String PASTA_BD = "LP2-Grupo1/bd";
 
     public DocenteController(RepositorioDados repo, Docente docente) {
         this.repo = repo;
@@ -28,23 +31,23 @@ public class DocenteController {
                     case 2: executarLancamentoNotas(); break;
                     case 3: alterarPassword(); break;
                     case 0: correr = false; break;
-                    default: view.mostrarMensagem("Opção inválida.");
+                    default: view.mostrarOpcaoInvalida();
                 }
             } catch (Exception e) {
-                view.mostrarMensagem("Erro na leitura da opção. Tente novamente.");
+                view.mostrarErroLeituraOpcao();
             }
         }
     }
 
     private void listarMeusAlunos() {
-        view.mostrarMensagem("\n--- OS MEUS ALUNOS ---");
+        view.mostrarCabecalhoAlunos();
         Estudante[] todos = ImportadorCSV.carregarTodosEstudantes(PASTA_BD);
         double somaDocente = 0;
         int totalNotasDocente = 0;
         boolean encontrou = false;
 
         if (todos == null) {
-            view.mostrarMensagem("Erro ao carregar a lista de estudantes.");
+            view.mostrarErroCarregarAlunos();
             return;
         }
 
@@ -62,7 +65,7 @@ public class DocenteController {
 
             if (alunoDoDocente) {
                 encontrou = true;
-                view.mostrarMensagem("Nº: " + e.getNumeroMecanografico() + " | Aluno: " + e.getNome());
+                view.mostrarAluno(e.getNumeroMecanografico(), e.getNome());
 
                 for (int i = 0; i < e.getPercurso().getTotalAvaliacoes(); i++) {
                     Avaliacao av = e.getPercurso().getHistoricoAvaliacoes()[i];
@@ -77,9 +80,9 @@ public class DocenteController {
         }
 
         if (!encontrou) {
-            view.mostrarMensagem("Não tem alunos inscritos nas suas UCs.");
+            view.mostrarSemAlunos();
         } else if (totalNotasDocente > 0) {
-            view.mostrarMensagem("Média das suas disciplinas: " + String.format("%.2f", (somaDocente / totalNotasDocente)));
+            view.mostrarMedia(somaDocente / totalNotasDocente);
         }
     }
 
@@ -104,49 +107,50 @@ public class DocenteController {
         return null;
     }
 
-    /**
-     * Extraído do Case 2: Gere o processo de procura de aluno e gravação de notas.
-     */
     private void executarLancamentoNotas() {
-        view.mostrarMensagem("\n--- LANÇAMENTO DE NOTAS ---");
+        view.mostrarCabecalhoLancamentoNotas();
 
-        int numAluno = Integer.parseInt(view.pedirInput("Nº Aluno"));
-        String siglaUc = view.pedirInput("Sigla UC");
-        int anoLetivo = Integer.parseInt(view.pedirInput("Ano Letivo (ex: 2026)"));
+        try {
+            int numAluno = view.pedirNumeroAluno();
+            String siglaUc = view.pedirSiglaUc();
+            int anoLetivo = view.pedirAnoLetivo();
 
-        double nNormal = Double.parseDouble(view.pedirInput("Nota Normal (ou -1 se faltou)"));
-        double nRecurso = Double.parseDouble(view.pedirInput("Nota Recurso (ou -1 se faltou)"));
-        double nEspecial = Double.parseDouble(view.pedirInput("Nota Especial (ou -1 se faltou)"));
+            double nNormal = view.pedirNotaNormal();
+            double nRecurso = view.pedirNotaRecurso();
+            double nEspecial = view.pedirNotaEspecial();
 
-        Estudante aluno = ImportadorCSV.procurarEstudantePorNumMec(numAluno, PASTA_BD);
+            Estudante aluno = ImportadorCSV.procurarEstudantePorNumMec(numAluno, PASTA_BD);
 
-        if (aluno != null) {
-            UnidadeCurricular uc = new UnidadeCurricular(siglaUc, "UC Lançada", 1, docente);
-            Avaliacao aval = new Avaliacao(uc, anoLetivo);
+            if (aluno != null) {
+                UnidadeCurricular uc = new UnidadeCurricular(siglaUc, "UC Lançada", 1, docente);
+                Avaliacao aval = new Avaliacao(uc, anoLetivo);
 
-            aval.adicionarResultado(nNormal);
-            aval.adicionarResultado(nRecurso);
-            aval.adicionarResultado(nEspecial);
+                aval.adicionarResultado(nNormal);
+                aval.adicionarResultado(nRecurso);
+                aval.adicionarResultado(nEspecial);
 
-            ExportadorCSV.adicionarAvaliacao(aval, aluno.getNumeroMecanografico(), PASTA_BD);
+                ExportadorCSV.adicionarAvaliacao(aval, aluno.getNumeroMecanografico(), PASTA_BD);
 
-            view.mostrarMensagem("Notas lançadas e guardadas com sucesso na base de dados!");
-        } else {
-            view.mostrarMensagem("ERRO: Aluno com o número " + numAluno + " não encontrado.");
+                view.mostrarSucessoLancamento();
+            } else {
+                view.mostrarErroAlunoNaoEncontrado(numAluno);
+            }
+        } catch (NumberFormatException e) {
+            view.mostrarErroLeituraOpcao(); // Protege caso o Docente escreva letras em vez de números nas notas
         }
     }
 
     private void alterarPassword() {
-        view.mostrarMensagem("\n--- ALTERAR PASSWORD ---");
-        String novaPass = view.pedirInput("Introduza a nova Password (ou prima Enter para cancelar)");
+        view.mostrarCabecalhoAlterarPassword();
+        String novaPass = view.pedirNovaPassword();
 
         if (!novaPass.trim().isEmpty()) {
-            String passSegura = utils.SegurancaPasswords.gerarCredencialMista(novaPass);
+            String passSegura = SegurancaPasswords.gerarCredencialMista(novaPass);
             docente.setPassword(passSegura);
             ExportadorCSV.atualizarPasswordCentralizada(docente.getEmail(), passSegura, PASTA_BD);
-            view.mostrarMensagem("Password alterada com sucesso!");
+            view.mostrarSucessoAlteracaoPassword();
         } else {
-            view.mostrarMensagem("Operação cancelada. A password não foi alterada.");
+            view.mostrarCancelamentoPassword();
         }
     }
 }

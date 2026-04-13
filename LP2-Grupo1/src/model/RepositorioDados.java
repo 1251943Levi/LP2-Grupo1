@@ -39,8 +39,27 @@ public class RepositorioDados {
         return ucsAtuais < 5;
     }
 
-    public boolean podeEditarCurso(String siglaCurso, String pastaBase) {
-        boolean temEstudantes = utils.ImportadorCSV.existeEstudanteNoCurso(siglaCurso, pastaBase);
-        return !temEstudantes;
+    /**
+     * Validação de integridade: Impede a edição ou remoção de um curso
+     * se este já tiver estudantes matriculados ou UCs (e docentes) associados.
+     */
+    public boolean podeEditarCurso(String siglaCurso, String pastaBD) {
+        // 1. VERIFICAÇÃO DE ESTUDANTES
+        // Soma os alunos de todos os anos letivos possíveis (1º, 2º e 3º ano)
+        int alunosAno1 = utils.ExportadorCSV.contarEstudantesPorCursoEAno(siglaCurso, 1, pastaBD);
+        int alunosAno2 = utils.ExportadorCSV.contarEstudantesPorCursoEAno(siglaCurso, 2, pastaBD);
+        int alunosAno3 = utils.ExportadorCSV.contarEstudantesPorCursoEAno(siglaCurso, 3, pastaBD);
+
+        if ((alunosAno1 + alunosAno2 + alunosAno3) > 0) {
+            return false;
+        }
+        // 2. VERIFICAÇÃO DE UCs E DOCENTES
+        // Utiliza o ImportadorCSV para listar as UCs do curso
+        String ucsDoCurso = utils.ImportadorCSV.listarUcsPorCurso(siglaCurso, pastaBD);
+
+            if (ucsDoCurso != null && !ucsDoCurso.contains("Não existem UCs") && !ucsDoCurso.contains("Não foram encontradas")) {
+                return false; // Bloqueia: Existem UCs (e consequentemente docentes) associados
+            }
+            return true;
     }
 }
