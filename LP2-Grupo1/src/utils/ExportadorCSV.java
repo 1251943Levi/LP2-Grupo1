@@ -107,11 +107,12 @@ public class ExportadorCSV {
         adicionarCredencial(estudante.getEmail(), estudante.getPassword(), "ESTUDANTE", pastaBase);
 
         String caminho = pastaBase + File.separator + "estudantes.csv";
-        garantirFicheiroECabecalho(caminho, "numMec;email;nome;nif;morada;dataNascimento;anoInscricao;siglaCurso");
+        garantirFicheiroECabecalho(caminho, "numMec;email;nome;nif;morada;dataNascimento;anoInscricao;siglaCurso;saldoDevedor;anoCurricular");
 
         String linha = estudante.getNumeroMecanografico() + ";" + estudante.getEmail() + ";" +
                 estudante.getNome() + ";" + estudante.getNif() + ";" + estudante.getMorada() + ";" +
-                estudante.getDataNascimento() + ";" + estudante.getAnoPrimeiraInscricao() + ";" + siglaCurso;
+                estudante.getDataNascimento() + ";" + estudante.getAnoPrimeiraInscricao() + ";" + siglaCurso + ";" +
+                estudante.getSaldoDevedor() + ";" + estudante.getAnoCurricular();
 
         adicionarLinhaCSV(caminho, linha);
     }
@@ -189,10 +190,11 @@ public class ExportadorCSV {
      */
     public static void adicionarCurso(Curso curso, String pastaBase) {
         String caminho = pastaBase + File.separator + "cursos.csv";
-        garantirFicheiroECabecalho(caminho, "sigla;nome;siglaDepartamento");
+        garantirFicheiroECabecalho(caminho, "sigla;nome;siglaDepartamento;valorPropinaAnual;estado");
 
         String siglaDep = (curso.getDepartamento() != null) ? curso.getDepartamento().getSigla() : "N/A";
-        String linha = curso.getSigla() + ";" + curso.getNome() + ";" + siglaDep;
+        String linha = curso.getSigla() + ";" + curso.getNome() + ";" + siglaDep + ";" + curso.getValorPropinaAnual() + ";" +
+                curso.getEstado();
 
         adicionarLinhaCSV(caminho, linha);
     }
@@ -249,7 +251,8 @@ public class ExportadorCSV {
                     String novaLinha = estudanteAtualizado.getNumeroMecanografico() + ";" + estudanteAtualizado.getEmail() + ";" +
                             estudanteAtualizado.getNome() + ";" + estudanteAtualizado.getNif() + ";" +
                             estudanteAtualizado.getMorada() + ";" + estudanteAtualizado.getDataNascimento() + ";" +
-                            estudanteAtualizado.getAnoPrimeiraInscricao() + ";" + siglaCurso;
+                            estudanteAtualizado.getAnoPrimeiraInscricao() + ";" + siglaCurso +";" + estudanteAtualizado.getSaldoDevedor() + ";" +
+                            estudanteAtualizado.getAnoCurricular();
                     linhas.add(novaLinha);
                     atualizado = true;
                 } else {
@@ -342,5 +345,53 @@ public class ExportadorCSV {
             ficheiroTemporario.delete();
         }
         return encontrou;
+    }
+    public static void atualizarCurso(Curso cursoAtualizado, String pastaBase) {
+        String caminho = pastaBase + File.separator + "cursos.csv";
+        java.util.List<String> linhas = new java.util.ArrayList<>();
+        boolean atualizado = false;
+
+        try (BufferedReader br = new BufferedReader(new FileReader(caminho))) {
+            String cabecalho = br.readLine();
+            if (cabecalho != null) linhas.add(cabecalho);
+
+            String linha;
+            while ((linha = br.readLine()) != null) {
+                if (linha.trim().isEmpty()) continue;
+                String[] dados = linha.split(";", -1);
+
+                if (dados[0].trim().equalsIgnoreCase(cursoAtualizado.getSigla())) {
+                    String siglaDep = (cursoAtualizado.getDepartamento() != null) ? cursoAtualizado.getDepartamento().getSigla() : "N/A";
+                    String novaLinha = cursoAtualizado.getSigla() + ";" + cursoAtualizado.getNome() + ";" +
+                            siglaDep + ";" + cursoAtualizado.getValorPropinaAnual() + ";" + cursoAtualizado.getEstado();
+                    linhas.add(novaLinha);
+                    atualizado = true;
+                } else {
+                    linhas.add(linha);
+                }
+            }
+        } catch (IOException e) { return; }
+        if (atualizado) reescreverFicheiro(caminho, linhas);
+    }
+    public static int contarEstudantesPorCursoEAno(String siglaCurso, int anoCurricular, String pastaBase) {
+        String caminho = pastaBase + File.separator + "estudantes.csv";
+        int contagem = 0;
+        try (BufferedReader br = new BufferedReader(new FileReader(caminho))) {
+            br.readLine();
+            String linha;
+            while ((linha = br.readLine()) != null) {
+                if (linha.trim().isEmpty()) continue;
+                String[] dados = linha.split(";", -1);
+
+                // Coluna 7 é a siglaCurso, Coluna 9 é o anoCurricular
+                if (dados.length > 7 && dados[7].trim().equalsIgnoreCase(siglaCurso)) {
+                    int anoAluno = (dados.length > 9 && !dados[9].trim().isEmpty()) ? Integer.parseInt(dados[9].trim()) : 1;
+                    if (anoAluno == anoCurricular) {
+                        contagem++;
+                    }
+                }
+            }
+        } catch (Exception e) {}
+        return contagem;
     }
 }
