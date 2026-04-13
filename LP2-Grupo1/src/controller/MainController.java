@@ -9,17 +9,15 @@ import utils.EmailService;
 
 /**
  * Controlador principal da aplicação ISSMF.
- * Adaptado para Arquitetura Relacional com Lazy Loading (On-Demand).
- * Já não carrega arrays de dados para a memória no arranque.
+ * Processa a lógica de arranque, autenticação e recuperação de password.
  */
 public class MainController {
 
-    private static final String PASTA_BD = "bd";
+    private static final String PASTA_BD = "LP2-Grupo1/bd";
     private final MainView view;
-
-    /** Agora o repositório serve apenas para manter a sessão (saber quem está logado) */
     private final RepositorioDados repositorio;
 
+    // Recebe a View no construtor para poder mandar imprimir as mensagens corretas
     public MainController(MainView view) {
         this.view = view;
         this.repositorio = new RepositorioDados();
@@ -29,7 +27,7 @@ public class MainController {
         java.io.File pasta = new java.io.File(PASTA_BD);
         if (!pasta.exists() || !pasta.isDirectory()) {
             pasta.mkdirs();
-            view.mostrarMensagem(">> Pasta de base de dados criada.");
+            view.mostrarPastaCriada();
         }
     }
 
@@ -37,31 +35,27 @@ public class MainController {
         // Nada a fazer aqui. A gravação é feita On-Demand.
     }
 
-    /**
-     * NOVA FUNÇÃO: Valida apenas o formato do e-mail antes de pedir a password.
-     */
     public boolean validarFormatoEmailLogin(String email) {
         boolean isEmailAdmin = email.equals("admin@issmf.pt") || email.equals("backoffice@issmf.ipp.pt");
 
         if (!isEmailAdmin && !Validador.validarSufixoLogin(email)) {
-            view.mostrarMensagem("ERRO DE LOGIN: O endereço de e-mail tem de conter obrigatoriamente o sufixo '@issmf.ipp.pt'.");
+            view.mostrarErroLoginSufixo();
             return false;
         }
         return true;
     }
 
-    public boolean processarLogin(String email, String pass, boolean aExecutar) {
-
+    public void processarLogin(String email, String pass) {
         boolean isEmailAdmin = email.equals("admin@issmf.pt") || email.equals("backoffice@issmf.ipp.pt");
 
         if (!isEmailAdmin && !Validador.validarSufixoLogin(email)) {
-            return aExecutar;
+            return;
         }
 
         String credencialAdmin = "A67KdOiGgwLZQTdjXrCPUg==:1Emuaac5kl+mA0SKMMRX1m+5bpOXaLVPqcttF1EPyG4=";
 
         if (isEmailAdmin && utils.SegurancaPasswords.verificarPassword(pass, credencialAdmin)) {
-            view.mostrarMensagem("Login de Gestor detetado!");
+            view.mostrarLoginGestor();
             model.Gestor admin = new model.Gestor(
                     "backoffice@issmf.ipp.pt", credencialAdmin,
                     "Admin Geral", "123456789", "Sede", "01-01-1980"
@@ -69,33 +63,31 @@ public class MainController {
             repositorio.setUtilizadorLogado(admin);
             new GestorController(repositorio, admin).iniciar();
             repositorio.limparSessao();
-            return aExecutar;
+            return;
         }
 
         model.Utilizador userLogado = ImportadorCSV.autenticarNoFicheiro(email, pass, PASTA_BD);
 
         if (userLogado == null) {
-            view.mostrarMensagem("Credenciais inválidas ou utilizador não encontrado.");
+            view.mostrarCredenciaisInvalidas();
 
         } else if (userLogado instanceof model.Estudante) {
-            view.mostrarMensagem("Login de Estudante detetado!");
+            view.mostrarLoginEstudante();
             repositorio.setUtilizadorLogado(userLogado);
             new EstudanteController(repositorio, (model.Estudante) userLogado).iniciar();
             repositorio.limparSessao();
 
         } else if (userLogado instanceof model.Docente) {
-            view.mostrarMensagem("Login de Docente detetado!");
+            view.mostrarLoginDocente();
             repositorio.setUtilizadorLogado(userLogado);
             new DocenteController(repositorio, (model.Docente) userLogado).iniciar();
             repositorio.limparSessao();
         }
-
-        return aExecutar;
     }
 
     public void recuperarPassword(String email) {
         if (!Validador.isEmailInstitucionalValido(email)) {
-            view.mostrarMensagem("E-mail inválido: o domínio não é reconhecido pelo sistema.");
+            view.mostrarErroEmailInvalido();
             return;
         }
 
@@ -103,12 +95,70 @@ public class MainController {
         String novaPassSegura = utils.SegurancaPasswords.gerarCredencialMista(novaPassLimpa);
 
         ExportadorCSV.atualizarPasswordCentralizada(email, novaPassSegura, PASTA_BD);
-
         EmailService.enviarRecuperacaoPassword("Utilizador", email, novaPassLimpa);
 
-        novaPassLimpa = null;
+        view.mostrarSucessoRecuperacao(email);
+    }
 
-        view.mostrarMensagem("Processo de recuperação concluído.");
-        view.mostrarMensagem("[SISTEMA] Credenciais enviadas por e-mail para: " + email);
+    /**
+     * Lógica de Auto-matrícula (Mantendo o resto do controlador inalterado).
+     */
+    public void executarAutoMatricula() {
+        view.mostrarTituloAutoMatricula();
+
+        // 1. Validações usando o teu Validador.java
+        String nome;
+        do {
+            nome = view.pedirInputString("Nome Completo");
+            if (!utils.Validador.isNomeValido(nome)) view.mostrarErroNomeInvalido();
+        } while (!utils.Validador.isNomeValido(nome));
+
+        String nif;
+        do {
+            nif = view.pedirInputString("NIF");
+            if (!utils.Validador.validarNif(nif)) view.mostrarErroNifInvalido();
+        } while (!utils.Validador.validarNif(nif));
+
+        String morada = view.pedirInputString("Morada");
+
+        String dataNasc;
+        do {
+            dataNasc = view.pedirInputString("Data de Nascimento (DD-MM-AAAA)");
+            if (!utils.Validador.isDataNascimentoValida(dataNasc)) view.mostrarErroDataInvalida();
+        } while (!utils.Validador.isDataNascimentoValida(dataNasc));
+
+        // 2. Seleção de curso (Lógica On-Demand)
+        String[] cursos = ImportadorCSV.obterListaCursos(PASTA_BD);
+        if (cursos.length == 0) {
+            view.mostrarErroSemCursos();
+            return;
+        }
+
+        view.mostrarListaCursosDisponiveis(cursos);
+        int escolha = view.pedirOpcaoCurso(cursos.length);
+        if (escolha < 1 || escolha > cursos.length) {
+            view.mostrarOpcaoInvalida();
+            return;
+        }
+        String siglaCurso = cursos[escolha - 1].split(" - ")[0];
+
+        // 3. Geração de dados académicos
+        int anoAtual = repositorio.getAnoAtual();
+        int numMec = ImportadorCSV.obterProximoNumeroMecanografico(PASTA_BD, anoAtual);
+        String emailInst = utils.EmailGenerator.gerarEmailEstudante(numMec);
+        String passLimpa = utils.PasswordGenerator.gerarPasswordSegura();
+        String passHash = utils.SegurancaPasswords.gerarCredencialMista(passLimpa);
+
+        // 4. Gravação direta no CSV
+        model.Estudante novo = new model.Estudante(numMec, emailInst, passHash, nome, nif, morada, dataNasc, anoAtual);
+        model.Curso curso = ImportadorCSV.procurarCurso(siglaCurso, PASTA_BD);
+        if (curso != null) novo.setSaldoDevedor(curso.getValorPropinaAnual());
+
+        ExportadorCSV.adicionarEstudante(novo, PASTA_BD, siglaCurso);
+
+        // 5. Envio de e-mail com credenciais (Requisito)
+        EmailService.enviarCredenciaisTodos(nome, emailInst, passLimpa);
+
+        view.mostrarSucessoAutoMatricula(emailInst, passLimpa);
     }
 }
