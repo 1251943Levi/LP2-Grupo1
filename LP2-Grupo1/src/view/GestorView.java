@@ -120,8 +120,9 @@ public class GestorView {
     public void mostrarErroNomeInvalido() { mostrarMensagem("ERRO: Nome inválido. Utilize apenas letras e espaços."); }
     public void mostrarErroNifInvalido() { mostrarMensagem("ERRO: NIF inválido. Deve conter exatamente 9 dígitos."); }
     public void mostrarErroDataInvalida() { mostrarMensagem("ERRO: Data inválida. Utilize rigorosamente o formato DD-MM-AAAA."); }
+    public void mostrarErroNifDuplicado() { mostrarMensagem("ERRO: Este NIF já se encontra registado num aluno existente."); }
 
-    public void mostrarErroEdicaoCurso() { mostrarMensagem("ERRO: Ação bloqueada! Já existem estudantes inscritos neste curso."); }
+    public void mostrarErroEdicaoCurso() { mostrarMensagem("ERRO: Ação bloqueada! Existem estudantes inscritos neste curso."); }
     public void mostrarErroLimiteUcs(int ano) { mostrarMensagem("ERRO: Não é possível associar mais de 5 UCs ao " + ano + "º ano deste Curso."); }
 
     public void mostrarSucessoCriacao(String entidade) { mostrarMensagem("Sucesso: " + entidade + " adicionado(a) com sucesso ao sistema!"); }

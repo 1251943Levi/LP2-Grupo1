@@ -60,10 +60,17 @@ public class GestorController {
         } while (!Validador.isNomeValido(nome));
 
         String nif;
+        boolean duplicado;
         do {
             nif = view.pedirNif();
-            if (!Validador.validarNif(nif)) view.mostrarErroNifInvalido();
-        } while (!Validador.validarNif(nif));
+            duplicado = Validador.isNifDuplicado(nif, PASTA_BD);
+
+            if (!Validador.validarNif(nif)) {
+                view.mostrarErroNifInvalido();
+            } else if (duplicado) {
+                view.mostrarErroNifDuplicado();
+            }
+        } while (!Validador.validarNif(nif) || duplicado);
 
         String morada = view.pedirMorada();
 

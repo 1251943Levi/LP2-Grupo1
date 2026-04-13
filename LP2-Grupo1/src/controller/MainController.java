@@ -32,7 +32,6 @@ public class MainController {
     }
 
     public void guardarDados() {
-        // Nada a fazer aqui. A gravação é feita On-Demand.
     }
 
     public boolean validarFormatoEmailLogin(String email) {
@@ -106,7 +105,7 @@ public class MainController {
     public void executarAutoMatricula() {
         view.mostrarTituloAutoMatricula();
 
-        // 1. Validações usando o teu Validador.java
+        // 1. Validações usando o Validador
         String nome;
         do {
             nome = view.pedirInputString("Nome Completo");
@@ -114,10 +113,17 @@ public class MainController {
         } while (!utils.Validador.isNomeValido(nome));
 
         String nif;
+        boolean duplicado;
         do {
             nif = view.pedirInputString("NIF");
-            if (!utils.Validador.validarNif(nif)) view.mostrarErroNifInvalido();
-        } while (!utils.Validador.validarNif(nif));
+            duplicado = utils.Validador.isNifDuplicado(nif, PASTA_BD);
+
+            if (!utils.Validador.validarNif(nif)) {
+                view.mostrarErroNifInvalido();
+            } else if (duplicado) {
+                view.mostrarErroNifDuplicado();
+            }
+        } while (!utils.Validador.validarNif(nif) || duplicado);
 
         String morada = view.pedirInputString("Morada");
 
@@ -127,7 +133,7 @@ public class MainController {
             if (!utils.Validador.isDataNascimentoValida(dataNasc)) view.mostrarErroDataInvalida();
         } while (!utils.Validador.isDataNascimentoValida(dataNasc));
 
-        // 2. Seleção de curso (Lógica On-Demand)
+        // 2. Seleção de curso
         String[] cursos = ImportadorCSV.obterListaCursos(PASTA_BD);
         if (cursos.length == 0) {
             view.mostrarErroSemCursos();
@@ -156,7 +162,7 @@ public class MainController {
 
         ExportadorCSV.adicionarEstudante(novo, PASTA_BD, siglaCurso);
 
-        // 5. Envio de e-mail com credenciais (Requisito)
+        // 5. Envio de e-mail com credenciais
         EmailService.enviarCredenciaisTodos(nome, emailInst, passLimpa);
 
         view.mostrarSucessoAutoMatricula(emailInst, passLimpa);

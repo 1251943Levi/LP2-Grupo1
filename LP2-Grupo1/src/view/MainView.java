@@ -62,7 +62,7 @@ public class MainView {
         System.out.println("1 - Login");
         System.out.println("2 - Recuperar Password");
         System.out.println("3 - Guardar Dados");
-        System.out.println("4 - Matricula Estudante");
+        System.out.println("4 - Matricular Estudante");
         System.out.println("0 - Sair");
         System.out.print("Opção: ");
 
@@ -137,9 +137,10 @@ public class MainView {
         System.out.println(">> Nota: Verifique o seu e-mail de contacto para mais detalhes.");
     }
 
-    // Mensagens de Erro Específicas (MVC Puro)
+    // Mensagens de Erro Específicas
     public void mostrarErroNomeInvalido() { System.out.println(">> ERRO: Nome inválido. Use apenas letras e espaços."); }
-    public void mostrarErroNifInvalido() { System.out.println(">> ERRO: NIF inválido. Deve ter 9 dígitos e ser matematicamente correto."); }
+    public void mostrarErroNifInvalido() { System.out.println(">> ERRO: NIF inválido. Deve ter 9 dígitos e possuir apenas algarismos."); }
     public void mostrarErroDataInvalida() { System.out.println(">> ERRO: Formato de data inválido. Use DD-MM-AAAA."); }
     public void mostrarErroSemCursos() { System.out.println(">> AVISO: De momento não existem cursos ativos no sistema."); }
+    public void mostrarErroNifDuplicado() { System.out.println(">> ERRO: Este NIF já se encontra registado num aluno existente."); }
 }
