@@ -27,13 +27,15 @@ public class ExportadorCSV {
     private static void garantirFicheiroECabecalho(String caminho, String cabecalho) {
         File ficheiro = new File(caminho);
         File pasta = ficheiro.getParentFile();
-        if (pasta != null && !pasta.exists()) pasta.mkdirs();
+        if (pasta != null && !pasta.exists()) {
+            pasta.mkdirs();
+        }
 
         if (!ficheiro.exists()) {
             try (PrintWriter pw = new PrintWriter(new FileWriter(ficheiro))) {
                 pw.println(cabecalho);
             } catch (IOException e) {
-                System.out.println(">> ERRO ao criar ficheiro inicial: " + caminho);
+                System.err.println(">> ERRO CRÍTICO ao criar ficheiro inicial (" + caminho + "): " + e.getMessage());
             }
         }
     }
@@ -47,10 +49,9 @@ public class ExportadorCSV {
         try (PrintWriter pw = new PrintWriter(new FileWriter(caminho, true))) {
             pw.println(linha);
         } catch (IOException e) {
-            System.err.println(">> ERRO: Falha ao guardar dados em: " + caminho);
+            System.err.println(">> ERRO: Falha ao guardar dados em (" + caminho + "): " + e.getMessage());
         }
     }
-
 
     /**
      * Regista as credenciais de acesso de um utilizador no ficheiro central.
@@ -60,6 +61,7 @@ public class ExportadorCSV {
      * @param pastaBase Caminho da diretoria de dados.
      */
     private static void adicionarCredencial(String email, String passwordSegura, String tipo, String pastaBase) {
+        if (email == null || passwordSegura == null) return;
         String caminho = pastaBase + File.separator + "credenciais.csv";
         garantirFicheiroECabecalho(caminho, "email;password_hash;tipo");
         adicionarLinhaCSV(caminho, email + ";" + passwordSegura + ";" + tipo);
@@ -72,8 +74,14 @@ public class ExportadorCSV {
      * @param pastaBase Caminho da diretoria de dados.
      */
     public static void atualizarPasswordCentralizada(String email, String novaPasswordSegura, String pastaBase) {
+        if (email == null || novaPasswordSegura == null) return;
+
         String caminho = pastaBase + File.separator + "credenciais.csv";
         List<String> linhas = new ArrayList<>();
+        boolean atualizado = false;
+
+        File f = new File(caminho);
+        if (!f.exists()) return;
 
         try (BufferedReader br = new BufferedReader(new FileReader(caminho))) {
             String cabecalho = br.readLine();
@@ -84,18 +92,20 @@ public class ExportadorCSV {
                 if (linha.trim().isEmpty()) continue;
                 String[] dados = linha.split(";", -1);
 
-                if (dados[0].trim().equalsIgnoreCase(email)) {
+                if (dados.length >= 3 && dados[0].trim().equalsIgnoreCase(email)) {
                     linhas.add(dados[0] + ";" + novaPasswordSegura + ";" + dados[2]);
+                    atualizado = true;
                 } else {
                     linhas.add(linha);
                 }
             }
-            reescreverFicheiro(caminho, linhas);
+            if (atualizado) reescreverFicheiro(caminho, linhas);
         } catch (IOException e) {
-            System.out.println(">> ERRO ao atualizar password nas credenciais.");
+            System.err.println(">> ERRO ao atualizar password nas credenciais: " + e.getMessage());
         }
     }
 
+    // CRUDS - ADICIONAR
 
     /**
      * Adiciona um novo estudante ao sistema, criando as credenciais e o perfil.
@@ -123,13 +133,19 @@ public class ExportadorCSV {
      * @param pastaBase Caminho da diretoria de dados.
      */
     public static void adicionarDocente(Docente docente, String pastaBase) {
+        if (docente == null) return;
+
         adicionarCredencial(docente.getEmail(), docente.getPassword(), "DOCENTE", pastaBase);
 
         String caminho = pastaBase + File.separator + "docentes.csv";
         garantirFicheiroECabecalho(caminho, "sigla;email;nome;nif;morada;dataNascimento");
 
-        String linha = docente.getSigla() + ";" + docente.getEmail() + ";" + docente.getNome() + ";" +
-                docente.getNif() + ";" + docente.getMorada() + ";" + docente.getDataNascimento();
+        String linha = docente.getSigla() + ";" +
+                docente.getEmail() + ";" +
+                docente.getNome() + ";" +
+                docente.getNif() + ";" +
+                docente.getMorada() + ";" +
+                docente.getDataNascimento();
 
         adicionarLinhaCSV(caminho, linha);
     }
@@ -140,13 +156,18 @@ public class ExportadorCSV {
      * @param pastaBase Caminho da diretoria de dados.
      */
     public static void adicionarGestor(Gestor gestor, String pastaBase) {
+        if (gestor == null) return;
+
         adicionarCredencial(gestor.getEmail(), gestor.getPassword(), "GESTOR", pastaBase);
 
         String caminho = pastaBase + File.separator + "gestores.csv";
         garantirFicheiroECabecalho(caminho, "email;nome;nif;morada;dataNascimento");
 
-        String linha = gestor.getEmail() + ";" + gestor.getNome() + ";" + gestor.getNif() + ";" +
-                gestor.getMorada() + ";" + gestor.getDataNascimento();
+        String linha = gestor.getEmail() + ";" +
+                gestor.getNome() + ";" +
+                gestor.getNif() + ";" +
+                gestor.getMorada() + ";" +
+                gestor.getDataNascimento();
 
         adicionarLinhaCSV(caminho, linha);
     }
@@ -158,15 +179,21 @@ public class ExportadorCSV {
      * @param pastaBase Caminho da diretoria de dados.
      */
     public static void adicionarAvaliacao(Avaliacao avaliacao, int numMec, String pastaBase) {
+        if (avaliacao == null || avaliacao.getUc() == null) return;
+
         String caminho = pastaBase + File.separator + "avaliacoes.csv";
         garantirFicheiroECabecalho(caminho, "numMec;siglaUC;anoLetivo;nota1;nota2;nota3");
 
         double[] notas = avaliacao.getResultados();
-        String nota1 = (notas.length > 0) ? String.valueOf(notas[0]) : "-1.0";
-        String nota2 = (notas.length > 1) ? String.valueOf(notas[1]) : "-1.0";
-        String nota3 = (notas.length > 2) ? String.valueOf(notas[2]) : "-1.0";
+        String nota1 = (notas.length > 0) ? String.valueOf(notas[0]) : "";
+        String nota2 = (notas.length > 1) ? String.valueOf(notas[1]) : "";
+        String nota3 = (notas.length > 2) ? String.valueOf(notas[2]) : "";
 
-        String linha = numMec + ";" + avaliacao.getUc().getSigla() + ";" + avaliacao.getAnoLetivo() + ";" + nota1 + ";" + nota2 + ";" + nota3;
+        String linha = numMec + ";" +
+                avaliacao.getUc().getSigla() + ";" +
+                avaliacao.getAnoLetivo() + ";" +
+                nota1 + ";" + nota2 + ";" + nota3;
+
         adicionarLinhaCSV(caminho, linha);
     }
 
@@ -176,6 +203,8 @@ public class ExportadorCSV {
      * @param pastaBase Caminho da diretoria de dados.
      */
     public static void adicionarDepartamento(Departamento departamento, String pastaBase) {
+        if (departamento == null) return;
+
         String caminho = pastaBase + File.separator + "departamentos.csv";
         garantirFicheiroECabecalho(caminho, "sigla;nome");
 
@@ -189,12 +218,13 @@ public class ExportadorCSV {
      * @param pastaBase Caminho da diretoria de dados.
      */
     public static void adicionarCurso(Curso curso, String pastaBase) {
+        if (curso == null) return;
+
         String caminho = pastaBase + File.separator + "cursos.csv";
-        garantirFicheiroECabecalho(caminho, "sigla;nome;siglaDepartamento;valorPropinaAnual;estado");
+        garantirFicheiroECabecalho(caminho, "sigla;nome;siglaDepartamento");
 
         String siglaDep = (curso.getDepartamento() != null) ? curso.getDepartamento().getSigla() : "N/A";
-        String linha = curso.getSigla() + ";" + curso.getNome() + ";" + siglaDep + ";" + curso.getValorPropinaAnual() + ";" +
-                curso.getEstado();
+        String linha = curso.getSigla() + ";" + curso.getNome() + ";" + siglaDep;
 
         adicionarLinhaCSV(caminho, linha);
     }
@@ -206,6 +236,8 @@ public class ExportadorCSV {
      * @param pastaBase Caminho da diretoria de dados.
      */
     public static void adicionarUnidadeCurricular(UnidadeCurricular uc, String pastaBase) {
+        if (uc == null) return;
+
         String caminho = pastaBase + File.separator + "ucs.csv";
         garantirFicheiroECabecalho(caminho, "sigla;nome;anoCurricular;siglaDocente;siglaCurso");
 
@@ -225,6 +257,7 @@ public class ExportadorCSV {
         }
     }
 
+    // CRUDS - ATUALIZAR
 
     /**
      * Atualiza os dados de perfil de um estudante existente (ex: nova morada).
@@ -286,7 +319,6 @@ public class ExportadorCSV {
      * * <p>Esta operação corresponde à ação de "Create" (Criar) num CRUD.
      * Abre o ficheiro sem apagar o seu conteúdo anterior e insere os novos dados.
      * É ideal para registar um novo Estudante, uma nova UC ou um novo Curso.</p>
-     *
      * @param nomeFicheiro O nome do ficheiro onde os dados serão guardados (ex: "ucs.csv").
      * @param novaLinha    A string contendo os dados já formatados e separados por ponto e vírgula.
      * @param pastaBase    O caminho da pasta onde o ficheiro se encontra (ex: "bd").
@@ -311,7 +343,6 @@ public class ExportadorCSV {
      * * <p><b>Nota para Atualizações (Update):</b> Para editar um registo, utilize este método
      * primeiro para "apagar" o registo antigo e, logo a seguir, chame o método
      * {@link #adicionarLinhaCSV(String, String, String)} para gravar os novos dados.</p>
-     *
      * @param nomeFicheiro O nome do ficheiro de onde a linha será removida (ex: "ucs.csv").
      * @param idAProcurar  O identificador (ex: Sigla ou Número) que se encontra na primeira coluna da linha a apagar.
      * @param pastaBase    O caminho da pasta onde o ficheiro se encontra (ex: "bd").
@@ -346,6 +377,8 @@ public class ExportadorCSV {
         }
         return encontrou;
     }
+
+
     public static void atualizarCurso(Curso cursoAtualizado, String pastaBase) {
         String caminho = pastaBase + File.separator + "cursos.csv";
         java.util.List<String> linhas = new java.util.ArrayList<>();
@@ -383,7 +416,6 @@ public class ExportadorCSV {
                 if (linha.trim().isEmpty()) continue;
                 String[] dados = linha.split(";", -1);
 
-                // Coluna 7 é a siglaCurso, Coluna 9 é o anoCurricular
                 if (dados.length > 7 && dados[7].trim().equalsIgnoreCase(siglaCurso)) {
                     int anoAluno = (dados.length > 9 && !dados[9].trim().isEmpty()) ? Integer.parseInt(dados[9].trim()) : 1;
                     if (anoAluno == anoCurricular) {

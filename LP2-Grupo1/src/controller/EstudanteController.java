@@ -8,15 +8,15 @@ import utils.SegurancaPasswords;
 
 /**
  * Controlador responsável por gerir o painel do Estudante.
+ * Permite a visualização de dados pessoais e a atualização do perfil e credenciais,
+ * gravando as alterações diretamente nos ficheiros correspondentes (On-Demand).
  */
 public class EstudanteController {
 
     private RepositorioDados repositorio;
     private Estudante estudanteAtivo;
     private EstudanteView view;
-
-    /** Caminho atualizado para a raiz do projeto */
-    private static final String PASTA_BD = "LP2-Grupo1/bd";
+    private static final String PASTA_BD = "bd";
 
     public EstudanteController(RepositorioDados repositorio, Estudante estudanteAtivo) {
         this.repositorio = repositorio;
@@ -26,25 +26,39 @@ public class EstudanteController {
 
     public void iniciar() {
         boolean aExecutar = true;
+
         while (aExecutar) {
-            int opcao = view.mostrarMenuPrincipal();
-            switch (opcao) {
-                case 1: mostrarDadosPessoais(); break;
-                case 2: atualizarDadosPerfil(); break;
-                case 0:
-                    view.mostrarDespedida();;
-                    aExecutar = false;
-                    break;
-                default:
-                    view.mostrarOpcaoInvalida();
+            try {
+                int opcao = view.mostrarMenuPrincipal();
+
+                switch (opcao) {
+                    case 1:
+                        visualizarDadosPessoais();
+                        break;
+                    case 2:
+                        atualizarDadosPessoais();
+                        break;
+                    case 3:
+                        alterarPassword();
+                        break;
+                    case 4:
+                        consultarDadosFinanceiros();
+                        break;
+                    case 0:
+                        view.mostrarMensagem("A sair do portal do estudante...");
+                        repositorio.limparSessao(); // Garante que a sessão é limpa ao sair
+                        aExecutar = false;
+                        break;
+                    default:
+                        view.mostrarMensagem("Opção inválida. Tente novamente.");
+                }
+            } catch (Exception e) {
+                view.mostrarMensagem("Erro na leitura da opção. Por favor, insira um número válido.");
             }
         }
     }
 
-    /**
-     * Extraído do Case 1: Exibe as informações do perfil.
-     */
-    private void mostrarDadosPessoais() {
+    private void visualizarDadosPessoais() {
         view.mostrarMensagem("\n--- DADOS PESSOAIS ---");
         view.mostrarMensagem("Nome: " + estudanteAtivo.getNome());
         view.mostrarMensagem("Email: " + estudanteAtivo.getEmail());
@@ -53,30 +67,49 @@ public class EstudanteController {
         view.mostrarMensagem("Data de Nascimento: " + estudanteAtivo.getDataNascimento());
     }
 
-    /**
-     * Extraído do Case 2: Gere a atualização de morada e password.
-     */
-    private void atualizarDadosPerfil() {
+    private void atualizarDadosPessoais() {
         view.mostrarMensagem("\n--- ATUALIZAR DADOS ---");
+        String novaMorada = view.pedirInputString("Introduza a nova Morada (ou prima Enter para manter a atual)");
 
-        // Atualização de Morada
-        String novaMorada = view.pedirInputString("Introduza a nova Morada (ou prima Enter para manter)");
         if (!novaMorada.trim().isEmpty()) {
             estudanteAtivo.setMorada(novaMorada);
+            ExportadorCSV.atualizarEstudante(estudanteAtivo, PASTA_BD);
+            view.mostrarMensagem("Morada atualizada com sucesso e guardada no sistema!");
+        } else {
+            view.mostrarMensagem("Nenhuma alteração efetuada na morada.");
         }
+    }
 
-        // Atualização de Password
-        String novaPass = view.pedirPassword("Introduza a nova Password (ou prima Enter para manter)");
+    private void alterarPassword() {
+        view.mostrarMensagem("\n--- ALTERAR PASSWORD ---");
+        String novaPass = view.pedirPassword("Introduza a nova Password (ou prima Enter para cancelar)");
+
         if (!novaPass.trim().isEmpty()) {
             String passSegura = SegurancaPasswords.gerarCredencialMista(novaPass);
+
             estudanteAtivo.setPassword(passSegura);
-
-            // Grava na tabela central de credenciais
             ExportadorCSV.atualizarPasswordCentralizada(estudanteAtivo.getEmail(), passSegura, PASTA_BD);
-        }
 
-        // Grava os dados do perfil no ficheiro de estudantes
-        ExportadorCSV.atualizarEstudante(estudanteAtivo, PASTA_BD);
-        view.mostrarMensagem("Dados atualizados com sucesso e guardados no sistema!");
+            view.mostrarMensagem("Password alterada com sucesso!");
+        } else {
+            view.mostrarMensagem("Operação cancelada. A password não foi alterada.");
+        }
+    }
+
+    private void consultarDadosFinanceiros() {
+        view.mostrarMensagem("\n--- DADOS FINANCEIROS ---");
+        double divida = estudanteAtivo.getSaldoDevedor();
+        view.mostrarMensagem("O seu saldo devedor atual (propinas) é: " + divida + "€");
+
+        if (divida > 0) {
+            String resp = view.pedirInputString("Deseja efetuar o pagamento agora? (S/N)");
+            if (resp.equalsIgnoreCase("S")) {
+                estudanteAtivo.efetuarPagamento(divida);
+                ExportadorCSV.atualizarEstudante(estudanteAtivo, "bd");
+                view.mostrarMensagem("Pagamento efetuado com sucesso. Saldo regularizado!");
+            }
+        } else {
+            view.mostrarMensagem("Não tem pagamentos pendentes. Bom trabalho!");
+        }
     }
 }

@@ -1,0 +1,45 @@
+/.idea/.gitignore
+/.idea/misc.xml
+/.idea/modules.xml
+/.idea/vcs.xml
+/LP2-Grupo1.iml
+/out/production/LP2-Grupo1/controller/DocenteController.class
+/out/production/LP2-Grupo1/controller/EstudanteController.class
+/out/production/LP2-Grupo1/controller/GestorController.class
+/out/production/LP2-Grupo1/controller/MainController.class
+/out/production/LP2-Grupo1/model/Avaliacao.class
+/out/production/LP2-Grupo1/model/Curso.class
+/out/production/LP2-Grupo1/model/Departamento.class
+/out/production/LP2-Grupo1/model/Docente.class
+/out/production/LP2-Grupo1/model/Estudante.class
+/out/production/LP2-Grupo1/model/Gestor.class
+/out/production/LP2-Grupo1/model/PercursoAcademico.class
+/out/production/LP2-Grupo1/model/RepositorioDados.class
+/out/production/LP2-Grupo1/model/UnidadeCurricular.class
+/out/production/LP2-Grupo1/model/Utilizador.class
+/out/production/LP2-Grupo1/utils/EmailGenerator.class
+/out/production/LP2-Grupo1/utils/ExportadorCSV.class
+/out/production/LP2-Grupo1/utils/ImportadorCSV.class
+/out/production/LP2-Grupo1/utils/MigradorDados.class
+/out/production/LP2-Grupo1/utils/PasswordGenerator.class
+/out/production/LP2-Grupo1/utils/SegurancaPasswords.class
+/out/production/LP2-Grupo1/utils/Validador.class
+/out/production/LP2-Grupo1/view/DocenteView.class
+/out/production/LP2-Grupo1/view/EstudanteView.class
+/out/production/LP2-Grupo1/view/GestorView.class
+/out/production/LP2-Grupo1/view/MainView.class
+/out/production/LP2-Grupo1/Main.class
+# Ficheiros de compilação (Código gerado)
+out/
+bin/
+*.class
+
+# Configurações locais do IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Ficheiros do Sistema Operativo (Mac / Windows)
+.DS_Store
+Thumbs.db

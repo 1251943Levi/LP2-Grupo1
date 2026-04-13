@@ -7,11 +7,11 @@ package model;
 public class RepositorioDados {
 
     private Utilizador utilizadorLogado;
-    private int anoAtual; // Nova variável global do sistema
+    private int anoAtual;
 
     public RepositorioDados() {
         this.utilizadorLogado = null;
-        this.anoAtual = 2026; // Ano letivo inicial por defeito quando o sistema arranca
+        this.anoAtual = 2026;
     }
 
     public Utilizador getUtilizadorLogado() {
@@ -22,8 +22,6 @@ public class RepositorioDados {
         this.utilizadorLogado = utilizadorLogado;
     }
 
-    // --- Getters e Setters para o Ano Atual ---
-
     public int getAnoAtual() {
         return anoAtual;
     }
@@ -32,19 +30,15 @@ public class RepositorioDados {
         this.anoAtual = anoAtual;
     }
 
-    // ------------------------------------------
-
     public void limparSessao() {
         this.utilizadorLogado = null;
     }
 
-    // Só permite se existirem menos de 5 UCs
     public boolean podeAdicionarUc(String siglaCurso, int ano, String pastaBase) {
         int ucsAtuais = utils.ImportadorCSV.contarUcsPorCursoEAno(siglaCurso, ano, pastaBase);
         return ucsAtuais < 5;
     }
 
-    // Só permite se NÃO tiver estudantes
     public boolean podeEditarCurso(String siglaCurso, String pastaBase) {
         boolean temEstudantes = utils.ImportadorCSV.existeEstudanteNoCurso(siglaCurso, pastaBase);
         return !temEstudantes;

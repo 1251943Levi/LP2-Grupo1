@@ -54,7 +54,7 @@ public class GestorView {
 
     public String pedirInput(String msg) {
         System.out.print(msg + ": ");
-        return scanner.nextLine();
+        return scanner.nextLine().trim();
     }
 
     public void mostrarMensagem(String msg) {
