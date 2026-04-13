@@ -13,12 +13,12 @@ public class EstudanteView {
         System.out.println("\n=== MENU ESTUDANTE ===");
         System.out.println("1 - Ver Dados Pessoais");
         System.out.println("2 - Atualizar Dados");
-        System.out.println("3 - Consultar Dados Financeiros / Pagar");
+        System.out.println("3 - Alterar Password");
         System.out.println("0 - Sair / Logout");
         System.out.print("Escolha uma opção: ");
 
         try {
-            return Integer.parseInt(scanner.nextLine());
+            return Integer.parseInt(scanner.nextLine().trim());
         } catch (NumberFormatException e) {
             return -1;
         }
@@ -26,10 +26,8 @@ public class EstudanteView {
 
     public String pedirInputString(String mensagem) {
         System.out.print(mensagem + ": ");
-        return scanner.nextLine();
+        return scanner.nextLine().trim();
     }
-
-
 
     public void mostrarMensagem(String mensagem) {
         System.out.println(">> " + mensagem);
@@ -39,16 +37,9 @@ public class EstudanteView {
         System.out.print(mensagem + ": ");
         if (System.console() != null) {
             char[] passwordChars = System.console().readPassword();
-            return new String(passwordChars);
+            return new String(passwordChars).trim();
         } else {
-            return scanner.nextLine();
+            return scanner.nextLine().trim();
         }
-    }
-    public void mostrarDespedida() {
-        mostrarMensagem("A sair do portal do estudante...");
-    }
-
-    public void mostrarOpcaoInvalida() {
-        mostrarMensagem("Opção inválida. Tente novamente.");
     }
 }

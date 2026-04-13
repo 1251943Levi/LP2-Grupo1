@@ -5,6 +5,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.time.Year;
 
 /**
  * Lê ficheiros de forma cirúrgica apenas quando a informação é solicitada.
@@ -21,25 +22,31 @@ public class ImportadorCSV {
         String tipoUtilizador = null;
         String hashGuardado = null;
 
-        try (BufferedReader br = new BufferedReader(new FileReader(caminhoCredenciais))) {
-            br.readLine();
+        File ficheiro = new File(caminhoCredenciais);
+        if (!ficheiro.exists()) {
+            System.err.println(">> Erro crítico: Ficheiro credenciais.csv não encontrado no caminho: " + caminhoCredenciais);
+            return null;
+        }
+
+        try (BufferedReader br = new BufferedReader(new FileReader(ficheiro))) {
+            br.readLine(); // Ignorar cabeçalho
             String linha;
             while ((linha = br.readLine()) != null) {
                 if (linha.trim().isEmpty()) continue;
                 String[] dados = linha.split(";", -1);
 
-                if (dados[0].trim().equalsIgnoreCase(email)) {
+                if (dados.length >= 3 && dados[0].trim().equalsIgnoreCase(email)) {
                     hashGuardado = dados[1].trim();
                     tipoUtilizador = dados[2].trim().toUpperCase();
                     break;
                 }
             }
         } catch (IOException e) {
-            System.out.println(">> Aviso: Ficheiro credenciais.csv não encontrado.");
+            System.err.println(">> Erro ao ler credenciais.csv: " + e.getMessage());
             return null;
         }
 
-        if (hashGuardado == null || !SegurancaPasswords.verificarPassword(passwordIntroduzida, hashGuardado)) {
+        if (hashGuardado == null || tipoUtilizador == null || !SegurancaPasswords.verificarPassword(passwordIntroduzida, hashGuardado)) {
             return null;
         }
 
@@ -51,10 +58,10 @@ public class ImportadorCSV {
             case "GESTOR":
                 return carregarPerfilGestor(email, hashGuardado, pastaBase);
             default:
+                System.err.println(">> Aviso: Tipo de utilizador desconhecido (" + tipoUtilizador + ").");
                 return null;
         }
     }
-
 
     private static Estudante carregarPerfilEstudante(String email, String hashGuardado, String pastaBase) {
         String caminho = pastaBase + File.separator + "estudantes.csv";
@@ -65,18 +72,21 @@ public class ImportadorCSV {
                 if (linha.trim().isEmpty()) continue;
                 String[] dados = linha.split(";", -1);
 
-                if (dados[1].trim().equalsIgnoreCase(email)) {
-                    int numMec = Integer.parseInt(dados[0].trim());
-                    int anoInscricao = Integer.parseInt(dados[6].trim());
-                    Estudante e = new Estudante(numMec, email, hashGuardado, dados[2].trim(), dados[3].trim(), dados[4].trim(), dados[5].trim(), anoInscricao);
-                    //Extrair o saldo devedor da coluna 9 (índice 8)
-                    double saldoDevedor = (dados.length > 8 && !dados[8].trim().isEmpty()) ? Double.parseDouble(dados[8].trim()) : 0.0;
-                    e.setSaldoDevedor(saldoDevedor);
-
-                    return e;
+                if (dados.length >= 7 && dados[1].trim().equalsIgnoreCase(email)) {
+                    try {
+                        int numMec = Integer.parseInt(dados[0].trim());
+                        int anoInscricao = Integer.parseInt(dados[6].trim());
+                        Estudante e = new Estudante(numMec, email, hashGuardado, dados[2].trim(), dados[3].trim(), dados[4].trim(), dados[5].trim(), anoInscricao);
+                        carregarDadosAcademicos(e, pastaBase);
+                        return e;
+                    } catch (NumberFormatException ex) {
+                        System.err.println(">> Erro na formatação de números no estudante: " + email);
+                    }
                 }
             }
-        } catch (IOException e) {}
+        } catch (IOException e) {
+            System.err.println(">> Erro ao ler estudantes.csv: " + e.getMessage());
+        }
         return null;
     }
 
@@ -89,11 +99,15 @@ public class ImportadorCSV {
                 if (linha.trim().isEmpty()) continue;
                 String[] dados = linha.split(";", -1);
 
-                if (dados[1].trim().equalsIgnoreCase(email)) {
-                    return new Docente(dados[0].trim(), email, hashGuardado, dados[2].trim(), dados[3].trim(), dados[4].trim(), dados[5].trim());
+                if (dados.length >= 6 && dados[1].trim().equalsIgnoreCase(email)) {
+                    Docente d = new Docente(dados[0].trim(), email, hashGuardado, dados[2].trim(), dados[3].trim(), dados[4].trim(), dados[5].trim());
+                    carregarUcsDoDocente(d, pastaBase);
+                    return d;
                 }
             }
-        } catch (IOException e) {}
+        } catch (IOException e) {
+            System.err.println(">> Erro ao ler docentes.csv: " + e.getMessage());
+        }
         return null;
     }
 
@@ -106,14 +120,15 @@ public class ImportadorCSV {
                 if (linha.trim().isEmpty()) continue;
                 String[] dados = linha.split(";", -1);
 
-                if (dados[0].trim().equalsIgnoreCase(email)) {
+                if (dados.length >= 5 && dados[0].trim().equalsIgnoreCase(email)) {
                     return new Gestor(email, hashGuardado, dados[1].trim(), dados[2].trim(), dados[3].trim(), dados[4].trim());
                 }
             }
-        } catch (IOException e) {}
+        } catch (IOException e) {
+            System.err.println(">> Erro ao ler gestores.csv: " + e.getMessage());
+        }
         return null;
     }
-
 
     public static Departamento procurarDepartamento(String sigla, String pastaBase) {
         String caminho = pastaBase + File.separator + "departamentos.csv";
@@ -123,11 +138,13 @@ public class ImportadorCSV {
             while ((linha = br.readLine()) != null) {
                 if (linha.trim().isEmpty()) continue;
                 String[] dados = linha.split(";", -1);
-                if (dados[0].trim().equalsIgnoreCase(sigla)) {
+                if (dados.length >= 2 && dados[0].trim().equalsIgnoreCase(sigla)) {
                     return new Departamento(dados[0].trim(), dados[1].trim());
                 }
             }
-        } catch (IOException e) {}
+        } catch (IOException e) {
+            System.err.println(">> Erro ao ler departamentos.csv: " + e.getMessage());
+        }
         return null;
     }
 
@@ -139,14 +156,14 @@ public class ImportadorCSV {
             while ((linha = br.readLine()) != null) {
                 if (linha.trim().isEmpty()) continue;
                 String[] dados = linha.split(";", -1);
-                if (dados[0].trim().equalsIgnoreCase(sigla)) {
+                if (dados.length >= 3 && dados[0].trim().equalsIgnoreCase(sigla)) {
                     Departamento dep = procurarDepartamento(dados[2].trim(), pastaBase);
-                    double propina = (dados.length > 3 && !dados[3].trim().isEmpty()) ? Double.parseDouble(dados[3].trim()) : 0.0;
-
-                    return new Curso(dados[0].trim(), dados[1].trim(), dep, propina);
+                    return new Curso(dados[0].trim(), dados[1].trim(), dep);
                 }
             }
-        } catch (IOException e) {}
+        } catch (IOException e) {
+            System.err.println(">> Erro ao ler cursos.csv: " + e.getMessage());
+        }
         return null;
     }
 
@@ -158,11 +175,13 @@ public class ImportadorCSV {
             while ((linha = br.readLine()) != null) {
                 if (linha.trim().isEmpty()) continue;
                 String[] dados = linha.split(";", -1);
-                if (dados[0].trim().equalsIgnoreCase(sigla)) {
+                if (dados.length >= 6 && dados[0].trim().equalsIgnoreCase(sigla)) {
                     return new Docente(dados[0].trim(), dados[1].trim(), "", dados[2].trim(), dados[3].trim(), dados[4].trim(), dados[5].trim());
                 }
             }
-        } catch (IOException e) {}
+        } catch (IOException e) {
+            System.err.println(">> Erro ao ler docentes.csv: " + e.getMessage());
+        }
         return null;
     }
 
@@ -175,19 +194,23 @@ public class ImportadorCSV {
                 if (linha.trim().isEmpty()) continue;
                 String[] dados = linha.split(";", -1);
 
-                int ficheiroNum = Integer.parseInt(dados[0].trim());
-                if (ficheiroNum == numMec) {
-                    int anoInscricao = Integer.parseInt(dados[6].trim());
-                    Estudante e = new Estudante(ficheiroNum, dados[1].trim(), "", dados[2].trim(), dados[3].trim(), dados[4].trim(), dados[5].trim(), anoInscricao);
-
-                    //Extrair o saldo devedor
-                    double saldoDevedor = (dados.length > 8 && !dados[8].trim().isEmpty()) ? Double.parseDouble(dados[8].trim()) : 0.0;
-                    e.setSaldoDevedor(saldoDevedor);
-
-                    return e;
+                if (dados.length >= 7) {
+                    try {
+                        int ficheiroNum = Integer.parseInt(dados[0].trim());
+                        if (ficheiroNum == numMec) {
+                            int anoInscricao = Integer.parseInt(dados[6].trim());
+                            Estudante e = new Estudante(ficheiroNum, dados[1].trim(), "", dados[2].trim(), dados[3].trim(), dados[4].trim(), dados[5].trim(), anoInscricao);
+                            carregarDadosAcademicos(e, pastaBase);
+                            return e;
+                        }
+                    } catch (NumberFormatException ex) {
+                        // Linha mal formatada, ignorar silenciosamente e tentar a próxima
+                    }
                 }
             }
-        } catch (IOException | NumberFormatException e) {}
+        } catch (IOException e) {
+            System.err.println(">> Erro ao ler estudantes.csv: " + e.getMessage());
+        }
         return null;
     }
 
@@ -202,346 +225,140 @@ public class ImportadorCSV {
                 if (linha.trim().isEmpty()) continue;
                 String[] dados = linha.split(";", -1);
 
-                if (dados[0].trim().equalsIgnoreCase(sigla)) {
+                if (dados.length >= 4 && dados[0].trim().equalsIgnoreCase(sigla)) {
                     if (ucEncontrada == null) {
-                        int ano = Integer.parseInt(dados[2].trim());
-                        Docente doc = procurarDocentePorSigla(dados[3].trim(), pastaBase);
-                        ucEncontrada = new UnidadeCurricular(dados[0].trim(), dados[1].trim(), ano, doc);
+                        try {
+                            int ano = Integer.parseInt(dados[2].trim());
+                            Docente doc = procurarDocentePorSigla(dados[3].trim(), pastaBase);
+                            ucEncontrada = new UnidadeCurricular(dados[0].trim(), dados[1].trim(), ano, doc);
+                        } catch (NumberFormatException ex) {
+                            System.err.println(">> Erro ao converter ano na UC: " + sigla);
+                            continue;
+                        }
                     }
-                    if (dados.length > 4 && !dados[4].trim().equalsIgnoreCase("N/A")) {
+                    if (dados.length >= 5 && !dados[4].trim().equalsIgnoreCase("N/A")) {
                         Curso c = procurarCurso(dados[4].trim(), pastaBase);
                         if (c != null) ucEncontrada.adicionarCurso(c);
                     }
                 }
             }
-        } catch (IOException | NumberFormatException e) {}
+        } catch (IOException e) {
+            System.err.println(">> Erro ao ler ucs.csv: " + e.getMessage());
+        }
 
         return ucEncontrada;
     }
 
-    /**
-     * Lê o ficheiro de estudantes e calcula o próximo número mecanográfico disponível
-     * com base no ano letivo atual (Prefixo = Ano, Sufixo = 4 dígitos sequenciais).
-     */
-    public static int obterProximoNumeroMecanografico(String pastaBase, int anoAtual) {
-        String caminho = pastaBase + File.separator + "estudantes.csv";
-        int maxSufixo = 0;
-
-        try (BufferedReader br = new BufferedReader(new FileReader(caminho))) {
-            br.readLine(); // Ignorar o cabeçalho
-            String linha;
-            while ((linha = br.readLine()) != null) {
-                if (linha.trim().isEmpty()) continue;
-                String[] dados = linha.split(";", -1);
-
-                try {
-                    int numAtual = Integer.parseInt(dados[0].trim());
-
-                    // Verifica se o número do estudante pertence ao ano atual (ex: 2026)
-                    // Fazemos isto dividindo por 10000 (ex: 20260004 / 10000 = 2026)
-                    if (numAtual / 10000 == anoAtual) {
-                        // Extrai apenas os últimos 4 dígitos (ex: 20260004 % 10000 = 4)
-                        int sufixo = numAtual % 10000;
-                        if (sufixo > maxSufixo) {
-                            maxSufixo = sufixo;
-                        }
-                    }
-                } catch (NumberFormatException e) {
-                    // Ignora se a primeira coluna não for número
-                }
-            }
-        } catch (IOException e) {
-            // Se o ficheiro não existir, o maxSufixo continuará a 0
-        }
-
-        // Constrói o novo número: (Ano * 10000) + Próximo Sufixo
-        // Exemplo: (2026 * 10000) + 5 = 20260005
-        return (anoAtual * 10000) + (maxSufixo + 1);
-    }
-    /**
-     * Lê o ficheiro de cursos e devolve um array de strings com o formato "SIGLA - Nome do Curso".
-     */
-    public static String[] obterListaCursos(String pastaBase) {
-        String caminho = pastaBase + java.io.File.separator + "cursos.csv";
-        int count = 0;
-
-        // 1ª Passagem: Conta apenas as linhas que são válidas
-        try (BufferedReader br = new BufferedReader(new FileReader(caminho))) {
-            br.readLine();
-            String linha;
-            while ((linha = br.readLine()) != null) {
-                if (!linha.trim().isEmpty() && linha.contains(";")) count++;
-            }
-        } catch (IOException e) {
-            return new String[0];
-        }
-
-        String[] cursos = new String[count];
-
-        // 2ª Passagem: Extrai os dados em segurança
-        try (BufferedReader br = new BufferedReader(new FileReader(caminho))) {
-            br.readLine();
-            String linha;
-            int i = 0;
-            while ((linha = br.readLine()) != null) {
-                if (linha.trim().isEmpty() || !linha.contains(";")) continue;
-                String[] dados = linha.split(";", -1);
-
-                if (dados.length >= 2 && i < count) {
-                    cursos[i] = dados[0].trim() + " - " + dados[1].trim();
-                    i++;
-                }
-            }
-        } catch (IOException e) {
-            System.out.println(">> AVISO: Não foi possível ler o ficheiro de cursos.");
-        }
-
-        return cursos;
-    }
-
-    /**
-     * Conta quantas UCs existem num curso e ano específicos.
-     */
-    public static int contarUcsPorCursoEAno(String siglaCurso, int anoCurricular, String pastaBase) {
-        String caminho = pastaBase + java.io.File.separator + "ucs.csv";
-        int contagem = 0;
-
-        try (java.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader(caminho))) {
-            br.readLine();
-            String linha;
-            while ((linha = br.readLine()) != null) {
-                if (linha.trim().isEmpty()) continue;
-                String[] dados = linha.split(";", -1);
-
-                if (dados.length >= 5) {
-                    try {
-                        int anoUc = Integer.parseInt(dados[2].trim());
-                        String cursoAssociado = dados[4].trim();
-
-                        if (anoUc == anoCurricular && cursoAssociado.equalsIgnoreCase(siglaCurso)) {
-                            contagem++;
-                        }
-                    } catch (NumberFormatException ex) {}
-                }
-            }
-        } catch (java.io.IOException e) {}
-        return contagem;
-    }
-
-    /**
-     * Verifica se existe algum estudante associado à sigla do curso.
-     */
-    public static boolean existeEstudanteNoCurso(String siglaCurso, String pastaBase) {
-        String caminho = pastaBase + java.io.File.separator + "estudantes.csv";
-        try (java.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader(caminho))) {
-            br.readLine();
-            String linha;
-            while ((linha = br.readLine()) != null) {
-                if (linha.trim().isEmpty()) continue;
-                String[] dados = linha.split(";", -1);
-
-                if (dados.length >= 8) {
-                    if (dados[7].trim().equalsIgnoreCase(siglaCurso)) {
-                        return true;
-                    }
-                }
-            }
-        } catch (Exception e) {}
-        return false;
-    }
-
-// Listagens para os CRUDs
-
-    public static String listarTodasUcs(String pastaBase) {
-        String caminho = pastaBase + java.io.File.separator + "ucs.csv";
-        StringBuilder sb = new StringBuilder("\n--- LISTA DE UNIDADES CURRICULARES ---\n");
-        try (java.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader(caminho))) {
-            br.readLine(); // Ignorar cabeçalho
-            String linha;
-            while ((linha = br.readLine()) != null) {
-                if (linha.trim().isEmpty()) continue;
-                String[] dados = linha.split(";", -1);
-
-                if (dados.length >= 5) {
-                    sb.append("Sigla: ").append(dados[0].trim())
-                            .append(" | Nome: ").append(dados[1].trim())
-                            .append(" | Ano: ").append(dados[2].trim())
-                            .append(" | Docente: ").append(dados[3].trim())
-                            .append(" | Curso: ").append(dados[4].trim()).append("\n");
-                }
-            }
-        } catch (Exception e) {
-            return ">> Erro ao ler UCs: " + e.getClass().getSimpleName() + " - " + e.getMessage();
-        }
-        return sb.toString();
-    }
-
-    public static String listarTodosCursos(String pastaBase) {
-        String caminho = pastaBase + java.io.File.separator + "cursos.csv";
-        StringBuilder sb = new StringBuilder("\n--- LISTA DE CURSOS ---\n");
-        try (java.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader(caminho))) {
-            br.readLine(); // Ignorar cabeçalho
-            String linha;
-            while ((linha = br.readLine()) != null) {
-                if (linha.trim().isEmpty()) continue;
-                String[] dados = linha.split(";", -1);
-
-                if (dados.length >= 3) {
-                    sb.append("Sigla: ").append(dados[0].trim())
-                            .append(" | Nome: ").append(dados[1].trim())
-                            .append(" | Departamento: ").append(dados[2].trim()).append("\n");
-                }
-            }
-        } catch (Exception e) {
-            return ">> Erro ao ler Cursos: " + e.getClass().getSimpleName() + " - " + e.getMessage();
-        }
-        return sb.toString();
-    }
-// ==========================================
-    // MÉTODOS PARA ESTATÍSTICAS
-    // ==========================================
-
-    /**
-     * Carrega todos os estudantes da base de dados e os seus respetivos históricos de avaliação.
-     * Utilizado para o cálculo de Estatísticas.
-     */
     public static Estudante[] carregarTodosEstudantes(String pastaBase) {
-        String caminho = pastaBase + java.io.File.separator + "estudantes.csv";
-        int count = 0;
+        Estudante[] lista = new Estudante[500];
+        int contador = 0;
+        String caminho = pastaBase + File.separator + "estudantes.csv";
 
-        // 1. Contar quantos estudantes existem para inicializar o array
-        try (java.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader(caminho))) {
-            br.readLine();
-            while (br.readLine() != null) count++;
-        } catch (java.io.IOException e) {
-            return new Estudante[0];
-        }
-
-        Estudante[] estudantes = new Estudante[count];
-
-        // 2. Carregar os estudantes
-        try (java.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader(caminho))) {
+        try (BufferedReader br = new BufferedReader(new FileReader(caminho))) {
             br.readLine();
             String linha;
-            int i = 0;
-            while ((linha = br.readLine()) != null) {
+            while ((linha = br.readLine()) != null && contador < lista.length) {
                 if (linha.trim().isEmpty()) continue;
                 String[] dados = linha.split(";", -1);
 
-                int numMec = Integer.parseInt(dados[0].trim());
-                int anoInsc = Integer.parseInt(dados[6].trim());
-                Estudante e = new Estudante(numMec, dados[1].trim(), "", dados[2].trim(), dados[3].trim(), dados[4].trim(), dados[5].trim(), anoInsc);
+                if (dados.length >= 7) {
+                    try {
+                        int numMec = Integer.parseInt(dados[0].trim());
+                        int anoInsc = Integer.parseInt(dados[6].trim());
 
-                // Ligar o saldo devedor às estatísticas
-                double saldoDevedor = (dados.length > 8 && !dados[8].trim().isEmpty()) ? Double.parseDouble(dados[8].trim()) : 0.0;
-                e.setSaldoDevedor(saldoDevedor);
+                        Estudante e = new Estudante(numMec, dados[1].trim(), "", dados[2].trim(),
+                                dados[3].trim(), dados[4].trim(), dados[5].trim(), anoInsc);
 
-                // 3. Carregar as notas deste estudante
-                carregarAvaliacoesDoEstudante(e, pastaBase);
-
-                estudantes[i] = e;
-                i++;
-            }
-        } catch (Exception e) {
-            System.out.println(">> ERRO: Problema ao ler os estudantes para as estatísticas.");
-        }
-
-        return estudantes;
-    }
-
-    /**
-     * Vai ao ficheiro avaliacoes.csv e carrega as notas para o percurso do estudante para que a média seja calculada.
-     */
-    private static void carregarAvaliacoesDoEstudante(Estudante e, String pastaBase) {
-        String caminho = pastaBase + java.io.File.separator + "avaliacoes.csv";
-        try (java.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader(caminho))) {
-            br.readLine();
-            String linha;
-            while ((linha = br.readLine()) != null) {
-                if (linha.trim().isEmpty()) continue;
-                String[] dados = linha.split(";", -1);
-
-                // Se a nota pertencer a este aluno, adicionamos ao percurso dele
-                if (Integer.parseInt(dados[0].trim()) == e.getNumeroMecanografico()) {
-                    UnidadeCurricular uc = procurarUC(dados[1].trim(), pastaBase);
-                    if (uc != null) {
-                        int anoLetivo = Integer.parseInt(dados[2].trim());
-                        Avaliacao av = new Avaliacao(uc, anoLetivo);
-
-                        double n1 = Double.parseDouble(dados[3].trim());
-                        double n2 = Double.parseDouble(dados[4].trim());
-                        double n3 = Double.parseDouble(dados[5].trim());
-
-                        // Só regista se a nota for válida (>= 0)
-                        if (n1 >= 0) av.adicionarResultado(n1);
-                        if (n2 >= 0) av.adicionarResultado(n2);
-                        if (n3 >= 0) av.adicionarResultado(n3);
-
-                        e.getPercurso().registarAvaliacao(av);
+                        carregarDadosAcademicos(e, pastaBase);
+                        lista[contador++] = e;
+                    } catch (NumberFormatException ex) {
+                        // Ignorar linha mal formatada
                     }
                 }
             }
-        } catch (Exception ex) {}
-    }
-    /**
-     * Lê o ficheiro de UCs e devolve um array com "SIGLA - Nome".
-     */
-    public static String[] obterListaUcs(String pastaBase) {
-        String caminho = pastaBase + java.io.File.separator + "ucs.csv";
-        java.util.List<String> lista = new java.util.ArrayList<>();
-        try (BufferedReader br = new BufferedReader(new FileReader(caminho))) {
-            br.readLine(); // Ignorar cabeçalho
-            String linha;
-            while ((linha = br.readLine()) != null) {
-                if (linha.trim().isEmpty() || !linha.contains(";")) continue;
-                String[] dados = linha.split(";", -1);
-                if (dados.length >= 2) {
-                    lista.add(dados[0].trim() + " - " + dados[1].trim());
-                }
-            }
         } catch (IOException e) {
-            return new String[0];
+            System.err.println(">> Erro ao ler lista global de estudantes.csv: " + e.getMessage());
         }
-        return lista.toArray(new String[0]);
+        return lista;
     }
-    /**
-     * Lista todas as UCs de um determinado curso, agrupando-as por Ano Curricular.
-     */
-    public static String listarUcsPorCurso(String siglaCurso, String pastaBase) {
-        String caminho = pastaBase + java.io.File.separator + "ucs.csv";
-        java.util.Map<Integer, java.util.List<String>> ucsPorAno = new java.util.TreeMap<>();
 
-        try (java.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader(caminho))) {
-            br.readLine(); // Ignora o cabeçalho
+    public static void carregarUcsDoDocente(Docente d, String pastaBase) {
+        String caminho = pastaBase + File.separator + "ucs.csv";
+        try (BufferedReader br = new BufferedReader(new FileReader(caminho))) {
+            br.readLine();
             String linha;
             while ((linha = br.readLine()) != null) {
                 if (linha.trim().isEmpty()) continue;
                 String[] dados = linha.split(";", -1);
 
-                if (dados.length >= 5 && dados[4].trim().equalsIgnoreCase(siglaCurso)) {
+                if (dados.length >= 4 && dados[3].trim().equalsIgnoreCase(d.getSigla())) {
                     try {
-                        int ano = Integer.parseInt(dados[2].trim());
-                        ucsPorAno.putIfAbsent(ano, new java.util.ArrayList<>());
-                        ucsPorAno.get(ano).add("[" + dados[0].trim() + "] " + dados[1].trim() + " (Doc. Resp: " + dados[3].trim() + ")");
-                    } catch (NumberFormatException ex) {}
+                        UnidadeCurricular uc = new UnidadeCurricular(dados[0].trim(), dados[1].trim(), Integer.parseInt(dados[2].trim()), d);
+                        d.adicionarUcLecionada(uc);
+                    } catch (NumberFormatException ex) {
+                        System.err.println(">> Erro na formatação do ano da UC lecionada pelo docente " + d.getSigla());
+                    }
                 }
             }
-        } catch (Exception e) {
-            return ">> Erro ao ler UCs: " + e.getClass().getSimpleName() + " - " + e.getMessage();
+        } catch (IOException e) {
+            System.err.println(">> Erro ao carregar UCs do docente a partir de ucs.csv: " + e.getMessage());
         }
+    }
 
-        if (ucsPorAno.isEmpty()) {
-            return ">> Não existem Unidades Curriculares associadas ao curso " + siglaCurso + ".";
-        }
-
-        StringBuilder sb = new StringBuilder("\n--- PLANO DE ESTUDOS: " + siglaCurso + " ---\n");
-        for (java.util.Map.Entry<Integer, java.util.List<String>> entry : ucsPorAno.entrySet()) {
-            sb.append(">> Ano ").append(entry.getKey()).append(":\n");
-            for (String ucStr : entry.getValue()) {
-                sb.append("   - ").append(ucStr).append("\n");
+    private static void carregarDadosAcademicos(Estudante e, String pastaBase) {
+        String caminhoInsc = pastaBase + File.separator + "inscricoes.csv";
+        if (new File(caminhoInsc).exists()) {
+            try (BufferedReader br = new BufferedReader(new FileReader(caminhoInsc))) {
+                br.readLine();
+                String linha;
+                while ((linha = br.readLine()) != null) {
+                    if (linha.trim().isEmpty()) continue;
+                    String[] dados = linha.split(";", -1);
+                    if (dados.length >= 2) {
+                        try {
+                            if (Integer.parseInt(dados[0].trim()) == e.getNumeroMecanografico()) {
+                                UnidadeCurricular uc = procurarUC(dados[1].trim(), pastaBase);
+                                if (uc != null) e.getPercurso().inscreverEmUc(uc);
+                            }
+                        } catch (NumberFormatException ex) {}
+                    }
+                }
+            } catch (IOException ex) {
+                System.err.println(">> Erro ao ler inscricoes.csv: " + ex.getMessage());
             }
         }
 
-        return sb.toString();
+        String caminhoNotas = pastaBase + File.separator + "avaliacoes.csv";
+        if (new File(caminhoNotas).exists()) {
+            try (BufferedReader br = new BufferedReader(new FileReader(caminhoNotas))) {
+                br.readLine();
+                String linha;
+                int anoAtual = Year.now().getValue(); // Evita usar o ano 2026 fixo
+
+                while ((linha = br.readLine()) != null) {
+                    if (linha.trim().isEmpty()) continue;
+                    String[] dados = linha.split(";", -1);
+                    if (dados.length >= 3) {
+                        try {
+                            if (Integer.parseInt(dados[0].trim()) == e.getNumeroMecanografico()) {
+                                UnidadeCurricular uc = procurarUC(dados[1].trim(), pastaBase);
+                                if (uc != null) {
+                                    Avaliacao av = new Avaliacao(uc, anoAtual);
+                                    av.adicionarResultado(Double.parseDouble(dados[2].trim()));
+                                    if (dados.length >= 4 && !dados[3].trim().isEmpty()) {
+                                        av.adicionarResultado(Double.parseDouble(dados[3].trim()));
+                                    }
+                                    e.getPercurso().registarAvaliacao(av);
+                                }
+                            }
+                        } catch (NumberFormatException ex) {
+                            System.err.println(">> Erro a ler notas do aluno " + e.getNumeroMecanografico() + " nas avaliações.");
+                        }
+                    }
+                }
+            } catch (IOException ex) {
+                System.err.println(">> Erro ao ler avaliacoes.csv: " + ex.getMessage());
+            }
+        }
     }
 }
