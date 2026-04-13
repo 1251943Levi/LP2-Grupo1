@@ -25,7 +25,7 @@ public class DocenteController {
                 int opcao = view.mostrarMenu();
                 switch (opcao) {
                     case 1: listarMeusAlunos(); break;
-                    case 2: lancarNotas(); break;
+                    case 2: executarLancamentoNotas(); break;
                     case 3: alterarPassword(); break;
                     case 0: correr = false; break;
                     default: view.mostrarMensagem("Opção inválida.");
@@ -104,37 +104,35 @@ public class DocenteController {
         return null;
     }
 
-    private void lancarNotas() {
-        try {
-            int numAluno = Integer.parseInt(view.pedirInput("Nº Aluno"));
-            String siglaUc = view.pedirInput("Sigla UC");
+    /**
+     * Extraído do Case 2: Gere o processo de procura de aluno e gravação de notas.
+     */
+    private void executarLancamentoNotas() {
+        view.mostrarMensagem("\n--- LANÇAMENTO DE NOTAS ---");
 
-            UnidadeCurricular ucReal = obterUcLecionada(siglaUc);
-            if (ucReal == null) {
-                view.mostrarMensagem("Erro: Não leciona nenhuma unidade curricular com a sigla '" + siglaUc + "'.");
-                return;
-            }
+        int numAluno = Integer.parseInt(view.pedirInput("Nº Aluno"));
+        String siglaUc = view.pedirInput("Sigla UC");
+        int anoLetivo = Integer.parseInt(view.pedirInput("Ano Letivo (ex: 2026)"));
 
-            double nota = Double.parseDouble(view.pedirInput("Nota (0-20)"));
+        double nNormal = Double.parseDouble(view.pedirInput("Nota Normal (ou -1 se faltou)"));
+        double nRecurso = Double.parseDouble(view.pedirInput("Nota Recurso (ou -1 se faltou)"));
+        double nEspecial = Double.parseDouble(view.pedirInput("Nota Especial (ou -1 se faltou)"));
 
-            if (nota < 0 || nota > 20) {
-                view.mostrarMensagem("Erro: A nota inserida é inválida. Deve estar entre 0 e 20.");
-                return;
-            }
+        Estudante aluno = ImportadorCSV.procurarEstudantePorNumMec(numAluno, PASTA_BD);
 
-            Estudante aluno = ImportadorCSV.procurarEstudantePorNumMec(numAluno, PASTA_BD);
-            if (aluno != null) {
-                int anoAtual = java.time.Year.now().getValue(); // Evita usar "2026" hardcoded
-                Avaliacao aval = new Avaliacao(ucReal, anoAtual);
-                aval.adicionarResultado(nota);
+        if (aluno != null) {
+            UnidadeCurricular uc = new UnidadeCurricular(siglaUc, "UC Lançada", 1, docente);
+            Avaliacao aval = new Avaliacao(uc, anoLetivo);
 
-                ExportadorCSV.adicionarAvaliacao(aval, aluno.getNumeroMecanografico(), PASTA_BD);
-                view.mostrarMensagem("Nota registada com sucesso!");
-            } else {
-                view.mostrarMensagem("Erro: Aluno não encontrado no sistema.");
-            }
-        } catch (NumberFormatException e) {
-            view.mostrarMensagem("Erro: Formato inválido. Certifique-se de que introduz apenas números no Nº de Aluno e na Nota.");
+            aval.adicionarResultado(nNormal);
+            aval.adicionarResultado(nRecurso);
+            aval.adicionarResultado(nEspecial);
+
+            ExportadorCSV.adicionarAvaliacao(aval, aluno.getNumeroMecanografico(), PASTA_BD);
+
+            view.mostrarMensagem("Notas lançadas e guardadas com sucesso na base de dados!");
+        } else {
+            view.mostrarMensagem("ERRO: Aluno com o número " + numAluno + " não encontrado.");
         }
     }
 

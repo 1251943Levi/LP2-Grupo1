@@ -14,6 +14,7 @@ public class EstudanteView {
         System.out.println("1 - Ver Dados Pessoais");
         System.out.println("2 - Atualizar Dados");
         System.out.println("3 - Alterar Password");
+        System.out.println("4 - Consultar Dados Financeiros / Pagar");
         System.out.println("0 - Sair / Logout");
         System.out.print("Escolha uma opção: ");
 
@@ -41,5 +42,13 @@ public class EstudanteView {
         } else {
             return scanner.nextLine().trim();
         }
+    }
+
+    public void mostrarDespedida() {
+        mostrarMensagem("A sair do portal do estudante...");
+    }
+
+    public void mostrarOpcaoInvalida() {
+        mostrarMensagem("Opção inválida. Tente novamente.");
     }
 }

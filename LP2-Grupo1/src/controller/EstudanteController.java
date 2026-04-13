@@ -41,6 +41,9 @@ public class EstudanteController {
                     case 3:
                         alterarPassword();
                         break;
+                    case 4:
+                        consultarDadosFinanceiros();
+                        break;
                     case 0:
                         view.mostrarMensagem("A sair do portal do estudante...");
                         repositorio.limparSessao(); // Garante que a sessão é limpa ao sair
@@ -90,6 +93,23 @@ public class EstudanteController {
             view.mostrarMensagem("Password alterada com sucesso!");
         } else {
             view.mostrarMensagem("Operação cancelada. A password não foi alterada.");
+        }
+    }
+
+    private void consultarDadosFinanceiros() {
+        view.mostrarMensagem("\n--- DADOS FINANCEIROS ---");
+        double divida = estudanteAtivo.getSaldoDevedor();
+        view.mostrarMensagem("O seu saldo devedor atual (propinas) é: " + divida + "€");
+
+        if (divida > 0) {
+            String resp = view.pedirInputString("Deseja efetuar o pagamento agora? (S/N)");
+            if (resp.equalsIgnoreCase("S")) {
+                estudanteAtivo.efetuarPagamento(divida);
+                ExportadorCSV.atualizarEstudante(estudanteAtivo, "bd");
+                view.mostrarMensagem("Pagamento efetuado com sucesso. Saldo regularizado!");
+            }
+        } else {
+            view.mostrarMensagem("Não tem pagamentos pendentes. Bom trabalho!");
         }
     }
 }

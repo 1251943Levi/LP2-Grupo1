@@ -8,6 +8,7 @@ public class GestorController {
     private RepositorioDados repo;
     private Gestor gestor;
     private GestorView view;
+
     private static final String PASTA_BD = "bd";
 
     public GestorController(RepositorioDados repo, Gestor gestor) {
@@ -23,19 +24,196 @@ public class GestorController {
                 int opcao = view.mostrarMenu();
                 switch (opcao) {
                     case 1: executarRegistoEstudante(); break;
-                    case 2: view.mostrarMensagem("Avançar Ano Letivo - Em desenvolvimento."); break;
-                    case 3: mostrarMediaGlobal(); break;
-                    case 4: mostrarMelhorAluno(); break;
-                    case 5: alterarPassword(); break;
+                    case 2: menuGerirCursos(); break;
+                    case 3: menuGerirUcs(); break;
+                    case 4: menuEstatisticas(); break;
+                    case 5: iniciarAnoLetivo(); break;
+                    case 6: listarDevedores(); break;
+                    case 7: alterarPassword(); break;
                     case 0:
                         view.mostrarMensagem("A encerrar sessão do Gestor...");
-                        repo.limparSessao(); // Limpar a sessão no logout
+                        repo.limparSessao();
                         correr = false;
                         break;
-                    default: view.mostrarMensagem("Opção inválida.");
+                    default:
+                        view.mostrarMensagem("Opção inválida.");
                 }
             } catch (Exception e) {
                 view.mostrarMensagem("Erro na leitura da opção. Por favor, insira um número válido.");
+            }
+        }
+    }
+
+    // --- GESTÃO DE ESTUDANTES E ADMINISTRAÇÃO ---
+
+    private void executarRegistoEstudante() {
+        view.mostrarTituloRegistoEstudante();
+
+        int anoInscricao = repo.getAnoAtual();
+        int numMec = ImportadorCSV.obterProximoNumeroMecanografico(PASTA_BD, anoInscricao);
+        view.mostrarNumMecanograficoAtribuido(numMec);
+
+        String nome;
+        do {
+            nome = view.pedirNome();
+            if (!Validador.isNomeValido(nome)) view.mostrarErroNomeInvalido();
+        } while (!Validador.isNomeValido(nome));
+
+        String nif;
+        do {
+            nif = view.pedirNif();
+            if (!Validador.validarNif(nif)) view.mostrarErroNifInvalido();
+        } while (!Validador.validarNif(nif));
+
+        String morada = view.pedirMorada();
+
+        String dataNasc;
+        do {
+            dataNasc = view.pedirDataNascimento();
+            if (!Validador.isDataNascimentoValida(dataNasc)) view.mostrarErroDataInvalida();
+        } while (!Validador.isDataNascimentoValida(dataNasc));
+
+        String siglaCurso = "";
+        String[] listaCursos = ImportadorCSV.obterListaCursos(PASTA_BD);
+
+        if (listaCursos.length > 0) {
+            view.mostrarListaCursos(listaCursos);
+            int escolha = view.pedirOpcaoCurso(listaCursos.length);
+            siglaCurso = listaCursos[escolha - 1].split(" - ")[0];
+        } else {
+            view.mostrarAvisoSemCursos();
+            siglaCurso = view.pedirSiglaCurso();
+        }
+
+        String email = EmailGenerator.gerarEmailEstudante(numMec);
+        String passLimpa = PasswordGenerator.gerarPasswordSegura();
+
+        EmailService.enviarCredenciaisTodos(nome, email, passLimpa);
+
+        String passSegura = SegurancaPasswords.gerarCredencialMista(passLimpa);
+        passLimpa = null;
+
+        Estudante novo = new Estudante(numMec, email, passSegura, nome, nif, morada, dataNasc, anoInscricao);
+
+        Curso cursoEscolhido = ImportadorCSV.procurarCurso(siglaCurso, PASTA_BD);
+        if (cursoEscolhido != null) {
+            novo.setSaldoDevedor(cursoEscolhido.getValorPropinaAnual());
+        }
+
+        ExportadorCSV.adicionarEstudante(novo, PASTA_BD, siglaCurso);
+
+        view.mostrarMensagem("\nEstudante registado com sucesso!");
+        view.mostrarMensagem("E-mail institucional: " + email);
+        view.mostrarMensagem("As credenciais de acesso foram enviadas para o email do estudante.");
+    }
+
+    private void alterarPassword() {
+        view.mostrarMensagem("\n--- ALTERAR PASSWORD ---");
+        String novaPass = view.pedirInput("Introduza a nova Password (ou prima Enter para cancelar)");
+
+        if (!novaPass.trim().isEmpty()) {
+            String passSegura = SegurancaPasswords.gerarCredencialMista(novaPass);
+            gestor.setPassword(passSegura);
+            ExportadorCSV.atualizarPasswordCentralizada(gestor.getEmail(), passSegura, PASTA_BD);
+            view.mostrarMensagem("Password alterada com sucesso!");
+        } else {
+            view.mostrarMensagem("Operação cancelada. A password não foi alterada.");
+        }
+    }
+
+    private void iniciarAnoLetivo() {
+        view.mostrarMensagem("\n--- ARRANQUE DO ANO LETIVO ---");
+
+        String[] cursos = ImportadorCSV.obterListaCursos(PASTA_BD);
+        if (cursos.length == 0) {
+            view.mostrarMensagem(">> Erro: Não existem cursos registados no sistema.");
+            return;
+        }
+
+        view.mostrarMensagem("A verificar quórum dos cursos...");
+
+        for (String c : cursos) {
+            String siglaCurso = c.split(" - ")[0];
+            Curso curso = ImportadorCSV.procurarCurso(siglaCurso, PASTA_BD);
+            if (curso == null) continue;
+
+            int alunos1oAno = ExportadorCSV.contarEstudantesPorCursoEAno(siglaCurso, 1, PASTA_BD);
+            int alunos2oAno = ExportadorCSV.contarEstudantesPorCursoEAno(siglaCurso, 2, PASTA_BD);
+            int alunos3oAno = ExportadorCSV.contarEstudantesPorCursoEAno(siglaCurso, 3, PASTA_BD);
+
+            if (alunos1oAno < 5 && alunos1oAno > 0) {
+                view.mostrarMensagem(">> ERRO: Curso " + siglaCurso + " abortado. Apenas " + alunos1oAno + " alunos no 1º Ano (Mínimo: 5).");
+                curso.setEstado("Inativo");
+            } else if (alunos1oAno >= 5 || alunos2oAno >= 1 || alunos3oAno >= 1) {
+                view.mostrarMensagem(">> Curso " + siglaCurso + " cumpre os requisitos e está ATIVO.");
+                curso.setEstado("Ativo");
+            } else {
+                curso.setEstado("Inativo");
+            }
+
+            ExportadorCSV.atualizarCurso(curso, PASTA_BD);
+        }
+
+        view.mostrarMensagem("\nA processar transições de estudantes...");
+        Estudante[] estudantes = ImportadorCSV.carregarTodosEstudantes(PASTA_BD);
+
+        for (Estudante e : estudantes) {
+            if (e == null) continue;
+
+            if (e.getSaldoDevedor() != 0.0) {
+                view.mostrarMensagem(">> BLOQUEIO: Aluno " + e.getNumeroMecanografico() + " (" + e.getNome() +
+                        ") retido no " + e.getAnoCurricular() + "º Ano devido a dívida de " +
+                        e.getSaldoDevedor() + "€. (Média ignorada)");
+            } else {
+                if (e.getAnoCurricular() < 3) {
+                    e.setAnoCurricular(e.getAnoCurricular() + 1);
+                    view.mostrarMensagem(">> SUCESSO: Aluno " + e.getNumeroMecanografico() + " transitou para o " + e.getAnoCurricular() + "º Ano.");
+                } else {
+                    view.mostrarMensagem(">> SUCESSO: Aluno " + e.getNumeroMecanografico() + " concluiu o curso!");
+                }
+                ExportadorCSV.atualizarEstudante(e, PASTA_BD);
+            }
+        }
+
+        repo.setAnoAtual(repo.getAnoAtual() + 1);
+        view.mostrarMensagem("\n>> Ano Letivo avançado com sucesso para " + repo.getAnoAtual() + "!");
+    }
+
+    private void listarDevedores() {
+        view.mostrarMensagem("\n--- LISTA DE ESTUDANTES DEVEDORES ---");
+        Estudante[] estudantes = ImportadorCSV.carregarTodosEstudantes(PASTA_BD);
+        boolean encontrou = false;
+
+        if (estudantes == null || estudantes.length == 0) {
+            view.mostrarMensagem("Não existem estudantes registados no sistema.");
+            return;
+        }
+
+        for (Estudante e : estudantes) {
+            if (e != null && e.getSaldoDevedor() > 0) {
+                String info = String.format("Nº %d | Nome: %-20s | Dívida: %.2f€",
+                        e.getNumeroMecanografico(), e.getNome(), e.getSaldoDevedor());
+                view.mostrarMensagem(info);
+                encontrou = true;
+            }
+        }
+
+        if (!encontrou) {
+            view.mostrarMensagem("Excelente! Não existem estudantes com propinas em atraso.");
+        }
+    }
+
+    // --- ESTATÍSTICAS ---
+
+    private void menuEstatisticas() {
+        boolean correr = true;
+        while (correr) {
+            int opcao = view.mostrarMenuEstatisticas();
+            switch (opcao) {
+                case 1: mostrarMediaGlobal(); break;
+                case 2: mostrarMelhorAluno(); break;
+                case 0: correr = false; break;
+                default: view.mostrarMensagem("Opção inválida.");
             }
         }
     }
@@ -53,7 +231,7 @@ public class GestorController {
         int totalNotas = 0;
 
         for (Estudante e : estudantes) {
-            if (e == null || e.getPercurso() == null) continue; // Proteção contra NullPointerException
+            if (e == null || e.getPercurso() == null) continue;
 
             for (int i = 0; i < e.getPercurso().getTotalAvaliacoes(); i++) {
                 Avaliacao av = e.getPercurso().getHistoricoAvaliacoes()[i];
@@ -82,7 +260,6 @@ public class GestorController {
         if (estudantes == null) return;
 
         for (Estudante e : estudantes) {
-            // Verifica se o estudante é válido e tem percurso instanciado antes de invocar métodos
             if (e == null || e.getPercurso() == null || e.getPercurso().getTotalAvaliacoes() == 0) continue;
 
             double somaMedias = 0;
@@ -110,61 +287,220 @@ public class GestorController {
         }
     }
 
-    private void executarRegistoEstudante() {
-        view.mostrarMensagem("\n--- REGISTAR ESTUDANTE ---");
+    // --- GESTÃO DE UNIDADES CURRICULARES (UCs) ---
 
-        int numMec;
-        try {
-            numMec = Integer.parseInt(view.pedirInput("Nº Mecanográfico"));
-        } catch (NumberFormatException e) {
-            view.mostrarMensagem("Erro: O Nº Mecanográfico deve conter apenas algarismos. Operação cancelada.");
-            return; // Aborta o registo para não corromper os dados
+    private void menuGerirUcs() {
+        boolean correr = true;
+        while (correr) {
+            int opcao = view.mostrarMenuCRUD("Unidades Curriculares");
+            switch (opcao) {
+                case 1: adicionarUc(); break;
+                case 2: listarUcs(); break;
+                case 3: editarUc(); break;
+                case 4: removerUc(); break;
+                case 5: associarUcACurso(); break;
+                case 0: correr = false; break;
+                default: view.mostrarMensagem("Opção inválida.");
+            }
         }
-
-        String nome = view.pedirInput("Nome");
-
-        String nif;
-        do {
-            nif = view.pedirInput("NIF (9 dígitos numéricos)");
-        } while (!Validador.validarNif(nif));
-
-        String morada = view.pedirInput("Morada");
-        String dataNasc = view.pedirInput("Data Nasc. (DD/MM/AAAA)");
-        String siglaCurso = view.pedirInput("Sigla do Curso (Ex: EI, IG)");
-
-        int anoInscricao = java.time.Year.now().getValue();
-        String email = EmailGenerator.gerarEmailEstudante(numMec);
-        String passLimpa = PasswordGenerator.gerarPasswordSegura();
-
-        // Enviar email com a password limpa
-        EmailService.enviarCredenciaisTodos(nome, email, passLimpa);
-
-        // Gerar hash para guardar na BD
-        String passSegura = SegurancaPasswords.gerarCredencialMista(passLimpa);
-        passLimpa = null; // Boa prática de segurança! Remove a referência da memória.
-
-        Estudante novo = new Estudante(
-                numMec, email, passSegura, nome, nif, morada, dataNasc, anoInscricao
-        );
-
-        ExportadorCSV.adicionarEstudante(novo, PASTA_BD, siglaCurso);
-
-        view.mostrarMensagem("\nEstudante registado com sucesso!");
-        view.mostrarMensagem("E-mail institucional: " + email);
-        view.mostrarMensagem("As credenciais de acesso foram enviadas para o email do estudante.");
     }
 
-    private void alterarPassword() {
-        view.mostrarMensagem("\n--- ALTERAR PASSWORD ---");
-        String novaPass = view.pedirInput("Introduza a nova Password (ou prima Enter para cancelar)");
-
-        if (!novaPass.trim().isEmpty()) {
-            String passSegura = SegurancaPasswords.gerarCredencialMista(novaPass);
-            gestor.setPassword(passSegura);
-            ExportadorCSV.atualizarPasswordCentralizada(gestor.getEmail(), passSegura, PASTA_BD);
-            view.mostrarMensagem("Password alterada com sucesso!");
-        } else {
-            view.mostrarMensagem("Operação cancelada. A password não foi alterada.");
+    private void adicionarUc() {
+        String[] cursos = ImportadorCSV.obterListaCursos(PASTA_BD);
+        if (cursos.length == 0) {
+            view.mostrarAvisoSemCursos();
+            return;
         }
+
+        view.mostrarListaCursos(cursos);
+        int escolha = view.pedirOpcaoCurso(cursos.length);
+        String siglaCurso = cursos[escolha - 1].split(" - ")[0];
+
+        int anoUc = Integer.parseInt(view.pedirAnoCurricular());
+
+        if (repo.podeAdicionarUc(siglaCurso, anoUc, PASTA_BD)) {
+            String siglaUc = view.pedirSiglaUc();
+            String nomeUc = view.pedirNomeUc();
+            String docente = view.pedirSiglaDocente();
+
+            String linhaUc = siglaUc + ";" + nomeUc + ";" + anoUc + ";" + docente + ";" + siglaCurso;
+            ExportadorCSV.adicionarLinhaCSV("ucs.csv", linhaUc, PASTA_BD);
+            view.mostrarSucessoCriacao("UC");
+        } else {
+            view.mostrarErroLimiteUcs(anoUc);
+        }
+    }
+
+    private void listarUcs() {
+        view.mostrarMensagem(ImportadorCSV.listarTodasUcs(PASTA_BD));
+    }
+
+    private void editarUc() {
+        String[] ucs = ImportadorCSV.obterListaUcs(PASTA_BD);
+        if (ucs.length == 0) {
+            view.mostrarErroNaoEncontrado("UCs");
+            return;
+        }
+
+        view.mostrarListaUcs(ucs);
+        int escolha = view.pedirOpcaoUc(ucs.length);
+        String siglaEditar = ucs[escolha - 1].split(" - ")[0];
+
+        if (ExportadorCSV.removerLinhaCSV("ucs.csv", siglaEditar, PASTA_BD)) {
+            view.mostrarMensagemModoEdicao();
+            String novaLinha = siglaEditar + ";" + view.pedirNovoNome() + ";" +
+                    view.pedirNovoAnoCurricular() + ";" +
+                    view.pedirNovaSiglaDocente() + ";" +
+                    view.pedirNovaSiglaCurso();
+            ExportadorCSV.adicionarLinhaCSV("ucs.csv", novaLinha, PASTA_BD);
+            view.mostrarSucessoAtualizacao("UC");
+        }
+    }
+
+    private void removerUc() {
+        String[] ucs = ImportadorCSV.obterListaUcs(PASTA_BD);
+        if (ucs.length == 0) {
+            view.mostrarErroNaoEncontrado("UCs");
+            return;
+        }
+
+        view.mostrarListaUcs(ucs);
+        int escolha = view.pedirOpcaoUc(ucs.length);
+        String siglaRemover = ucs[escolha - 1].split(" - ")[0];
+
+        if (ExportadorCSV.removerLinhaCSV("ucs.csv", siglaRemover, PASTA_BD)) {
+            view.mostrarSucessoRemocao("UC");
+        }
+    }
+
+    private void associarUcACurso() {
+        String[] ucs = ImportadorCSV.obterListaUcs(PASTA_BD);
+        if (ucs.length == 0) {
+            view.mostrarErroNaoEncontrado("UCs");
+            return;
+        }
+        view.mostrarListaUcs(ucs);
+        int escolhaUc = view.pedirOpcaoUc(ucs.length);
+        String siglaUc = ucs[escolhaUc - 1].split(" - ")[0];
+
+        UnidadeCurricular ucExistente = ImportadorCSV.procurarUC(siglaUc, PASTA_BD);
+        if (ucExistente == null) {
+            view.mostrarMensagem(">> Erro ao carregar os dados da UC.");
+            return;
+        }
+
+        String[] cursos = ImportadorCSV.obterListaCursos(PASTA_BD);
+        if (cursos.length == 0) {
+            view.mostrarAvisoSemCursos();
+            return;
+        }
+        view.mostrarListaCursos(cursos);
+        int escolhaCurso = view.pedirOpcaoCurso(cursos.length);
+        String siglaCurso = cursos[escolhaCurso - 1].split(" - ")[0];
+
+        if (repo.podeAdicionarUc(siglaCurso, ucExistente.getAnoCurricular(), PASTA_BD)) {
+            String siglaDoc = (ucExistente.getDocenteResponsavel() != null) ? ucExistente.getDocenteResponsavel().getSigla() : "N/A";
+
+            String novaLinha = ucExistente.getSigla() + ";" +
+                    ucExistente.getNome() + ";" +
+                    ucExistente.getAnoCurricular() + ";" +
+                    siglaDoc + ";" +
+                    siglaCurso;
+
+            ExportadorCSV.adicionarLinhaCSV("ucs.csv", novaLinha, PASTA_BD);
+            view.mostrarMensagem(">> Sucesso: A UC '" + ucExistente.getNome() + "' foi associada ao curso " + siglaCurso + "!");
+        } else {
+            view.mostrarErroLimiteUcs(ucExistente.getAnoCurricular());
+        }
+    }
+
+    // --- GESTÃO DE CURSOS ---
+
+    private void menuGerirCursos() {
+        boolean correr = true;
+        while (correr) {
+            int opcao = view.mostrarMenuCRUD("Cursos");
+            switch (opcao) {
+                case 1: adicionarCurso(); break;
+                case 2: listarCursos(); break;
+                case 3: editarCurso(); break;
+                case 4: removerCurso(); break;
+                case 5: listarUcsDoCurso(); break;
+                case 0: correr = false; break;
+                default: view.mostrarMensagem("Opção inválida.");
+            }
+        }
+    }
+
+    private void adicionarCurso() {
+        String sigla = view.pedirSiglaCurso();
+        String nome = view.pedirNomeCurso();
+        String dep = view.pedirDepartamento();
+        double propina = view.pedirValorDouble("Valor da Propina Anual (€)");
+
+        String linha = sigla + ";" + nome + ";" + dep + ";" + propina + ";Inativo";
+        ExportadorCSV.adicionarLinhaCSV("cursos.csv", linha, PASTA_BD);
+        view.mostrarSucessoCriacao("Curso");
+    }
+
+    private void listarCursos() {
+        view.mostrarMensagem(ImportadorCSV.listarTodosCursos(PASTA_BD));
+    }
+
+    private void editarCurso() {
+        String[] cursos = ImportadorCSV.obterListaCursos(PASTA_BD);
+        if (cursos.length == 0) {
+            view.mostrarErroNaoEncontrado("Cursos");
+            return;
+        }
+
+        view.mostrarListaCursos(cursos);
+        int escolha = view.pedirOpcaoCurso(cursos.length);
+        String siglaEditar = cursos[escolha - 1].split(" - ")[0];
+
+        if (repo.podeEditarCurso(siglaEditar, PASTA_BD)) {
+            if (ExportadorCSV.removerLinhaCSV("cursos.csv", siglaEditar, PASTA_BD)) {
+                view.mostrarMensagemModoEdicao();
+                String novaLinha = siglaEditar + ";" + view.pedirNomeCurso() + ";" + view.pedirNovoDepartamento();
+                ExportadorCSV.adicionarLinhaCSV("cursos.csv", novaLinha, PASTA_BD);
+                view.mostrarSucessoAtualizacao("Curso");
+            }
+        } else {
+            view.mostrarErroEdicaoCurso();
+        }
+    }
+
+    private void removerCurso() {
+        String[] cursos = ImportadorCSV.obterListaCursos(PASTA_BD);
+        if (cursos.length == 0) {
+            view.mostrarErroNaoEncontrado("Cursos");
+            return;
+        }
+
+        view.mostrarListaCursos(cursos);
+        int escolha = view.pedirOpcaoCurso(cursos.length);
+        String siglaRemover = cursos[escolha - 1].split(" - ")[0];
+
+        if (repo.podeEditarCurso(siglaRemover, PASTA_BD)) {
+            if (ExportadorCSV.removerLinhaCSV("cursos.csv", siglaRemover, PASTA_BD)) {
+                view.mostrarSucessoRemocao("Curso");
+            }
+        } else {
+            view.mostrarErroEdicaoCurso();
+        }
+    }
+
+    private void listarUcsDoCurso() {
+        String[] cursos = ImportadorCSV.obterListaCursos(PASTA_BD);
+        if (cursos.length == 0) {
+            view.mostrarErroNaoEncontrado("Cursos");
+            return;
+        }
+
+        view.mostrarListaCursos(cursos);
+        int escolha = view.pedirOpcaoCurso(cursos.length);
+        String siglaCurso = cursos[escolha - 1].split(" - ")[0];
+
+        view.mostrarMensagem(ImportadorCSV.listarUcsPorCurso(siglaCurso, PASTA_BD));
     }
 }

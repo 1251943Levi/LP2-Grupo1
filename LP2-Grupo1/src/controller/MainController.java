@@ -25,11 +25,6 @@ public class MainController {
         this.repositorio = new RepositorioDados();
     }
 
-    /**
-     * Inicia o sistema.
-     * Como usamos Lazy Loading, apenas garantimos que a pasta de Base de Dados existe.
-     * Já não existe o "ImportadorCSV.importarTodos()".
-     */
     public void iniciarSistema() {
         java.io.File pasta = new java.io.File(PASTA_BD);
         if (!pasta.exists() || !pasta.isDirectory()) {
@@ -38,29 +33,33 @@ public class MainController {
         }
     }
 
-    /**
-     * O método guardarDados geral fica vazio porque a gravação é feita
-     * automaticamente (On-Demand) pelos outros controladores quando há alterações.
-     */
     public void guardarDados() {
-        // Nada a fazer aqui.
+        // Nada a fazer aqui. A gravação é feita On-Demand.
     }
 
     /**
-     * Processa o login do utilizador com validação de domínio institucional.
-     * A barreira de e-mail é a primeira instrução — falha imediata se o domínio
-     * não for reconhecido, sem chegar sequer a consultar o ficheiro de credenciais.
+     * NOVA FUNÇÃO: Valida apenas o formato do e-mail antes de pedir a password.
      */
-    public boolean processarLogin(String email, String pass, boolean aExecutar) {
-
+    public boolean validarFormatoEmailLogin(String email) {
         boolean isEmailAdmin = email.equals("admin@issmf.pt") || email.equals("backoffice@issmf.ipp.pt");
 
         if (!isEmailAdmin && !Validador.validarSufixoLogin(email)) {
             view.mostrarMensagem("ERRO DE LOGIN: O endereço de e-mail tem de conter obrigatoriamente o sufixo '@issmf.ipp.pt'.");
+            return false;
+        }
+        return true;
+    }
+
+    public boolean processarLogin(String email, String pass, boolean aExecutar) {
+
+        boolean isEmailAdmin = email.equals("admin@issmf.pt") || email.equals("backoffice@issmf.ipp.pt");
+
+        // Redundância de segurança (caso seja chamado de outro lado), mas sem mostrar mensagem repetida
+        if (!isEmailAdmin && !Validador.validarSufixoLogin(email)) {
             return aExecutar;
         }
 
-        String  credencialAdmin = "A67KdOiGgwLZQTdjXrCPUg==:1Emuaac5kl+mA0SKMMRX1m+5bpOXaLVPqcttF1EPyG4=";
+        String credencialAdmin = "A67KdOiGgwLZQTdjXrCPUg==:1Emuaac5kl+mA0SKMMRX1m+5bpOXaLVPqcttF1EPyG4=";
 
         if (isEmailAdmin && utils.SegurancaPasswords.verificarPassword(pass, credencialAdmin)) {
             view.mostrarMensagem("Login de Gestor detetado!");
@@ -74,8 +73,7 @@ public class MainController {
             return aExecutar;
         }
 
-        model.Utilizador userLogado =
-                ImportadorCSV.autenticarNoFicheiro(email, pass, PASTA_BD);
+        model.Utilizador userLogado = ImportadorCSV.autenticarNoFicheiro(email, pass, PASTA_BD);
 
         if (userLogado == null) {
             view.mostrarMensagem("Credenciais inválidas ou utilizador não encontrado.");
@@ -96,13 +94,7 @@ public class MainController {
         return aExecutar;
     }
 
-    /**
-     * Recupera a palavra-passe: gera uma nova, envia-a por e-mail
-     * e persiste o hash no ficheiro de credenciais.
-     * A password NUNCA é impressa na consola.
-     */
     public void recuperarPassword(String email) {
-
         if (!Validador.isEmailInstitucionalValido(email)) {
             view.mostrarMensagem("E-mail inválido: o domínio não é reconhecido pelo sistema.");
             return;
