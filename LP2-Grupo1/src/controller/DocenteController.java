@@ -11,7 +11,6 @@ public class DocenteController {
     private Docente docente;
     private DocenteView view;
 
-    // Caminho da BD corrigido
     private static final String PASTA_BD = "bd";
 
     public DocenteController(RepositorioDados repo, Docente docente) {

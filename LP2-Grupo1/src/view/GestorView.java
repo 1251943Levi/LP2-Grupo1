@@ -8,7 +8,7 @@ public class GestorView {
     public void mostrarMensagem(String msg) {
         System.out.println(">> " + msg);
     }
-    
+
     public String pedirInput(String msg) {
         System.out.print(msg + ": ");
         return scanner.nextLine().trim();
