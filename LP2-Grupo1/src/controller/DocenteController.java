@@ -39,40 +39,50 @@ public class DocenteController {
     }
 
     private void listarMeusAlunos() {
-        // Prevenção de NullPointerException (Carrega os dados e valida logo)
+        view.mostrarCabecalhoAlunos();
         Estudante[] todos = ImportadorCSV.carregarTodosEstudantes(PASTA_BD);
+        double somaDocente = 0;
+        int totalNotasDocente = 0;
+        boolean encontrou = false;
 
-        if (todos == null || todos.length == 0) {
-            // Se o repositório estiver completamente vazio, envia array vazio para a View
-            view.mostrarListaAlunos(new String[0]);
+        if (todos == null) {
+            view.mostrarErroCarregarAlunos();
             return;
         }
 
-        String[] bufferAlunos = new String[1000];
-        int contador = 0;
-
-        // Filtrar apenas os alunos que partilham UCs com este Docente
         for (Estudante e : todos) {
             if (e == null || e.getPercurso() == null) continue;
+            boolean alunoDoDocente = false;
 
             for (int i = 0; i < e.getPercurso().getTotalUcsInscrito(); i++) {
-                UnidadeCurricular ucInscrita = e.getPercurso().getUcsInscrito()[i];
+                if (e.getPercurso().getUcsInscrito()[i] != null &&
+                        lecionoEstaUC(e.getPercurso().getUcsInscrito()[i].getSigla())) {
+                    alunoDoDocente = true;
+                    break;
+                }
+            }
 
-                // Se a UC inscrita coincidir com alguma lecionada pelo docente
-                if (ucInscrita != null && lecionoEstaUC(ucInscrita.getSigla())) {
+            if (alunoDoDocente) {
+                encontrou = true;
+                view.mostrarAluno(e.getNumeroMecanografico(), e.getNome());
 
-                    // Formata a string conforme o requisito e guarda
-                    bufferAlunos[contador] = "Nº: " + e.getNumeroMecanografico() +
-                            " | Nome: " + e.getNome() +
-                            " | UC: " + ucInscrita.getNome();
-                    contador++;
+                for (int i = 0; i < e.getPercurso().getTotalAvaliacoes(); i++) {
+                    Avaliacao av = e.getPercurso().getHistoricoAvaliacoes()[i];
+                    if (av != null && av.getUc() != null && lecionoEstaUC(av.getUc().getSigla())) {
+                        for (int j = 0; j < av.getTotalAvaliacoesLancadas(); j++) {
+                            somaDocente += av.getResultados()[j];
+                            totalNotasDocente++;
+                        }
+                    }
                 }
             }
         }
 
-        String[] resultadoFinal = new String[contador];
-        System.arraycopy(bufferAlunos, 0, resultadoFinal, 0, contador);
-        view.mostrarListaAlunos(resultadoFinal);
+        if (!encontrou) {
+            view.mostrarSemAlunos();
+        } else if (totalNotasDocente > 0) {
+            view.mostrarMedia(somaDocente / totalNotasDocente);
+        }
     }
 
     private boolean lecionoEstaUC(String siglaUc) {
