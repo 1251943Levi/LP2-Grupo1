@@ -7,7 +7,7 @@ public class DocenteView {
 
     public int mostrarMenu() {
         System.out.println("\n=== MENU DOCENTE ===");
-        System.out.println("1 - Consultar os Meus Alunos e Estatísticas");
+        System.out.println("1 - Ver Lista de Alunos");
         System.out.println("2 - Lançar Notas");
         System.out.println("3 - Alterar Password");
         System.out.println("0 - Sair / Logout");
@@ -21,24 +21,20 @@ public class DocenteView {
 
     // --- MÉTODOS DE LISTAGEM DE ALUNOS ---
 
-    public void mostrarCabecalhoAlunos() {
-        System.out.println("\n--- OS MEUS ALUNOS ---");
-    }
+    public void mostrarListaAlunos(String[] listaAlunosFormatada) {
+        System.out.println("\n--- LISTA DE ESTUDANTES ---");
 
-    public void mostrarErroCarregarAlunos() {
-        System.out.println(">> Erro ao carregar a lista de estudantes.");
-    }
-
-    public void mostrarAluno(int numMecanografico, String nome) {
-        System.out.println(">> Nº: " + numMecanografico + " | Aluno: " + nome);
-    }
-
-    public void mostrarSemAlunos() {
-        System.out.println(">> Não tem alunos inscritos nas suas UCs.");
-    }
-
-    public void mostrarMedia(double media) {
-        System.out.println(">> Média das suas disciplinas: " + String.format("%.2f", media));
+        // Verifica se a lista está nula ou vazia
+        if (listaAlunosFormatada == null || listaAlunosFormatada.length == 0) {
+            System.out.println(">> Ainda não existem estudantes matriculados nas suas unidades curriculares.");
+        } else {
+            // Se existirem alunos, imprime cada uma das linhas
+            for (String linha : listaAlunosFormatada) {
+                if (linha != null) {
+                    System.out.println(">> " + linha);
+                }
+            }
+        }
     }
 
     // --- MÉTODOS DE LANÇAMENTO DE NOTAS ---
