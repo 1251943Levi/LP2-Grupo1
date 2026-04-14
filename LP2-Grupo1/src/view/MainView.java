@@ -34,14 +34,9 @@ public class MainView {
                     controller.recuperarPassword(emailRecup);
                     break;
                 case 3:
-                    controller.guardarDados();
-                    mostrarDadosGuardados();
-                    break;
-                case 4:
                     controller.executarAutoMatricula();
                     break;
                 case 0:
-                    controller.guardarDados();
                     mostrarDespedida();
                     aExecutar = false;
                     break;
@@ -55,8 +50,7 @@ public class MainView {
         System.out.println("\n===== SISTEMA ISSMF =====");
         System.out.println("1 - Login");
         System.out.println("2 - Recuperar Password");
-        System.out.println("3 - Guardar Dados");
-        System.out.println("4 - Matricular Estudante");
+        System.out.println("3 - Matricular Estudante");
         System.out.println("0 - Sair");
         System.out.print("Opção: ");
         try {
@@ -90,7 +84,7 @@ public class MainView {
     public void mostrarCredenciaisInvalidas() { System.out.println(">> Credenciais inválidas."); }
     public void mostrarErroEmailInvalido() { System.out.println(">> E-mail não reconhecido pelo sistema."); }
     public void mostrarSucessoRecuperacao(String email) { System.out.println(">> Password enviada para: " + email); }
-    public void mostrarDadosGuardados() { System.out.println(">> Dados guardados com sucesso."); }
+
     public void mostrarDespedida() { System.out.println(">> A encerrar o sistema..."); }
     public void mostrarOpcaoInvalida() { System.out.println(">> Opção inválida."); }
     public void mostrarTituloAutoMatricula() { System.out.println("\n--- AUTO-MATRÍCULA ---"); }

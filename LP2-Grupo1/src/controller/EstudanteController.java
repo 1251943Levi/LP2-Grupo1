@@ -46,7 +46,7 @@ public class EstudanteController {
                         break;
                     case 0:
                         view.mostrarDespedida();
-                        repositorio.limparSessao(); // Garante que a sessão é limpa ao sair
+                        repositorio.limparSessao();
                         aExecutar = false;
                         break;
                     default:
@@ -59,7 +59,6 @@ public class EstudanteController {
     }
 
     private void visualizarDadosPessoais() {
-        // Envia o modelo diretamente para a View formatar
         view.mostrarDadosPessoais(estudanteAtivo);
     }
 
