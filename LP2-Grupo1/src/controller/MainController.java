@@ -36,8 +36,6 @@ public class MainController {
         }
     }
 
-    public void guardarDados() {
-    }
 
     public boolean validarFormatoEmailLogin(String email) {
         boolean isEmailAdmin = email.equals("admin@issmf.pt") || email.equals("backoffice@issmf.ipp.pt");
