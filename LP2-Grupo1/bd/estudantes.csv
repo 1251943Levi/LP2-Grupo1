@@ -1,6 +1,10 @@
-numMec;email;nome;nif;morada;dataNascimento;anoInscricao;siglaCurso
-20260001;20260001@issmf.ipp.pt;Joao Silva;123123123;Rua Um;01-01-2005;2026;LEI
-20260002;20260002@issmf.ipp.pt;Ana Santos;234234234;Rua Dois;02-02-2005;2026;LEI
-20260003;20260003@issmf.ipp.pt;Pedro Costa;345345345;Rua Tres;03-03-2004;2026;LGE
-20260004;20260004@issmf.ipp.pt;Sofia Oliveira;456456456;Rua Quatro;04-04-2005;2026;LGE
-20260005;20260005@issmf.ipp.pt;Pedro Morgado;123456789;Lisboa;02-05-2000;2026;LGE;0.0;1
+numMec;email;nome;nif;morada;dataNascimento;anoInscricao;siglaCurso;saldoDevedor;anoCurricular
+20260001;20260001@issmf.ipp.pt;Joao Silva;123123123;Rua Um;01-01-2005;2026;LEI;0.0;2
+20260002;20260002@issmf.ipp.pt;Ana Santos;234234234;Rua Dois;02-02-2005;2026;LEI;0.0;2
+20260003;20260003@issmf.ipp.pt;Pedro Costa;345345345;Rua Tres;03-03-2004;2026;LGE;0.0;2
+20260004;20260004@issmf.ipp.pt;Sofia Oliveira;456456456;Rua Quatro;04-04-2005;2026;LGE;0.0;2
+20260005;20260005@issmf.ipp.pt;Pedro Morgado;123456789;Lisboa;02-05-2000;2026;LGE;0.0;220260006;20260006@issmf.ipp.pt;Sara Cristina Duarte Londreira;258066695;Ruaa;22-10-2000;2026;LEI;0.0;1
+20260006;20260006@issmf.ipp.pt;Sara Londreira;258066695;rua;22-10-2000;2026;LEI;0.0;1
+20260007;20260007@issmf.ipp.pt;sara;258369124;rua;10-11-2020;2026;LEI;0.0;1
+20260008;20260008@issmf.ipp.pt;serty;253104220;lol;25-10-2205;2026;LEI;0.0;1
+20260009;20260009@issmf.ipp.pt;sara londreira;123589647;sfg;22-10-2000;2026;LEI;0.0;1

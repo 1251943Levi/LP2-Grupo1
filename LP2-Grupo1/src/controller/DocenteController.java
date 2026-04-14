@@ -12,7 +12,7 @@ public class DocenteController {
     private DocenteView view;
 
     // Caminho da BD corrigido
-    private static final String PASTA_BD = "LP2-Grupo1/bd";
+    private static final String PASTA_BD = "bd";
 
     public DocenteController(RepositorioDados repo, Docente docente) {
         this.repo = repo;

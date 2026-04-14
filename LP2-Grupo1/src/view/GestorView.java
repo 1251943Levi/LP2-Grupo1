@@ -5,11 +5,11 @@ import java.util.Scanner;
 public class GestorView {
     private Scanner scanner = new Scanner(System.in);
 
-    private void mostrarMensagem(String msg) {
+    public void mostrarMensagem(String msg) {
         System.out.println(">> " + msg);
     }
-
-    private String pedirInput(String msg) {
+    
+    public String pedirInput(String msg) {
         System.out.print(msg + ": ");
         return scanner.nextLine().trim();
     }
