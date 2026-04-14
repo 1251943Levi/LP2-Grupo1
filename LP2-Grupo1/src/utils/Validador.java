@@ -1,5 +1,9 @@
 package utils;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+
 /**
  * Centraliza as regras de validação de dados de entrada do sistema.
  */
@@ -8,25 +12,10 @@ public class Validador {
     private Validador() {}
 
     /**
-     * Valida o formato de um NIF português.
-     * Além de verificar se tem 9 dígitos, calcula matematicamente o dígito de controlo.
-     * @param nif String a validar.
-     * @return true se o NIF for estruturalmente e matematicamente válido.
+     * @return nif válido
      */
     public static boolean validarNif(String nif) {
-        if (nif == null || !nif.matches("\\d{9}")) {
-            return false;
-        }
-
-        int total = 0;
-        for (int i = 0; i < 8; i++) {
-            total += Character.getNumericValue(nif.charAt(i)) * (9 - i);
-        }
-
-        int resto = total % 11;
-        int digitoControlo = (resto < 2) ? 0 : 11 - resto;
-
-        return digitoControlo == Character.getNumericValue(nif.charAt(8));
+        return nif != null && nif.matches("[12356789]\\d{8}");
     }
 
     /**
@@ -71,13 +60,23 @@ public class Validador {
     }
 
     /**
-     * Valida se a data de nascimento obedece ao padrão DD-MM-AAAA.
+     * Valida se a data de nascimento obedece ao padrão DD-MM-AAAA
+     * e se a data existe no calendário.
      */
     public static boolean isDataNascimentoValida(String data) {
-        if (data == null) {
+        if (data == null || !data.matches("^(0[1-9]|[12][0-9]|3[01])-(0[1-9]|1[0-2])-[0-9]{4}$")) {
             return false;
         }
-        return data.matches("^(0[1-9]|[12][0-9]|3[01])-(0[1-9]|1[0-2])-[0-9]{4}$");
+
+        try {
+            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+            LocalDate dataNasc = LocalDate.parse(data, dtf);
+            LocalDate hoje = LocalDate.now();
+
+            return dataNasc.isBefore(hoje);
+        } catch (DateTimeParseException e) {
+            return false; // A data não existe no calendário
+        }
     }
 
     /**

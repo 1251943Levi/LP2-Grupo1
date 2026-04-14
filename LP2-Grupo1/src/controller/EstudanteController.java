@@ -16,7 +16,7 @@ public class EstudanteController {
     private RepositorioDados repositorio;
     private Estudante estudanteAtivo;
     private EstudanteView view;
-    private static final String PASTA_BD = "LP2-Grupo1/bd";
+    private static final String PASTA_BD = "bd";
 
     public EstudanteController(RepositorioDados repositorio, Estudante estudanteAtivo) {
         this.repositorio = repositorio;

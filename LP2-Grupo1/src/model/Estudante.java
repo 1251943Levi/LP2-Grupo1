@@ -9,14 +9,14 @@ public class Estudante extends Utilizador {
     private int anoFrequencia;
     private PercursoAcademico percurso;
     private double saldoDevedor;
+    private String siglaCurso;
 
     // ---------- CONSTRUTOR ----------
-    public Estudante(int numeroMecanografico, String email, String password, String nome, String nif, String morada, String dataNascimento, int anoPrimeiraInscricao) {
+    public Estudante(int numeroMecanografico, String email, String password, String nome,
+                     String nif, String morada, String dataNascimento, int anoPrimeiraInscricao) {
         super(email, password, nome, nif, morada, dataNascimento);
-
         this.numeroMecanografico = numeroMecanografico;
         this.anoPrimeiraInscricao = anoPrimeiraInscricao;
-
         this.anoCurricular = 1;
         this.anoFrequencia = 1;
         this.percurso = new PercursoAcademico();
@@ -29,11 +29,13 @@ public class Estudante extends Utilizador {
     public int getAnoFrequencia() { return anoFrequencia; }
     public PercursoAcademico getPercurso() { return percurso; }
     public double getSaldoDevedor() { return saldoDevedor; }
+    public String getSiglaCurso() { return siglaCurso; }
 
     // ---------- SETTERS ----------
     public void setAnoCurricular(int anoCurricular) { this.anoCurricular = anoCurricular; }
     public void setAnoFrequencia(int anoFrequencia) { this.anoFrequencia = anoFrequencia; }
-    public void setSaldoDevedor(double saldoDevedor){ this.saldoDevedor = saldoDevedor; }
+    public void setSaldoDevedor(double saldoDevedor) { this.saldoDevedor = saldoDevedor; }
+    public void setSiglaCurso(String siglaCurso) { this.siglaCurso = siglaCurso; }
 
     // ---------- MÉTODOS ----------
     @Override
@@ -44,5 +46,4 @@ public class Estudante extends Utilizador {
     public void efetuarPagamento(double valor) {
         this.saldoDevedor -= valor;
     }
-
 }
