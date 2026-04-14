@@ -9,7 +9,7 @@ public class GestorController {
     private Gestor gestor;
     private GestorView view;
 
-    private static final String PASTA_BD = "LP2-Grupo1/bd";
+    private static final String PASTA_BD = "bd";
 
     public GestorController(RepositorioDados repo, Gestor gestor) {
         this.repo = repo;
@@ -43,8 +43,6 @@ public class GestorController {
             }
         }
     }
-
-    // --- GESTÃO DE ESTUDANTES E ADMINISTRAÇÃO ---
 
     private void executarRegistoEstudante() {
         view.mostrarTituloRegistoEstudante();
@@ -107,7 +105,6 @@ public class GestorController {
         }
 
         ExportadorCSV.adicionarEstudante(novo, PASTA_BD, siglaCurso);
-
         view.mostrarResumoRegistoEstudante(email);
     }
 
@@ -120,7 +117,7 @@ public class GestorController {
             gestor.setPassword(passSegura);
             ExportadorCSV.atualizarPasswordCentralizada(gestor.getEmail(), passSegura, PASTA_BD);
             view.mostrarSucessoAlteracaoPassword();
-        } else {
+        }else {
             view.mostrarCancelamentoPassword();
         }
     }
@@ -129,7 +126,7 @@ public class GestorController {
         view.mostrarCabecalhoArranqueAnoLetivo();
 
         String[] cursos = ImportadorCSV.obterListaCursos(PASTA_BD);
-        if (cursos.length == 0) {
+        if (cursos.length == 0){
             view.mostrarErroCarregarDados("Cursos");
             return;
         }
@@ -154,7 +151,6 @@ public class GestorController {
             } else {
                 curso.setEstado("Inativo");
             }
-
             ExportadorCSV.atualizarCurso(curso, PASTA_BD);
         }
 
@@ -165,14 +161,12 @@ public class GestorController {
             if (e == null) continue;
 
             if (e.getSaldoDevedor() != 0.0) {
-                view.mostrarBloqueioDivida(e.getNumeroMecanografico(), e.getNome(), e.getAnoCurricular(), e.getSaldoDevedor());
-            } else {
+                view.mostrarBloqueioDivida(e.getNumeroMecanografico(), e.getNome(), e.getAnoCurricular(), e.getSaldoDevedor());            } else {
                 if (e.getAnoCurricular() < 3) {
                     e.setAnoCurricular(e.getAnoCurricular() + 1);
                     view.mostrarTransicaoSucedida(e.getNumeroMecanografico(), e.getAnoCurricular());
                 } else {
-                    view.mostrarConclusaoCurso(e.getNumeroMecanografico());
-                }
+                    view.mostrarConclusaoCurso(e.getNumeroMecanografico());                }
                 ExportadorCSV.atualizarEstudante(e, PASTA_BD);
             }
         }
@@ -195,15 +189,12 @@ public class GestorController {
             if (e != null && e.getSaldoDevedor() > 0) {
                 view.mostrarEstudanteDevedor(e.getNumeroMecanografico(), e.getNome(), e.getSaldoDevedor());
                 encontrou = true;
+                if (!encontrou) {
+                    view.mostrarSemDevedores();
+                }
             }
         }
-
-        if (!encontrou) {
-            view.mostrarSemDevedores();
-        }
     }
-
-    // --- ESTATÍSTICAS ---
 
     private void menuEstatisticas() {
         boolean correr = true;
@@ -221,7 +212,6 @@ public class GestorController {
     private void mostrarMediaGlobal() {
         view.mostrarCabecalhoMediaGlobal();
         Estudante[] estudantes = ImportadorCSV.carregarTodosEstudantes(PASTA_BD);
-
         if (estudantes == null) {
             view.mostrarErroCarregarDados("Estudantes");
             return;
@@ -232,7 +222,6 @@ public class GestorController {
 
         for (Estudante e : estudantes) {
             if (e == null || e.getPercurso() == null) continue;
-
             for (int i = 0; i < e.getPercurso().getTotalAvaliacoes(); i++) {
                 Avaliacao av = e.getPercurso().getHistoricoAvaliacoes()[i];
                 if (av != null && av.getResultados() != null) {
@@ -258,10 +247,8 @@ public class GestorController {
         double maiorMedia = -1;
 
         if (estudantes == null) return;
-
         for (Estudante e : estudantes) {
             if (e == null || e.getPercurso() == null || e.getPercurso().getTotalAvaliacoes() == 0) continue;
-
             double somaMedias = 0;
             int totalAvaliacoes = e.getPercurso().getTotalAvaliacoes();
 
@@ -278,15 +265,12 @@ public class GestorController {
                 melhor = e;
             }
         }
-
         if (melhor != null) {
             view.mostrarInfoMelhorAluno(melhor.getNome(), melhor.getNumeroMecanografico(), maiorMedia);
         } else {
             view.mostrarSemAlunosAvaliados();
         }
     }
-
-    // --- GESTÃO DE UNIDADES CURRICULARES (UCs) ---
 
     private void menuGerirUcs() {
         boolean correr = true;
@@ -310,13 +294,11 @@ public class GestorController {
             view.mostrarAvisoSemCursos();
             return;
         }
-
         view.mostrarListaCursos(cursos);
         int escolha = view.pedirOpcaoCurso(cursos.length);
         String siglaCurso = cursos[escolha - 1].split(" - ")[0];
 
         int anoUc = Integer.parseInt(view.pedirAnoCurricular());
-
         if (repo.podeAdicionarUc(siglaCurso, anoUc, PASTA_BD)) {
             String siglaUc = view.pedirSiglaUc();
             String nomeUc = view.pedirNomeUc();
@@ -340,7 +322,6 @@ public class GestorController {
             view.mostrarErroNaoEncontrado("UCs");
             return;
         }
-
         view.mostrarListaUcs(ucs);
         int escolha = view.pedirOpcaoUc(ucs.length);
         String siglaEditar = ucs[escolha - 1].split(" - ")[0];
@@ -413,8 +394,6 @@ public class GestorController {
         }
     }
 
-    // --- GESTÃO DE CURSOS ---
-
     private void menuGerirCursos() {
         boolean correr = true;
         while (correr) {
@@ -463,9 +442,9 @@ public class GestorController {
                 String novaLinha = siglaEditar + ";" + view.pedirNomeCurso() + ";" + view.pedirNovoDepartamento();
                 ExportadorCSV.adicionarLinhaCSV("cursos.csv", novaLinha, PASTA_BD);
                 view.mostrarSucessoAtualizacao("Curso");
+            } else {
+                view.mostrarErroEdicaoCurso();
             }
-        } else {
-            view.mostrarErroEdicaoCurso();
         }
     }
 
@@ -475,7 +454,6 @@ public class GestorController {
             view.mostrarErroNaoEncontrado("Cursos");
             return;
         }
-
         view.mostrarListaCursos(cursos);
         int escolha = view.pedirOpcaoCurso(cursos.length);
         String siglaRemover = cursos[escolha - 1].split(" - ")[0];
@@ -495,7 +473,6 @@ public class GestorController {
             view.mostrarErroNaoEncontrado("Cursos");
             return;
         }
-
         view.mostrarListaCursos(cursos);
         int escolha = view.pedirOpcaoCurso(cursos.length);
         String siglaCurso = cursos[escolha - 1].split(" - ")[0];

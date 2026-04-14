@@ -1,11 +1,16 @@
 package controller;
 
 import model.RepositorioDados;
+import model.Estudante;
+import model.Curso;
 import utils.ExportadorCSV;
 import utils.ImportadorCSV;
-import view.MainView;
-import utils.Validador;
 import utils.EmailService;
+import utils.Validador;
+import utils.EmailGenerator;
+import utils.PasswordGenerator;
+import utils.SegurancaPasswords;
+import view.MainView;
 
 /**
  * Controlador principal da aplicação ISSMF.
@@ -13,7 +18,7 @@ import utils.EmailService;
  */
 public class MainController {
 
-    private static final String PASTA_BD = "LP2-Grupo1/bd";
+    private static final String PASTA_BD = "bd";
     private final MainView view;
     private final RepositorioDados repositorio;
 
@@ -100,40 +105,40 @@ public class MainController {
     }
 
     /**
-     * Lógica de Auto-matrícula (Mantendo o resto do controlador inalterado).
+     * Lógica de Auto-matrícula com encriptação de password e envio de email.
+     * Cumpre os requisitos de segurança e integridade de dados.
      */
     public void executarAutoMatricula() {
         view.mostrarTituloAutoMatricula();
 
-        // 1. Validações usando o Validador
         String nome;
         do {
             nome = view.pedirInputString("Nome Completo");
-            if (!utils.Validador.isNomeValido(nome)) view.mostrarErroNomeInvalido();
-        } while (!utils.Validador.isNomeValido(nome));
+            if (!Validador.isNomeValido(nome)) view.mostrarErroNomeInvalido();
+        } while (!Validador.isNomeValido(nome));
 
         String nif;
         boolean duplicado;
         do {
             nif = view.pedirInputString("NIF");
-            duplicado = utils.Validador.isNifDuplicado(nif, PASTA_BD);
+            duplicado = Validador.isNifDuplicado(nif, PASTA_BD);
 
-            if (!utils.Validador.validarNif(nif)) {
+            if (!Validador.validarNif(nif)) {
                 view.mostrarErroNifInvalido();
             } else if (duplicado) {
                 view.mostrarErroNifDuplicado();
             }
-        } while (!utils.Validador.validarNif(nif) || duplicado);
+        } while (!Validador.validarNif(nif) || duplicado);
 
         String morada = view.pedirInputString("Morada");
 
         String dataNasc;
         do {
             dataNasc = view.pedirInputString("Data de Nascimento (DD-MM-AAAA)");
-            if (!utils.Validador.isDataNascimentoValida(dataNasc)) view.mostrarErroDataInvalida();
-        } while (!utils.Validador.isDataNascimentoValida(dataNasc));
+            if (!Validador.isDataNascimentoValida(dataNasc)) view.mostrarErroDataInvalida();
+        } while (!Validador.isDataNascimentoValida(dataNasc));
 
-        // 2. Seleção de curso
+        // 4. Seleção de Curso
         String[] cursos = ImportadorCSV.obterListaCursos(PASTA_BD);
         if (cursos.length == 0) {
             view.mostrarErroSemCursos();
@@ -148,21 +153,29 @@ public class MainController {
         }
         String siglaCurso = cursos[escolha - 1].split(" - ")[0];
 
-        // 3. Geração de dados académicos
+        // 5. Geração de Dados e Encriptação (Cumpre Requisitos de Segurança)
         int anoAtual = repositorio.getAnoAtual();
         int numMec = ImportadorCSV.obterProximoNumeroMecanografico(PASTA_BD, anoAtual);
-        String emailInst = utils.EmailGenerator.gerarEmailEstudante(numMec);
-        String passLimpa = utils.PasswordGenerator.gerarPasswordSegura();
-        String passHash = utils.SegurancaPasswords.gerarCredencialMista(passLimpa);
+        String emailInst = EmailGenerator.gerarEmailEstudante(numMec);
 
-        // 4. Gravação direta no CSV
-        model.Estudante novo = new model.Estudante(numMec, emailInst, passHash, nome, nif, morada, dataNasc, anoAtual);
-        model.Curso curso = ImportadorCSV.procurarCurso(siglaCurso, PASTA_BD);
-        if (curso != null) novo.setSaldoDevedor(curso.getValorPropinaAnual());
+        // Password em texto limpo apenas para o email e visualização final
+        String passLimpa = PasswordGenerator.gerarPasswordSegura();
+        // Hash gerado para armazenamento seguro na base de dados
+        String passHash = SegurancaPasswords.gerarCredencialMista(passLimpa);
 
+        // 6. Criação do Modelo e Atribuição de Propinas
+        Estudante novo = new Estudante(numMec, emailInst, passHash, nome, nif, morada, dataNasc, anoAtual);
+
+        Curso curso = ImportadorCSV.procurarCurso(siglaCurso, PASTA_BD);
+        if (curso != null) {
+            // Atribui o valor da propina anual configurado no curso ao saldo devedor do aluno
+            novo.setSaldoDevedor(curso.getValorPropinaAnual());
+        }
+
+        // 7. Persistência de Dados no CSV
         ExportadorCSV.adicionarEstudante(novo, PASTA_BD, siglaCurso);
 
-        // 5. Envio de e-mail com credenciais
+        // 8. Envio de Credenciais
         EmailService.enviarCredenciaisTodos(nome, emailInst, passLimpa);
 
         view.mostrarSucessoAutoMatricula(emailInst, passLimpa);
