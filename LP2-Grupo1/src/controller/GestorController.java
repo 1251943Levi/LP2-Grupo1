@@ -83,7 +83,7 @@ public class GestorController {
         String passSegura = SegurancaPasswords.gerarCredencialMista(passLimpa);
         Docente novoDocente = new Docente(sigla, email, passSegura, nome, nif, morada, dataNasc);
 
-        // 5. Guardar no Sistema
+        // Guardar no Sistema
         ExportadorCSV.adicionarDocente(novoDocente, PASTA_BD);
         view.mostrarResumoRegistoDocente(email); // Precisas de criar este método na View
     }
