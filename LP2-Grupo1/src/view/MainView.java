@@ -3,36 +3,17 @@ package view;
 import controller.MainController;
 import java.util.Scanner;
 
-/**
- * Interface de Utilizador em Consola principal do sistema.
- * Responsável por apresentar menus, recolher dados do teclado e exibir mensagens.
- * Segue o padrão View no modelo MVC, delegando o processamento ao MainController.
- */
 public class MainView {
-    /**
-     * Scanner para leitura da entrada padrão.
-     */
     private Scanner scanner;
-
-    /**
-     * Referência para o controlador que processará as ações desta vista.
-     */
     private MainController controller;
 
-    /**
-     * Inicializa a vista, configurando o Scanner e instanciando o controlador associado.
-     */
     public MainView() {
         this.scanner = new Scanner(System.in);
         this.controller = new MainController(this);
     }
 
-    /**
-     * Inicia o ciclo principal de vida da interface.
-     * Controla o loop do menu e a navegação entre as opções principais do sistema.
-     */
     public void iniciar() {
-        mostrarMensagem("Bem-vindo ao Sistema do ISSMF!");
+        mostrarBemVindo();
         controller.iniciarSistema();
 
         boolean aExecutar = true;
@@ -41,83 +22,96 @@ public class MainView {
 
             switch (opcao) {
                 case 1:
-                    String email = pedirInputString("Email").trim();
-                    String pass = pedirPassword("Password").trim();                    aExecutar = controller.processarLogin(email, pass, aExecutar);
+                    String email = pedirInputString("Email");
+                    // Validação imediata de sufixo antes de prosseguir
+                    if (controller.validarFormatoEmailLogin(email)) {
+                        String pass = pedirPassword("Password");
+                        controller.processarLogin(email, pass);
+                    }
                     break;
-
-                case 2: // NOVA LÓGICA
-                    String emailRecuperacao = pedirInputString("Introduza o seu Email de recuperação").trim();
-                    controller.recuperarPassword(emailRecuperacao);
+                case 2:
+                    String emailRecup = pedirInputString("Email de recuperação");
+                    controller.recuperarPassword(emailRecup);
                     break;
-
                 case 3:
-                    controller.guardarDados();
-                    mostrarMensagem("Dados guardados com sucesso.");
+                    controller.executarAutoMatricula();
                     break;
-
                 case 0:
-                    controller.guardarDados();
-                    mostrarMensagem("A encerrar o sistema...");
+                    mostrarDespedida();
                     aExecutar = false;
                     break;
-
                 default:
-                    mostrarMensagem("Opção inválida.");
+                    mostrarOpcaoInvalida();
             }
         }
     }
 
-    /**
-     * Apresenta o menu principal na consola e recolhe a opção do utilizador.
-     * @return int A opção escolhida pelo utilizador, ou -1 em caso de entrada inválida.
-     */
     public int mostrarMenu() {
         System.out.println("\n===== SISTEMA ISSMF =====");
         System.out.println("1 - Login");
         System.out.println("2 - Recuperar Password");
-        System.out.println("3 - Guardar Dados");
+        System.out.println("3 - Matricular Estudante");
         System.out.println("0 - Sair");
         System.out.print("Opção: ");
-
         try {
-            return Integer.parseInt(scanner.nextLine());
+            return Integer.parseInt(scanner.nextLine().trim());
         } catch (NumberFormatException e) {
             return -1;
         }
     }
 
-    /**
-     * Solicita uma cadeia de caracteres (String) ao utilizador através de uma mensagem.
-     * @param mensagem O texto descritivo do que deve ser inserido.
-     * @return String O texto introduzido pelo utilizador.
-     */
     public String pedirInputString(String mensagem) {
         System.out.print(mensagem + ": ");
-        return scanner.nextLine();
+        return scanner.nextLine().trim();
     }
 
-    /**
-     * Solicita uma password ao utilizador, ocultando os caracteres introduzidos se a consola o permitir.
-     * @param mensagem O texto descritivo do que deve ser inserido.
-     * @return String A password introduzida pelo utilizador.
-     */
     public String pedirPassword(String mensagem) {
         System.out.print(mensagem + ": ");
+        // Requisito: Password oculta na consola
         if (System.console() != null) {
             char[] passwordChars = System.console().readPassword();
-            return new String(passwordChars);
-        } else {
-            return scanner.nextLine();
+            return new String(passwordChars).trim();
+        }
+        return scanner.nextLine().trim();
+    }
+
+    public void mostrarBemVindo() { System.out.println(">> Bem-vindo ao Sistema do ISSMF!"); }
+    public void mostrarPastaCriada() { System.out.println(">> Pasta de base de dados criada."); }
+    public void mostrarErroLoginSufixo() { System.out.println(">> ERRO: O e-mail deve conter '@issmf.ipp.pt'."); }
+    public void mostrarLoginGestor() { System.out.println(">> Login de Gestor efetuado!"); }
+    public void mostrarLoginEstudante() { System.out.println(">> Login de Estudante efetuado!"); }
+    public void mostrarLoginDocente() { System.out.println(">> Login de Docente efetuado!"); }
+    public void mostrarCredenciaisInvalidas() { System.out.println(">> Credenciais inválidas."); }
+    public void mostrarErroEmailInvalido() { System.out.println(">> E-mail não reconhecido pelo sistema."); }
+    public void mostrarSucessoRecuperacao(String email) { System.out.println(">> Password enviada para: " + email); }
+
+    public void mostrarDespedida() { System.out.println(">> A encerrar o sistema..."); }
+    public void mostrarOpcaoInvalida() { System.out.println(">> Opção inválida."); }
+    public void mostrarTituloAutoMatricula() { System.out.println("\n--- AUTO-MATRÍCULA ---"); }
+    public void mostrarErroNomeInvalido() { System.out.println(">> Nome inválido (apenas letras)."); }
+    public void mostrarErroNifInvalido() { System.out.println(">> NIF inválido (9 dígitos)."); }
+    public void mostrarErroNifDuplicado() { System.out.println(">> Erro: NIF já registado."); }
+    public void mostrarErroDataInvalida() { System.out.println(">> Formato de data inválido (DD-MM-AAAA)."); }
+    public void mostrarErroSemCursos() { System.out.println(">> Não existem cursos ativos."); }
+
+    public void mostrarListaCursosDisponiveis(String[] cursos) {
+        System.out.println("\n--- CURSOS DISPONÍVEIS ---");
+        for (int i = 0; i < cursos.length; i++) {
+            System.out.println((i + 1) + " - " + cursos[i]);
         }
     }
 
-    /**
-     * Exibe uma mensagem informativa ou de erro no ecrã.
-     * @param mensagem O conteúdo da mensagem a exibir.
-     */
-    public void mostrarMensagem(String mensagem) {
-        System.out.println(">> " + mensagem);
+    public int pedirOpcaoCurso(int max) {
+        System.out.print("Selecione o Curso (1-" + max + "): ");
+        try {
+            return Integer.parseInt(scanner.nextLine().trim());
+        } catch (Exception e) {
+            return -1;
+        }
     }
 
+    public void mostrarSucessoAutoMatricula(String email, String pass) {
+        System.out.println("\n>> MATRÍCULA CONCLUÍDA!");
+        System.out.println(">> E-mail Institucional: " + email);
+    }
 }
-

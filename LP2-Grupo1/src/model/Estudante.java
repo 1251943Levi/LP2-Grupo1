@@ -8,24 +8,15 @@ public class Estudante extends Utilizador {
     private int anoCurricular;
     private int anoFrequencia;
     private PercursoAcademico percurso;
+    private double saldoDevedor;
     private String siglaCurso;
 
-    /**
-     * Saldo devedor atual do estudante referente a propinas.
-     * Inicializado a 0.0 por defeito, sendo atualizado no momento da inscrição num curso
-     * ou aquando da realização de pagamentos.
-     */
-    private double SaldoDevedor = 0.0;
-
     // ---------- CONSTRUTOR ----------
-    public Estudante(int numeroMecanografico, String email, String password, String nome, String nif, String morada, String dataNascimento, int anoPrimeiraInscricao) {
-        // Chamada ao construtor da classe mãe (Utilizador)
+    public Estudante(int numeroMecanografico, String email, String password, String nome,
+                     String nif, String morada, String dataNascimento, int anoPrimeiraInscricao) {
         super(email, password, nome, nif, morada, dataNascimento);
-
         this.numeroMecanografico = numeroMecanografico;
         this.anoPrimeiraInscricao = anoPrimeiraInscricao;
-
-        // Valores por defeito ao criar um novo estudante
         this.anoCurricular = 1;
         this.anoFrequencia = 1;
         this.percurso = new PercursoAcademico();
@@ -37,13 +28,13 @@ public class Estudante extends Utilizador {
     public int getAnoCurricular() { return anoCurricular; }
     public int getAnoFrequencia() { return anoFrequencia; }
     public PercursoAcademico getPercurso() { return percurso; }
-    public double getSaldoDevedor() { return SaldoDevedor;}
+    public double getSaldoDevedor() { return saldoDevedor; }
     public String getSiglaCurso() { return siglaCurso; }
 
     // ---------- SETTERS ----------
     public void setAnoCurricular(int anoCurricular) { this.anoCurricular = anoCurricular; }
     public void setAnoFrequencia(int anoFrequencia) { this.anoFrequencia = anoFrequencia; }
-    public void setSaldoDevedor(double saldoDevedor) { this.SaldoDevedor = saldoDevedor;}
+    public void setSaldoDevedor(double saldoDevedor) { this.saldoDevedor = saldoDevedor; }
     public void setSiglaCurso(String siglaCurso) { this.siglaCurso = siglaCurso; }
 
     // ---------- MÉTODOS ----------
@@ -52,4 +43,7 @@ public class Estudante extends Utilizador {
         return numeroMecanografico + " - " + nome;
     }
 
+    public void efetuarPagamento(double valor) {
+        this.saldoDevedor -= valor;
+    }
 }

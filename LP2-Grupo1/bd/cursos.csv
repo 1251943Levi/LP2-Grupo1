@@ -1,3 +1,3 @@
-sigla;nome;siglaDepartamento
-LEI;Licenciatura em Engenharia Informatica;DEI
-LGE;Licenciatura em Gestao de Empresas;DGE
+sigla;nome;siglaDepartamento;propina;estado
+LEI;Licenciatura em Engenharia Informatica;DEI;0.0;Inativo
+LGE;Licenciatura em Gestao de Empresas;DGE;0.0;Inativo

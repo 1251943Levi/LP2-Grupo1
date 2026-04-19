@@ -8,22 +8,22 @@ public class Curso {
     private Departamento departamento;
     private Docente docenteResponsavel;
     private final int duracaoAnos = 3;
+    private String estado;
 
     private UnidadeCurricular[] unidadesCurriculares;
     private int totalUCs;
-    /**
-     * Valor base da propina anual estipulada para a frequência deste curso.
-     * Este valor é atribuído como saldo devedor aos estudantes no momento da sua primeira inscrição.
-     */
-    private double valorPropinaAnual = 0.0; //ver que valor meter
-    private String estado= "Inativo";
+
+    private double valorPropinaAnual;
+
     // ---------- CONSTRUTOR ----------
-    public Curso(String sigla, String nome, Departamento departamento) {
+    public Curso(String sigla, String nome, Departamento departamento, double valorPropinaAnual) {
         this.sigla = sigla;
         this.nome = nome;
         this.departamento = departamento;
+        this.valorPropinaAnual = valorPropinaAnual;
         this.unidadesCurriculares = new UnidadeCurricular[15];
         this.totalUCs = 0;
+        this.estado = "Inativo";
     }
 
     // ---------- GETTERS ----------
@@ -42,7 +42,6 @@ public class Curso {
     public void setNome(String nome) { this.nome = nome; }
     public void setDepartamento(Departamento departamento) { this.departamento = departamento; }
     public void setDocenteResponsavel(Docente docenteResponsavel) { this.docenteResponsavel = docenteResponsavel; }
-    public void setValorPropinaAnual(double valorPropinaAnual) { this.valorPropinaAnual = valorPropinaAnual; }
     public void setEstado(String estado) { this.estado = estado; }
 
     // ---------- MÉTODOS DE LÓGICA E AÇÃO ----------
