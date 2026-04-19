@@ -31,6 +31,7 @@ public class GestorController {
                     case 5: iniciarAnoLetivo(); break;
                     case 6: listarDevedores(); break;
                     case 7: alterarPassword(); break;
+                    case 8: executarRegistoDocente(); break;
                     case 0:
                         view.mostrarDespedida();
                         repo.limparSessao();
@@ -43,6 +44,48 @@ public class GestorController {
                 view.mostrarErroLeituraOpcao();
             }
         }
+    }
+
+    private void executarRegistoDocente() {
+        view.mostrarTituloRegistoDocente();
+
+        String nome;
+        do {
+            nome = view.pedirNome();
+            if (!Validador.isNomeValido(nome)) view.mostrarErroNomeInvalido();
+        } while (!Validador.isNomeValido(nome));
+
+        String sigla = view.pedirSiglaDocente(); // Ex: "JMS"
+
+        String nif;
+        boolean duplicado;
+        do {
+            nif = view.pedirNif();
+            duplicado = Validador.isNifDuplicado(nif, PASTA_BD);
+            if (!Validador.validarNif(nif)) {
+                view.mostrarErroNifInvalido();
+            } else if (duplicado) {
+                view.mostrarErroNifDuplicado();
+            }
+        } while (!Validador.validarNif(nif) || duplicado);
+
+        String morada = view.pedirMorada();
+        String dataNasc = view.pedirDataNascimento();
+
+        //Gera Credenciais
+        String email = EmailGenerator.gerarEmailDocente(nome);
+        String passLimpa = PasswordGenerator.gerarPasswordSegura();
+
+        // envio do email
+        EmailService.enviarCredenciaisTodos(nome, email, passLimpa);
+
+        //Encripta e Criar Objeto
+        String passSegura = SegurancaPasswords.gerarCredencialMista(passLimpa);
+        Docente novoDocente = new Docente(sigla, email, passSegura, nome, nif, morada, dataNasc);
+
+        // 5. Guardar no Sistema
+        ExportadorCSV.adicionarDocente(novoDocente, PASTA_BD);
+        view.mostrarResumoRegistoDocente(email); // Precisas de criar este método na View
     }
 
     private void executarRegistoEstudante() {
