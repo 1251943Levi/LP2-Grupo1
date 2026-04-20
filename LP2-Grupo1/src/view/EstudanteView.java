@@ -73,9 +73,31 @@ public class EstudanteView {
         System.out.println(">> O seu saldo devedor atual (propinas) é: " + divida + "€");
     }
 
-    public String pedirConfirmacaoPagamento() {
-        System.out.print("Deseja efetuar o pagamento agora? (S/N): ");
-        return scanner.nextLine().trim();
+    public int pedirTipoPagamento() {
+        System.out.println("\n--- OPÇÕES DE PAGAMENTO ---");
+        System.out.println("1 - Pagamento Total");
+        System.out.println("2 - Pagamento Parcial");
+        System.out.println("0 - Cancelar");
+        System.out.print("Escolha uma opção: ");
+
+        try {
+            return Integer.parseInt(scanner.nextLine().trim());
+        } catch (NumberFormatException e) {
+            return -1;
+        }
+    }
+
+    public double pedirValorPagamentoParcial(double dividaAtual) {
+        System.out.print("Introduza o valor a pagar (Máx: " + dividaAtual + "€): ");
+        try {
+            return Double.parseDouble(scanner.nextLine().trim());
+        } catch (NumberFormatException e) {
+            return -1.0;
+        }
+    }
+
+    public void mostrarErroValorInvalido() {
+        System.out.println(">> Erro: O valor introduzido é inválido ou excede o montante em dívida.");
     }
 
     public void mostrarSucessoPagamento() {
