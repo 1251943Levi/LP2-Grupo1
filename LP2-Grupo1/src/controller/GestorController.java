@@ -3,6 +3,7 @@ package controller;
 import model.*;
 import view.GestorView;
 import utils.*;
+import bll.GestorBLL;
 
 public class GestorController {
     private RepositorioDados repo;
@@ -30,6 +31,7 @@ public class GestorController {
                     case 5: iniciarAnoLetivo(); break;
                     case 6: listarDevedores(); break;
                     case 7: alterarPassword(); break;
+                    case 8: executarRegistoDocente(); break;
                     case 0:
                         view.mostrarDespedida();
                         repo.limparSessao();
@@ -42,6 +44,48 @@ public class GestorController {
                 view.mostrarErroLeituraOpcao();
             }
         }
+    }
+
+    private void executarRegistoDocente() {
+        view.mostrarTituloRegistoDocente();
+
+        String nome;
+        do {
+            nome = view.pedirNome();
+            if (!Validador.isNomeValido(nome)) view.mostrarErroNomeInvalido();
+        } while (!Validador.isNomeValido(nome));
+
+        String sigla = view.pedirSiglaDocente(); // Ex: "JMS"
+
+        String nif;
+        boolean duplicado;
+        do {
+            nif = view.pedirNif();
+            duplicado = Validador.isNifDuplicado(nif, PASTA_BD);
+            if (!Validador.validarNif(nif)) {
+                view.mostrarErroNifInvalido();
+            } else if (duplicado) {
+                view.mostrarErroNifDuplicado();
+            }
+        } while (!Validador.validarNif(nif) || duplicado);
+
+        String morada = view.pedirMorada();
+        String dataNasc = view.pedirDataNascimento();
+
+        //Gera Credenciais
+        String email = EmailGenerator.gerarEmailDocente(nome);
+        String passLimpa = PasswordGenerator.gerarPasswordSegura();
+
+        // envio do email
+        EmailService.enviarCredenciaisTodos(nome, email, passLimpa);
+
+        //Encripta e Criar Objeto
+        String passSegura = SegurancaPasswords.gerarCredencialMista(passLimpa);
+        Docente novoDocente = new Docente(sigla, email, passSegura, nome, nif, morada, dataNasc);
+
+        // Guardar no Sistema
+        ExportadorCSV.adicionarDocente(novoDocente, PASTA_BD);
+        view.mostrarResumoRegistoDocente(email); // Precisas de criar este método na View
     }
 
     private void executarRegistoEstudante() {
@@ -123,56 +167,8 @@ public class GestorController {
     }
 
     private void iniciarAnoLetivo() {
-        view.mostrarCabecalhoArranqueAnoLetivo();
-
-        String[] cursos = ImportadorCSV.obterListaCursos(PASTA_BD);
-        if (cursos.length == 0){
-            view.mostrarErroCarregarDados("Cursos");
-            return;
-        }
-
-        view.mostrarVerificacaoQuorum();
-
-        for (String c : cursos) {
-            String siglaCurso = c.split(" - ")[0];
-            Curso curso = ImportadorCSV.procurarCurso(siglaCurso, PASTA_BD);
-            if (curso == null) continue;
-
-            int alunos1oAno = ExportadorCSV.contarEstudantesPorCursoEAno(siglaCurso, 1, PASTA_BD);
-            int alunos2oAno = ExportadorCSV.contarEstudantesPorCursoEAno(siglaCurso, 2, PASTA_BD);
-            int alunos3oAno = ExportadorCSV.contarEstudantesPorCursoEAno(siglaCurso, 3, PASTA_BD);
-
-            if (alunos1oAno < 5 && alunos1oAno > 0) {
-                view.mostrarErroQuorum(siglaCurso, alunos1oAno);
-                curso.setEstado("Inativo");
-            } else if (alunos1oAno >= 5 || alunos2oAno >= 1 || alunos3oAno >= 1) {
-                view.mostrarSucessoQuorum(siglaCurso);
-                curso.setEstado("Ativo");
-            } else {
-                curso.setEstado("Inativo");
-            }
-            ExportadorCSV.atualizarCurso(curso, PASTA_BD);
-        }
-
-        view.mostrarProcessamentoTransicoes();
-        Estudante[] estudantes = ImportadorCSV.carregarTodosEstudantes(PASTA_BD);
-
-        for (Estudante e : estudantes) {
-            if (e == null) continue;
-
-            if (e.getSaldoDevedor() != 0.0) {
-                view.mostrarBloqueioDivida(e.getNumeroMecanografico(), e.getNome(), e.getAnoCurricular(), e.getSaldoDevedor());            } else {
-                if (e.getAnoCurricular() < 3) {
-                    e.setAnoCurricular(e.getAnoCurricular() + 1);
-                    view.mostrarTransicaoSucedida(e.getNumeroMecanografico(), e.getAnoCurricular());
-                } else {
-                    view.mostrarConclusaoCurso(e.getNumeroMecanografico());                }
-                ExportadorCSV.atualizarEstudante(e, PASTA_BD);
-            }
-        }
-
-        repo.setAnoAtual(repo.getAnoAtual() + 1);
-        view.mostrarSucessoAvancoAno(repo.getAnoAtual());
+        GestorBLL regrasNegocio = new GestorBLL();
+        regrasNegocio.avancarAnoLetivo(repo, view);
     }
 
     private void listarDevedores() {

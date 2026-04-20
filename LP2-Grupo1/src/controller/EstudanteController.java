@@ -94,10 +94,34 @@ public class EstudanteController {
         view.mostrarSaldoDevedor(divida);
 
         if (divida > 0) {
-            String resp = view.pedirConfirmacaoPagamento();
-            if (resp.equalsIgnoreCase("S")) {
-                estudanteAtivo.efetuarPagamento(divida);
-                ExportadorCSV.atualizarEstudante(estudanteAtivo, PASTA_BD);
+            int opcao = view.pedirTipoPagamento();
+            double valorAPagar = 0.0;
+
+            if (opcao == 1) {
+                valorAPagar = divida;   // Pagamento Total
+            } else if (opcao == 2) {
+                valorAPagar = view.pedirValorPagamentoParcial(divida);  // Pagamento Parcial
+
+                if (valorAPagar <= 0 || valorAPagar > divida) {
+                    view.mostrarErroValorInvalido();
+                    return; // Aborta a operação
+                }
+            } else {
+
+                return; // Cancelou ou opção inválida
+            }
+
+
+            if (valorAPagar > 0)/* há um valor válido para pagar*/ {
+
+                 /*model.Pagamento novoPagamento = new model.Pagamento(estudanteAtivo.getNumeroMecanografico(), divida, valorAPagar); opcionar , ver se serve para guardar historico de fatura*/
+
+
+                estudanteAtivo.efetuarPagamento(valorAPagar);      //Desconta saldo
+
+
+                ExportadorCSV.atualizarEstudante(estudanteAtivo, PASTA_BD); // Atualizar ficheiro CSV
+
                 view.mostrarSucessoPagamento();
             }
         } else {

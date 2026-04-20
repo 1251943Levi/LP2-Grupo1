@@ -25,6 +25,7 @@ public class GestorView {
         mostrarMensagem("5 - Avançar Ano Letivo");
         mostrarMensagem("6 - Listar Devedores");
         mostrarMensagem("7 - Alterar Password");
+        System.out.println("8 - Registar Docente");
         mostrarMensagem("0 - Sair / Logout");
         try {
             return Integer.parseInt(pedirInput("Opção"));
@@ -86,6 +87,18 @@ public class GestorView {
         } catch (Exception e) {
             return 0.0;
         }
+    }
+
+    // --- REGISTO DE DOCENTE ---
+    public void mostrarTituloRegistoDocente() {
+        System.out.println("\n=== REGISTAR NOVO DOCENTE ===");
+        System.out.println("Por favor, insira os dados do docente abaixo.");
+    }
+
+    public void mostrarResumoRegistoDocente(String email) {
+        System.out.println("\n>> REGISTO CONCLUÍDO COM SUCESSO!");
+        System.out.println(">> O docente foi guardado no sistema.");
+        System.out.println(">> Foi enviado um e-mail com as credenciais de acesso (Password Gerada) para: " + email);
     }
 
     // --- REGISTO DE ESTUDANTE ---
