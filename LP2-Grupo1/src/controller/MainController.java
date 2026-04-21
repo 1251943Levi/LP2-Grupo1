@@ -1,114 +1,93 @@
 package controller;
 
-import model.RepositorioDados;
-import model.Estudante;
-import model.Curso;
-import utils.ExportadorCSV;
-import utils.ImportadorCSV;
-import utils.EmailService;
-import utils.Validador;
-import utils.EmailGenerator;
-import utils.PasswordGenerator;
-import utils.SegurancaPasswords;
+import model.*;
 import view.MainView;
+import bll.MainBLL;
+import utils.Validador;
+import utils.ImportadorCSV;
 
 /**
- * Controlador principal da aplicação ISSMF.
- * Processa a lógica de arranque, autenticação e recuperação de password.
+ * Controlador principal que orquestra o arranque do sistema, login e auto-matrícula.
  */
 public class MainController {
 
     private static final String PASTA_BD = "bd";
     private final MainView view;
     private final RepositorioDados repositorio;
+    private final MainBLL bll;
 
-    // Recebe a View no construtor para poder mandar imprimir as mensagens corretas
     public MainController(MainView view) {
         this.view = view;
         this.repositorio = new RepositorioDados();
+        this.bll = new MainBLL();
     }
 
+    /**
+     * Garante que a estrutura de pastas da base de dados existe.
+     */
     public void iniciarSistema() {
         java.io.File pasta = new java.io.File(PASTA_BD);
-        if (!pasta.exists() || !pasta.isDirectory()) {
+        if (!pasta.exists()) {
             pasta.mkdirs();
             view.mostrarPastaCriada();
         }
     }
 
-
-    public boolean validarFormatoEmailLogin(String email) {
-        boolean isEmailAdmin = email.equals("admin@issmf.pt") || email.equals("backoffice@issmf.ipp.pt");
-
-        if (!isEmailAdmin && !Validador.validarSufixoLogin(email)) {
-            view.mostrarErroLoginSufixo();
-            return false;
-        }
-        return true;
-    }
-
+    /**
+     * Processa a tentativa de login e redireciona para o controlador específico.
+     */
     public void processarLogin(String email, String pass) {
-        boolean isEmailAdmin = email.equals("admin@issmf.pt") || email.equals("backoffice@issmf.ipp.pt");
-
-        if (!isEmailAdmin && !Validador.validarSufixoLogin(email)) {
+        // Validação de formato de e-mail (UI Concern)
+        if (!email.contains("@issmf.pt") && !email.contains("@issmf.ipp.pt") && !Validador.validarSufixoLogin(email)) {
+            view.mostrarErroLoginSufixo();
             return;
         }
 
-        String credencialAdmin = "A67KdOiGgwLZQTdjXrCPUg==:1Emuaac5kl+mA0SKMMRX1m+5bpOXaLVPqcttF1EPyG4=";
+        // Delegar autenticação para a BLL
+        Utilizador user = bll.autenticar(email, pass);
 
-        if (isEmailAdmin && utils.SegurancaPasswords.verificarPassword(pass, credencialAdmin)) {
-            view.mostrarLoginGestor();
-            model.Gestor admin = new model.Gestor(
-                    "backoffice@issmf.ipp.pt", credencialAdmin,
-                    "Admin Geral", "123456789", "Sede", "01-01-1980"
-            );
-            repositorio.setUtilizadorLogado(admin);
-            new GestorController(repositorio, admin).iniciar();
-            repositorio.limparSessao();
-            return;
-        }
-
-        model.Utilizador userLogado = ImportadorCSV.autenticarNoFicheiro(email, pass, PASTA_BD);
-
-        if (userLogado == null) {
+        if (user == null) {
             view.mostrarCredenciaisInvalidas();
-
-        } else if (userLogado instanceof model.Estudante) {
-            view.mostrarLoginEstudante();
-            repositorio.setUtilizadorLogado(userLogado);
-            new EstudanteController(repositorio, (model.Estudante) userLogado).iniciar();
-            repositorio.limparSessao();
-
-        } else if (userLogado instanceof model.Docente) {
-            view.mostrarLoginDocente();
-            repositorio.setUtilizadorLogado(userLogado);
-            new DocenteController(repositorio, (model.Docente) userLogado).iniciar();
-            repositorio.limparSessao();
+            return;
         }
+
+        // Guardar na sessão e abrir menu correspondente
+        repositorio.setUtilizadorLogado(user);
+
+        if (user instanceof Gestor) {
+            view.mostrarLoginGestor();
+            new GestorController(repositorio, (Gestor) user).iniciar();
+        } else if (user instanceof Estudante) {
+            view.mostrarLoginEstudante();
+            new EstudanteController(repositorio, (Estudante) user).iniciar();
+        } else if (user instanceof Docente) {
+            view.mostrarLoginDocente();
+            new DocenteController(repositorio, (Docente) user).iniciar();
+        }
+
+        repositorio.limparSessao();
     }
 
+    /**
+     * Gere o fluxo de recuperação de password.
+     */
     public void recuperarPassword(String email) {
         if (!Validador.isEmailInstitucionalValido(email)) {
             view.mostrarErroEmailInvalido();
             return;
         }
 
-        String novaPassLimpa  = utils.PasswordGenerator.gerarPasswordSegura();
-        String novaPassSegura = utils.SegurancaPasswords.gerarCredencialMista(novaPassLimpa);
-
-        ExportadorCSV.atualizarPasswordCentralizada(email, novaPassSegura, PASTA_BD);
-        EmailService.enviarRecuperacaoPassword("Utilizador", email, novaPassLimpa);
-
+        bll.recuperarPassword(email);
         view.mostrarSucessoRecuperacao(email);
     }
 
     /**
-     * Lógica de Auto-matrícula com encriptação de password e envio de email.
-     * Cumpre os requisitos de segurança e integridade de dados.
+     * Gere a recolha de dados para a auto-matrícula e delega a criação para a BLL.
      */
     public void executarAutoMatricula() {
         view.mostrarTituloAutoMatricula();
 
+        // Recolha e Validação de Inputs (Responsabilidade do Controller/View)
         String nome;
         do {
             nome = view.pedirInputString("Nome Completo");
@@ -120,12 +99,8 @@ public class MainController {
         do {
             nif = view.pedirInputString("NIF");
             duplicado = Validador.isNifDuplicado(nif, PASTA_BD);
-
-            if (!Validador.validarNif(nif)) {
-                view.mostrarErroNifInvalido();
-            } else if (duplicado) {
-                view.mostrarErroNifDuplicado();
-            }
+            if (!Validador.validarNif(nif)) view.mostrarErroNifInvalido();
+            else if (duplicado) view.mostrarErroNifDuplicado();
         } while (!Validador.validarNif(nif) || duplicado);
 
         String morada = view.pedirInputString("Morada");
@@ -136,7 +111,7 @@ public class MainController {
             if (!Validador.isDataNascimentoValida(dataNasc)) view.mostrarErroDataInvalida();
         } while (!Validador.isDataNascimentoValida(dataNasc));
 
-        // 4. Seleção de Curso
+        // Seleção de Curso
         String[] cursos = ImportadorCSV.obterListaCursos(PASTA_BD);
         if (cursos.length == 0) {
             view.mostrarErroSemCursos();
@@ -145,37 +120,30 @@ public class MainController {
 
         view.mostrarListaCursosDisponiveis(cursos);
         int escolha = view.pedirOpcaoCurso(cursos.length);
-        if (escolha < 1 || escolha > cursos.length) {
-            view.mostrarOpcaoInvalida();
-            return;
-        }
         String siglaCurso = cursos[escolha - 1].split(" - ")[0];
 
-        // 5. Geração de Dados e Encriptação (Cumpre Requisitos de Segurança)
-        int anoAtual = repositorio.getAnoAtual();
-        int numMec = ImportadorCSV.obterProximoNumeroMecanografico(PASTA_BD, anoAtual);
-        String emailInst = EmailGenerator.gerarEmailEstudante(numMec);
+        // Delegar o processamento pesado para a BLL
+        String[] credenciais = bll.realizarAutoMatricula(nome, nif, morada, dataNasc, siglaCurso, repositorio.getAnoAtual());
 
-        // Password em texto limpo apenas para o email e visualização final
-        String passLimpa = PasswordGenerator.gerarPasswordSegura();
-        // Hash gerado para armazenamento seguro na base de dados
-        String passHash = SegurancaPasswords.gerarCredencialMista(passLimpa);
+        view.mostrarSucessoAutoMatricula(credenciais[0], credenciais[1]);
+    }
 
-        // 6. Criação do Modelo e Atribuição de Propinas
-        Estudante novo = new Estudante(numMec, emailInst, passHash, nome, nif, morada, dataNasc, anoAtual);
-
-        Curso curso = ImportadorCSV.procurarCurso(siglaCurso, PASTA_BD);
-        if (curso != null) {
-            // Atribui o valor da propina anual configurado no curso ao saldo devedor do aluno
-            novo.setSaldoDevedor(curso.getValorPropinaAnual());
+    /**
+     * Valida se o e-mail tem o formato institucional correto antes de proceder ao login.
+     * @param email O e-mail inserido pelo utilizador.
+     * @return true se o e-mail for válido ou for uma conta de administração.
+     */
+    public boolean validarFormatoEmailLogin(String email) {
+        // Se for e-mail de admin, passa sempre
+        if (email.equals("admin@issmf.pt") || email.equals("backoffice@issmf.ipp.pt")) {
+            return true;
         }
 
-        // 7. Persistência de Dados no CSV
-        ExportadorCSV.adicionarEstudante(novo, PASTA_BD, siglaCurso);
-
-        // 8. Envio de Credenciais
-        EmailService.enviarCredenciaisTodos(nome, emailInst, passLimpa);
-
-        view.mostrarSucessoAutoMatricula(emailInst, passLimpa);
+        // Caso contrário, usa o validador para verificar o sufixo institucional
+        if (!utils.Validador.validarSufixoLogin(email)) {
+            view.mostrarErroLoginSufixo();
+            return false;
+        }
+        return true;
     }
 }
