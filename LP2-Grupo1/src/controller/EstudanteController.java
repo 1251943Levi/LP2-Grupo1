@@ -3,7 +3,8 @@ package controller;
 import model.Estudante;
 import model.RepositorioDados;
 import view.EstudanteView;
-import utils.ExportadorCSV;
+import dal.EstudanteDAL;
+import dal.CredencialDAL;
 import utils.SegurancaPasswords;
 
 /**
@@ -67,7 +68,7 @@ public class EstudanteController {
 
         if (!novaMorada.isEmpty()) {
             estudanteAtivo.setMorada(novaMorada);
-            ExportadorCSV.atualizarEstudante(estudanteAtivo, PASTA_BD);
+            EstudanteDAL.atualizarEstudante(estudanteAtivo, PASTA_BD);
             view.mostrarSucessoAtualizacaoMorada();
         } else {
             view.mostrarSemAlteracaoMorada();
@@ -81,7 +82,7 @@ public class EstudanteController {
             String passSegura = SegurancaPasswords.gerarCredencialMista(novaPass);
 
             estudanteAtivo.setPassword(passSegura);
-            ExportadorCSV.atualizarPasswordCentralizada(estudanteAtivo.getEmail(), passSegura, PASTA_BD);
+            CredencialDAL.atualizarPassword(estudanteAtivo.getEmail(), passSegura, PASTA_BD);
 
             view.mostrarSucessoAtualizacaoPassword();
         } else {
@@ -108,24 +109,19 @@ public class EstudanteController {
                 }
             } else {
 
-                return; // Cancelou ou opção inválida
+                return;
             }
 
 
-            if (valorAPagar > 0)/* há um valor válido para pagar*/ {
+            if (valorAPagar > 0) {
+                estudanteAtivo.efetuarPagamento(valorAPagar);
 
-                 /*model.Pagamento novoPagamento = new model.Pagamento(estudanteAtivo.getNumeroMecanografico(), divida, valorAPagar); opcionar , ver se serve para guardar historico de fatura*/
-
-
-                estudanteAtivo.efetuarPagamento(valorAPagar);      //Desconta saldo
-
-
-                ExportadorCSV.atualizarEstudante(estudanteAtivo, PASTA_BD); // Atualizar ficheiro CSV
+                EstudanteDAL.atualizarEstudante(estudanteAtivo, PASTA_BD);
 
                 view.mostrarSucessoPagamento();
+            } else {
+                view.mostrarSemPagamentosPendentes();
             }
-        } else {
-            view.mostrarSemPagamentosPendentes();
         }
     }
 }
