@@ -10,7 +10,6 @@ public class DocenteController {
     private RepositorioDados repo;
     private Docente docente;
     private DocenteView view;
-
     private static final String PASTA_BD = "bd";
 
     public DocenteController(RepositorioDados repo, Docente docente) {
@@ -52,11 +51,12 @@ public class DocenteController {
 
         for (Estudante e : todos) {
             if (e == null || e.getPercurso() == null) continue;
+
             boolean alunoDoDocente = false;
 
             for (int i = 0; i < e.getPercurso().getTotalUcsInscrito(); i++) {
-                if (e.getPercurso().getUcsInscrito()[i] != null &&
-                        lecionoEstaUC(e.getPercurso().getUcsInscrito()[i].getSigla())) {
+                UnidadeCurricular uc = e.getPercurso().getUcsInscrito()[i];
+                if (uc != null && lecionoEstaUC(uc.getSigla())) {
                     alunoDoDocente = true;
                     break;
                 }
@@ -68,6 +68,7 @@ public class DocenteController {
 
                 for (int i = 0; i < e.getPercurso().getTotalAvaliacoes(); i++) {
                     Avaliacao av = e.getPercurso().getHistoricoAvaliacoes()[i];
+
                     if (av != null && av.getUc() != null && lecionoEstaUC(av.getUc().getSigla())) {
                         for (int j = 0; j < av.getTotalAvaliacoesLancadas(); j++) {
                             somaDocente += av.getResultados()[j];
@@ -81,14 +82,17 @@ public class DocenteController {
         if (!encontrou) {
             view.mostrarSemAlunos();
         } else if (totalNotasDocente > 0) {
+            double media = somaDocente / totalNotasDocente;
             view.mostrarMedia(somaDocente / totalNotasDocente);
         }
     }
 
     private boolean lecionoEstaUC(String siglaUc) {
         if (siglaUc == null) return false;
+
         for (int i = 0; i < docente.getTotalUcsLecionadas(); i++) {
             UnidadeCurricular uc = docente.getUcsLecionadas()[i];
+
             if (uc != null && uc.getSigla().equalsIgnoreCase(siglaUc)) {
                 return true;
             }
@@ -99,11 +103,25 @@ public class DocenteController {
     private UnidadeCurricular obterUcLecionada(String siglaUc) {
         for (int i = 0; i < docente.getTotalUcsLecionadas(); i++) {
             UnidadeCurricular uc = docente.getUcsLecionadas()[i];
+
             if (uc != null && uc.getSigla().equalsIgnoreCase(siglaUc)) {
                 return uc;
             }
         }
         return null;
+    }
+
+    private boolean alunoEstaInscritoNaUC(Estudante aluno, String siglaUc) {
+        if (aluno == null || aluno.getPercurso() == null) return false;
+
+        for (int i = 0; i < aluno.getPercurso().getTotalUcsInscrito(); i++) {
+            UnidadeCurricular uc = aluno.getPercurso().getUcsInscrito()[i];
+
+            if (uc != null && uc.getSigla().equalsIgnoreCase(siglaUc)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void executarLancamentoNotas() {
