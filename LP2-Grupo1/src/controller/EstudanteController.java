@@ -3,54 +3,44 @@ package controller;
 import model.Estudante;
 import model.RepositorioDados;
 import view.EstudanteView;
-import utils.ExportadorCSV;
-import utils.SegurancaPasswords;
+import bll.EstudanteBLL;
 
 /**
- * Controlador responsável por gerir o painel do Estudante.
- * Permite a visualização de dados pessoais e a atualização do perfil e credenciais,
- * gravando as alterações diretamente nos ficheiros correspondentes (On-Demand).
+ * Controlador que gere o fluxo de ecrãs e interações do Estudante.
  */
 public class EstudanteController {
 
     private RepositorioDados repositorio;
     private Estudante estudanteAtivo;
     private EstudanteView view;
-    private static final String PASTA_BD = "bd";
+    private EstudanteBLL bll;
 
     public EstudanteController(RepositorioDados repositorio, Estudante estudanteAtivo) {
         this.repositorio = repositorio;
         this.estudanteAtivo = estudanteAtivo;
         this.view = new EstudanteView();
+        this.bll = new EstudanteBLL();
     }
 
+    /**
+     * Inicia o loop do menu principal do estudante.
+     */
     public void iniciar() {
         boolean aExecutar = true;
-
         while (aExecutar) {
             try {
                 int opcao = view.mostrarMenuPrincipal();
-
                 switch (opcao) {
-                    case 1:
-                        visualizarDadosPessoais();
-                        break;
-                    case 2:
-                        atualizarDadosPessoais();
-                        break;
-                    case 3:
-                        alterarPassword();
-                        break;
-                    case 4:
-                        consultarDadosFinanceiros();
-                        break;
+                    case 1: visualizarDadosPessoais(); break;
+                    case 2: atualizarDadosPessoais(); break;
+                    case 3: alterarPassword(); break;
+                    case 4: consultarDadosFinanceiros(); break;
                     case 0:
                         view.mostrarDespedida();
                         repositorio.limparSessao();
                         aExecutar = false;
                         break;
-                    default:
-                        view.mostrarOpcaoInvalida();
+                    default: view.mostrarOpcaoInvalida();
                 }
             } catch (Exception e) {
                 view.mostrarErroLeitura();
@@ -62,33 +52,35 @@ public class EstudanteController {
         view.mostrarDadosPessoais(estudanteAtivo);
     }
 
+    /**
+     * Gere o fluxo de alteração de morada através da BLL.
+     */
     private void atualizarDadosPessoais() {
         String novaMorada = view.pedirNovaMorada();
-
         if (!novaMorada.isEmpty()) {
-            estudanteAtivo.setMorada(novaMorada);
-            ExportadorCSV.atualizarEstudante(estudanteAtivo, PASTA_BD);
+            bll.atualizarMorada(estudanteAtivo, novaMorada);
             view.mostrarSucessoAtualizacaoMorada();
         } else {
             view.mostrarSemAlteracaoMorada();
         }
     }
 
+    /**
+     * Gere o fluxo de alteração de password.
+     */
     private void alterarPassword() {
         String novaPass = view.pedirNovaPassword();
-
         if (!novaPass.isEmpty()) {
-            String passSegura = SegurancaPasswords.gerarCredencialMista(novaPass);
-
-            estudanteAtivo.setPassword(passSegura);
-            ExportadorCSV.atualizarPasswordCentralizada(estudanteAtivo.getEmail(), passSegura, PASTA_BD);
-
+            bll.alterarPassword(estudanteAtivo, novaPass);
             view.mostrarSucessoAtualizacaoPassword();
         } else {
             view.mostrarCancelamentoPassword();
         }
     }
 
+    /**
+     * Coordena a lógica de consulta e pagamento de propinas.
+     */
     private void consultarDadosFinanceiros() {
         double divida = estudanteAtivo.getSaldoDevedor();
         view.mostrarSaldoDevedor(divida);
@@ -98,31 +90,17 @@ public class EstudanteController {
             double valorAPagar = 0.0;
 
             if (opcao == 1) {
-                valorAPagar = divida;   // Pagamento Total
+                valorAPagar = divida;
             } else if (opcao == 2) {
-                valorAPagar = view.pedirValorPagamentoParcial(divida);  // Pagamento Parcial
-
-                if (valorAPagar <= 0 || valorAPagar > divida) {
-                    view.mostrarErroValorInvalido();
-                    return; // Aborta a operação
-                }
+                valorAPagar = view.pedirValorPagamentoParcial(divida);
             } else {
-
-                return; // Cancelou ou opção inválida
+                return;
             }
 
-
-            if (valorAPagar > 0)/* há um valor válido para pagar*/ {
-
-                 /*model.Pagamento novoPagamento = new model.Pagamento(estudanteAtivo.getNumeroMecanografico(), divida, valorAPagar); opcionar , ver se serve para guardar historico de fatura*/
-
-
-                estudanteAtivo.efetuarPagamento(valorAPagar);      //Desconta saldo
-
-
-                ExportadorCSV.atualizarEstudante(estudanteAtivo, PASTA_BD); // Atualizar ficheiro CSV
-
+            if (bll.processarPagamento(estudanteAtivo, valorAPagar)) {
                 view.mostrarSucessoPagamento();
+            } else {
+                view.mostrarErroValorInvalido();
             }
         } else {
             view.mostrarSemPagamentosPendentes();

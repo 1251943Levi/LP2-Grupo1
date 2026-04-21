@@ -239,4 +239,21 @@ public class GestorView {
         mostrarMensagem("Média de Curso: " + String.format("%.2f", media) + " valores.");
     }
     public void mostrarSemAlunosAvaliados() { mostrarMensagem("Ainda não existem alunos avaliados no sistema."); }
+
+    // --- MÉTODOS DE CONFIRMAÇÃO E REMOÇÃO DE UCs ---
+
+    /**
+     * Pede uma confirmação ao utilizador antes de apagar um registo importante.
+     */
+    public boolean confirmarRemocao(String item) {
+        System.out.print("\nTem a certeza que deseja remover [" + item + "]? (S/N): ");
+        String resposta = scanner.nextLine().trim().toUpperCase();
+        return resposta.equals("S");
+    }
+
+    /**
+     * Mostra uma mensagem de erro específica para quando a remoção falha no ficheiro.
+     */
+    public void mostrarErroRemocao(String entidade) { mostrarMensagem("Erro: Não foi possível remover " + entidade + ". O ficheiro pode estar em uso."); }
 }
+

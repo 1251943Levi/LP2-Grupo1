@@ -2,14 +2,17 @@ package controller;
 
 import model.*;
 import view.DocenteView;
+import bll.DocenteBLL;
 import utils.ImportadorCSV;
-import utils.ExportadorCSV;
-import utils.SegurancaPasswords;
 
+/**
+ * Controlador que gere o painel de operações do Docente.
+ */
 public class DocenteController {
     private RepositorioDados repo;
     private Docente docente;
     private DocenteView view;
+    private DocenteBLL bll;
 
     private static final String PASTA_BD = "bd";
 
@@ -17,6 +20,8 @@ public class DocenteController {
         this.repo = repo;
         this.docente = docente;
         this.view = new DocenteView();
+        this.bll = new DocenteBLL();
+        // Inicializa as UCs que o docente leciona carregando do CSV
         ImportadorCSV.carregarUcsDoDocente(this.docente, PASTA_BD);
     }
 
@@ -38,6 +43,10 @@ public class DocenteController {
         }
     }
 
+    /**
+     * Lista apenas os alunos que estão inscritos em UCs lecionadas por este docente.
+     * Calcula também a média global das notas dadas por este docente.
+     */
     private void listarMeusAlunos() {
         view.mostrarCabecalhoAlunos();
         Estudante[] todos = ImportadorCSV.carregarTodosEstudantes(PASTA_BD);
@@ -54,9 +63,9 @@ public class DocenteController {
             if (e == null || e.getPercurso() == null) continue;
             boolean alunoDoDocente = false;
 
+            // Verifica se o aluno tem alguma UC deste docente
             for (int i = 0; i < e.getPercurso().getTotalUcsInscrito(); i++) {
-                if (e.getPercurso().getUcsInscrito()[i] != null &&
-                        lecionoEstaUC(e.getPercurso().getUcsInscrito()[i].getSigla())) {
+                if (bll.lecionaEstaUC(docente, e.getPercurso().getUcsInscrito()[i].getSigla())) {
                     alunoDoDocente = true;
                     break;
                 }
@@ -66,9 +75,10 @@ public class DocenteController {
                 encontrou = true;
                 view.mostrarAluno(e.getNumeroMecanografico(), e.getNome());
 
+                // Soma notas apenas das UCs deste docente para a média da turma
                 for (int i = 0; i < e.getPercurso().getTotalAvaliacoes(); i++) {
                     Avaliacao av = e.getPercurso().getHistoricoAvaliacoes()[i];
-                    if (av != null && av.getUc() != null && lecionoEstaUC(av.getUc().getSigla())) {
+                    if (av != null && bll.lecionaEstaUC(docente, av.getUc().getSigla())) {
                         for (int j = 0; j < av.getTotalAvaliacoesLancadas(); j++) {
                             somaDocente += av.getResultados()[j];
                             totalNotasDocente++;
@@ -78,75 +88,37 @@ public class DocenteController {
             }
         }
 
-        if (!encontrou) {
-            view.mostrarSemAlunos();
-        } else if (totalNotasDocente > 0) {
-            view.mostrarMedia(somaDocente / totalNotasDocente);
-        }
+        if (!encontrou) view.mostrarSemAlunos();
+        else if (totalNotasDocente > 0) view.mostrarMedia(somaDocente / totalNotasDocente);
     }
 
-    private boolean lecionoEstaUC(String siglaUc) {
-        if (siglaUc == null) return false;
-        for (int i = 0; i < docente.getTotalUcsLecionadas(); i++) {
-            UnidadeCurricular uc = docente.getUcsLecionadas()[i];
-            if (uc != null && uc.getSigla().equalsIgnoreCase(siglaUc)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private UnidadeCurricular obterUcLecionada(String siglaUc) {
-        for (int i = 0; i < docente.getTotalUcsLecionadas(); i++) {
-            UnidadeCurricular uc = docente.getUcsLecionadas()[i];
-            if (uc != null && uc.getSigla().equalsIgnoreCase(siglaUc)) {
-                return uc;
-            }
-        }
-        return null;
-    }
-
+    /**
+     * Fluxo de recolha de notas e envio para a BLL processar o registo.
+     */
     private void executarLancamentoNotas() {
         view.mostrarCabecalhoLancamentoNotas();
-
         try {
-            int numAluno = view.pedirNumeroAluno();
+            int numMec = view.pedirNumeroAluno();
             String siglaUc = view.pedirSiglaUc();
-            int anoLetivo = view.pedirAnoLetivo();
+            int ano = view.pedirAnoLetivo();
+            double n1 = view.pedirNotaNormal();
+            double n2 = view.pedirNotaRecurso();
+            double n3 = view.pedirNotaEspecial();
 
-            double nNormal = view.pedirNotaNormal();
-            double nRecurso = view.pedirNotaRecurso();
-            double nEspecial = view.pedirNotaEspecial();
-
-            Estudante aluno = ImportadorCSV.procurarEstudantePorNumMec(numAluno, PASTA_BD);
-
-            if (aluno != null) {
-                UnidadeCurricular uc = new UnidadeCurricular(siglaUc, "UC Lançada", 1, docente);
-                Avaliacao aval = new Avaliacao(uc, anoLetivo);
-
-                aval.adicionarResultado(nNormal);
-                aval.adicionarResultado(nRecurso);
-                aval.adicionarResultado(nEspecial);
-
-                ExportadorCSV.adicionarAvaliacao(aval, aluno.getNumeroMecanografico(), PASTA_BD);
-
+            if (bll.lancarNota(numMec, siglaUc, ano, n1, n2, n3, docente)) {
                 view.mostrarSucessoLancamento();
             } else {
-                view.mostrarErroAlunoNaoEncontrado(numAluno);
+                view.mostrarErroAlunoNaoEncontrado(numMec);
             }
-        } catch (NumberFormatException e) {
-            view.mostrarErroLeituraOpcao(); // Protege caso o Docente escreva letras em vez de números nas notas
+        } catch (Exception e) {
+            view.mostrarErroLeituraOpcao();
         }
     }
 
     private void alterarPassword() {
-        view.mostrarCabecalhoAlterarPassword();
         String novaPass = view.pedirNovaPassword();
-
         if (!novaPass.trim().isEmpty()) {
-            String passSegura = SegurancaPasswords.gerarCredencialMista(novaPass);
-            docente.setPassword(passSegura);
-            ExportadorCSV.atualizarPasswordCentralizada(docente.getEmail(), passSegura, PASTA_BD);
+            bll.alterarPassword(docente, novaPass);
             view.mostrarSucessoAlteracaoPassword();
         } else {
             view.mostrarCancelamentoPassword();

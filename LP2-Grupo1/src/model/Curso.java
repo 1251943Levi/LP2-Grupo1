@@ -1,5 +1,9 @@
 package model;
 
+/**
+ * Representa um curso académico no sistema ISSMF.
+ * Gere a estrutura de Unidades Curriculares e as regras de limite por ano letivo.
+ */
 public class Curso {
 
     // ---------- ATRIBUTOS ----------
@@ -8,7 +12,7 @@ public class Curso {
     private Departamento departamento;
     private Docente docenteResponsavel;
     private final int duracaoAnos = 3;
-    private String estado;
+    private String estado; // Ex: "Ativo", "Inativo"
 
     private UnidadeCurricular[] unidadesCurriculares;
     private int totalUCs;
@@ -16,12 +20,19 @@ public class Curso {
     private double valorPropinaAnual;
 
     // ---------- CONSTRUTOR ----------
+    /**
+     * Cria um novo curso com estado inicial "Inativo".
+     * @param sigla Sigla única (ex: "LEI").
+     * @param nome Nome completo do curso.
+     * @param departamento Departamento ao qual o curso pertence.
+     * @param valorPropinaAnual Custo anual para o estudante.
+     */
     public Curso(String sigla, String nome, Departamento departamento, double valorPropinaAnual) {
         this.sigla = sigla;
         this.nome = nome;
         this.departamento = departamento;
         this.valorPropinaAnual = valorPropinaAnual;
-        this.unidadesCurriculares = new UnidadeCurricular[15];
+        this.unidadesCurriculares = new UnidadeCurricular[15]; // Limite total do curso
         this.totalUCs = 0;
         this.estado = "Inativo";
     }
@@ -47,9 +58,9 @@ public class Curso {
     // ---------- MÉTODOS DE LÓGICA E AÇÃO ----------
 
     /**
-     * Associa uma nova Unidade Curricular à estrutura do Curso.
-     * * @param uc A Unidade Curricular a ser adicionada.
-     * @return true se foi adicionada com sucesso, false se o limite do curso foi atingido.
+     * Adiciona uma UC à matriz do curso, respeitando o limite físico do array.
+     * @param uc Objeto Unidade Curricular.
+     * @return true se adicionado, false se excedeu o limite total.
      */
     public boolean adicionarUnidadeCurricular(UnidadeCurricular uc) {
         if (totalUCs < unidadesCurriculares.length) {
@@ -61,16 +72,16 @@ public class Curso {
     }
 
     /**
-     * Verifica se o curso ainda tem vagas para UCs num determinado ano curricular.
-     * Regra de negócio: Máximo de 5 UCs por ano.
-     * @param anoCurricular O ano a verificar (1, 2 ou 3).
-     * @return true se ainda tiver menos de 5 UCs, false se o limite foi atingido.
+     * Valida uma regra de negócio específica: Cada ano curricular (1, 2 ou 3)
+     * não pode ter mais de 5 Unidades Curriculares.
+     * @param anoCurricular O ano a validar.
+     * @return true se ainda for possível adicionar UCs a esse ano.
      */
     public boolean podeAdicionarUcNoAno(int anoCurricular) {
         int contadorUcsNesteAno = 0;
 
         for (int i = 0; i < totalUCs; i++) {
-            if (unidadesCurriculares[i].getAnoCurricular() == anoCurricular) {
+            if (unidadesCurriculares[i] != null && unidadesCurriculares[i].getAnoCurricular() == anoCurricular) {
                 contadorUcsNesteAno++;
             }
         }
