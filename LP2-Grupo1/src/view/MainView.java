@@ -29,6 +29,7 @@ public class MainView {
                         controller.processarLogin(email, pass);
                     }
                     break;
+
                 case 2:
                     String emailRecup = pedirInputString("Email de recuperação");
                     controller.recuperarPassword(emailRecup);
