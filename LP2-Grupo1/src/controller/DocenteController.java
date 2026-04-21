@@ -4,10 +4,9 @@ import model.*;
 import view.DocenteView;
 import bll.DocenteBLL;
 import utils.ImportadorCSV;
+import utils.ExportadorCSV;
+import utils.SegurancaPasswords;
 
-/**
- * Controlador que gere o painel de operações do Docente.
- */
 public class DocenteController {
     private RepositorioDados repo;
     private Docente docente;
@@ -43,10 +42,6 @@ public class DocenteController {
         }
     }
 
-    /**
-     * Lista apenas os alunos que estão inscritos em UCs lecionadas por este docente.
-     * Calcula também a média global das notas dadas por este docente.
-     */
     private void listarMeusAlunos() {
         view.mostrarCabecalhoAlunos();
         Estudante[] todos = ImportadorCSV.carregarTodosEstudantes(PASTA_BD);
@@ -63,7 +58,6 @@ public class DocenteController {
             if (e == null || e.getPercurso() == null) continue;
             boolean alunoDoDocente = false;
 
-            // Verifica se o aluno tem alguma UC deste docente
             for (int i = 0; i < e.getPercurso().getTotalUcsInscrito(); i++) {
                 if (bll.lecionaEstaUC(docente, e.getPercurso().getUcsInscrito()[i].getSigla())) {
                     alunoDoDocente = true;
@@ -75,7 +69,6 @@ public class DocenteController {
                 encontrou = true;
                 view.mostrarAluno(e.getNumeroMecanografico(), e.getNome());
 
-                // Soma notas apenas das UCs deste docente para a média da turma
                 for (int i = 0; i < e.getPercurso().getTotalAvaliacoes(); i++) {
                     Avaliacao av = e.getPercurso().getHistoricoAvaliacoes()[i];
                     if (av != null && bll.lecionaEstaUC(docente, av.getUc().getSigla())) {
@@ -97,6 +90,7 @@ public class DocenteController {
      */
     private void executarLancamentoNotas() {
         view.mostrarCabecalhoLancamentoNotas();
+
         try {
             int numMec = view.pedirNumeroAluno();
             String siglaUc = view.pedirSiglaUc();

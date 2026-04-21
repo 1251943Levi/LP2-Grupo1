@@ -1,6 +1,7 @@
 package utils;
 
 import model.*;
+import common.SecurityUtil;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -22,44 +23,32 @@ public class ImportadorCSV {
         String hashGuardado = null;
 
         File ficheiro = new File(caminhoCredenciais);
-        if (!ficheiro.exists()) {
-            System.err.println(">> Erro crítico: Ficheiro credenciais.csv não encontrado no caminho: " + caminhoCredenciais);
-            return null;
-        }
+        if (!ficheiro.exists()) return null;
 
         try (BufferedReader br = new BufferedReader(new FileReader(ficheiro))) {
             br.readLine();
             String linha;
             while ((linha = br.readLine()) != null) {
-                if (linha.trim().isEmpty()) continue;
                 String[] dados = linha.split(";", -1);
-
                 if (dados.length >= 3 && dados[0].trim().equalsIgnoreCase(email)) {
                     hashGuardado = dados[1].trim();
                     tipoUtilizador = dados[2].trim().toUpperCase();
                     break;
                 }
             }
-        } catch (IOException e) {
-            System.err.println(">> Erro ao ler credenciais.csv: " + e.getMessage());
-            return null;
-        }
+        } catch (IOException e) { return null; }
 
+        // USO DA NOVA CLASSE SECURITYUTIL
         if (hashGuardado == null || tipoUtilizador == null
-                || !SegurancaPasswords.verificarPassword(passwordIntroduzida, hashGuardado)) {
+                || !SecurityUtil.verificarPassword(passwordIntroduzida, hashGuardado)) {
             return null;
         }
 
         switch (tipoUtilizador) {
-            case "ESTUDANTE":
-                return carregarPerfilEstudante(email, hashGuardado, pastaBase);
-            case "DOCENTE":
-                return carregarPerfilDocente(email, hashGuardado, pastaBase);
-            case "GESTOR":
-                return carregarPerfilGestor(email, hashGuardado, pastaBase);
-            default:
-                System.err.println(">> Aviso: Tipo de utilizador desconhecido (" + tipoUtilizador + ").");
-                return null;
+            case "ESTUDANTE": return carregarPerfilEstudante(email, hashGuardado, pastaBase);
+            case "DOCENTE": return carregarPerfilDocente(email, hashGuardado, pastaBase);
+            case "GESTOR": return carregarPerfilGestor(email, hashGuardado, pastaBase);
+            default: return null;
         }
     }
 

@@ -1,6 +1,7 @@
 package utils;
 
 import model.*;
+import common.SecurityUtil;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -72,11 +73,12 @@ public class ExportadorCSV {
         }
     }
 
-    private static void adicionarCredencial(String email, String passwordSegura, String tipo, String pastaBase) {
-        if (email == null || passwordSegura == null) return;
+    private static void adicionarCredencial(String email, String passwordLimpa, String tipo, String pastaBase) {
+        if (email == null || passwordLimpa == null) return;
+        String credencialMista = SecurityUtil.gerarCredencialMista(passwordLimpa);
         String caminho = pastaBase + File.separator + "credenciais.csv";
         garantirFicheiroECabecalho(caminho, "email;password_hash;tipo");
-        adicionarLinhaCSV(caminho, email + ";" + passwordSegura + ";" + tipo);
+        adicionarLinhaCSV(caminho, email + ";" + credencialMista + ";" + tipo);
     }
 
     private static void reescreverFicheiro(String caminho, List<String> linhas) {
