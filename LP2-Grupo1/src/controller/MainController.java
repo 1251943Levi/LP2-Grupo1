@@ -5,6 +5,7 @@ import view.MainView;
 import bll.MainBLL;
 import utils.Validador;
 import utils.ImportadorCSV;
+import utils.CancelamentoException;
 
 /**
  * Controlador principal que orquestra o arranque do sistema, login e auto-matrícula.
@@ -83,49 +84,53 @@ public class MainController {
 
     /**
      * Gere a recolha de dados para a auto-matrícula e delega a criação para a BLL.
+     * Suporta cancelamento durante a introdução dos dados.
+     *
+     * @throws CancelamentoException se o utilizador cancelar a operação (tratado internamente)
      */
     public void executarAutoMatricula() {
-        view.mostrarTituloAutoMatricula();
+        try {
+            view.mostrarTituloAutoMatricula();
 
-        // Recolha e Validação de Inputs (Responsabilidade do Controller/View)
-        String nome;
-        do {
-            nome = view.pedirInputString("Nome Completo");
-            if (!Validador.isNomeValido(nome)) view.mostrarErroNomeInvalido();
-        } while (!Validador.isNomeValido(nome));
+            String nome;
+            do {
+                nome = view.pedirInputString("Nome Completo");
+                if (!Validador.isNomeValido(nome)) view.mostrarErroNomeInvalido();
+            } while (!Validador.isNomeValido(nome));
 
-        String nif;
-        boolean duplicado;
-        do {
-            nif = view.pedirInputString("NIF");
-            duplicado = Validador.isNifDuplicado(nif, PASTA_BD);
-            if (!Validador.validarNif(nif)) view.mostrarErroNifInvalido();
-            else if (duplicado) view.mostrarErroNifDuplicado();
-        } while (!Validador.validarNif(nif) || duplicado);
+            String nif;
+            boolean duplicado;
+            do {
+                nif = view.pedirInputString("NIF");
+                duplicado = Validador.isNifDuplicado(nif, PASTA_BD);
+                if (!Validador.validarNif(nif)) view.mostrarErroNifInvalido();
+                else if (duplicado) view.mostrarErroNifDuplicado();
+            } while (!Validador.validarNif(nif) || duplicado);
 
-        String morada = view.pedirInputString("Morada");
+            String morada = view.pedirInputString("Morada");
 
-        String dataNasc;
-        do {
-            dataNasc = view.pedirInputString("Data de Nascimento (DD-MM-AAAA)");
-            if (!Validador.isDataNascimentoValida(dataNasc)) view.mostrarErroDataInvalida();
-        } while (!Validador.isDataNascimentoValida(dataNasc));
+            String dataNasc;
+            do {
+                dataNasc = view.pedirInputString("Data de Nascimento (DD-MM-AAAA)");
+                if (!Validador.isDataNascimentoValida(dataNasc)) view.mostrarErroDataInvalida();
+            } while (!Validador.isDataNascimentoValida(dataNasc));
 
-        // Seleção de Curso
-        String[] cursos = ImportadorCSV.obterListaCursos(PASTA_BD);
-        if (cursos.length == 0) {
-            view.mostrarErroSemCursos();
-            return;
+            String[] cursos = ImportadorCSV.obterListaCursos(PASTA_BD);
+            if (cursos.length == 0) {
+                view.mostrarErroSemCursos();
+                return;
+            }
+
+            view.mostrarListaCursosDisponiveis(cursos);
+            int escolha = view.pedirOpcaoCurso(cursos.length);
+            if (escolha == -1) return;
+            String siglaCurso = cursos[escolha - 1].split(" - ")[0];
+
+            String[] credenciais = bll.realizarAutoMatricula(nome, nif, morada, dataNasc, siglaCurso, repositorio.getAnoAtual());
+            view.mostrarSucessoAutoMatricula(credenciais[0], credenciais[1]);
+        } catch (CancelamentoException e) {
+            view.mostrarOperacaoCancelada();
         }
-
-        view.mostrarListaCursosDisponiveis(cursos);
-        int escolha = view.pedirOpcaoCurso(cursos.length);
-        String siglaCurso = cursos[escolha - 1].split(" - ")[0];
-
-        // Delegar o processamento pesado para a BLL
-        String[] credenciais = bll.realizarAutoMatricula(nome, nif, morada, dataNasc, siglaCurso, repositorio.getAnoAtual());
-
-        view.mostrarSucessoAutoMatricula(credenciais[0], credenciais[1]);
     }
 
     /**

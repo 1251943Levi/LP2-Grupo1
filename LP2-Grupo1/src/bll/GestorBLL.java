@@ -202,12 +202,13 @@ public class GestorBLL {
      * * @return true se a UC foi adicionada com sucesso.
      */
     public boolean adicionarUc(String siglaCurso, int anoUc, String siglaUc, String nomeUc, String docente, RepositorioDados repo) {
-        if (repo.podeAdicionarUc(siglaCurso, anoUc, PASTA_BD)) {
-            String linhaUc = siglaUc + ";" + nomeUc + ";" + anoUc + ";" + docente + ";" + siglaCurso;
-            ExportadorCSV.adicionarLinhaCSV("ucs.csv", linhaUc, PASTA_BD);
-            return true;
+        int ucsExistentes = ImportadorCSV.contarUcsPorCursoEAno(siglaCurso, anoUc, PASTA_BD);
+        if (ucsExistentes >= 5) {
+            return false;   // limite atingido
         }
-        return false;
+        String linhaUc = siglaUc + ";" + nomeUc + ";" + anoUc + ";" + docente + ";" + siglaCurso;
+        ExportadorCSV.adicionarLinhaCSV("ucs.csv", linhaUc, PASTA_BD);
+        return true;
     }
 
     /**

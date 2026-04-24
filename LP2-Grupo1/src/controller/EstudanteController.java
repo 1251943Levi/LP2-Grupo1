@@ -4,6 +4,7 @@ import model.Estudante;
 import model.RepositorioDados;
 import view.EstudanteView;
 import bll.EstudanteBLL;
+import utils.CancelamentoException;
 
 /**
  * Controlador que gere o fluxo de ecrãs e interações do Estudante.
@@ -54,14 +55,19 @@ public class EstudanteController {
 
     /**
      * Gere o fluxo de alteração de morada através da BLL.
+     * A operação pode ser cancelada durante a introdução da nova morada.
      */
     private void atualizarDadosPessoais() {
-        String novaMorada = view.pedirNovaMorada();
-        if (!novaMorada.isEmpty()) {
-            bll.atualizarMorada(estudanteAtivo, novaMorada);
-            view.mostrarSucessoAtualizacaoMorada();
-        } else {
-            view.mostrarSemAlteracaoMorada();
+        try {
+            String novaMorada = view.pedirNovaMorada();
+            if (!novaMorada.isEmpty()) {
+                bll.atualizarMorada(estudanteAtivo, novaMorada);
+                view.mostrarSucessoAtualizacaoMorada();
+            } else {
+                view.mostrarSemAlteracaoMorada();
+            }
+        } catch (CancelamentoException e) {
+            view.mostrarOperacaoCancelada();
         }
     }
 
@@ -80,6 +86,7 @@ public class EstudanteController {
 
     /**
      * Coordena a lógica de consulta e pagamento de propinas.
+     * A operação de pagamento parcial pode ser cancelada durante a introdução do valor.
      */
     private void consultarDadosFinanceiros() {
         double divida = estudanteAtivo.getSaldoDevedor();
@@ -92,7 +99,12 @@ public class EstudanteController {
             if (opcao == 1) {
                 valorAPagar = divida;
             } else if (opcao == 2) {
-                valorAPagar = view.pedirValorPagamentoParcial(divida);
+                try {
+                    valorAPagar = view.pedirValorPagamentoParcial(divida);
+                } catch (CancelamentoException e) {
+                    view.mostrarOperacaoCancelada();
+                    return;
+                }
             } else {
                 return;
             }

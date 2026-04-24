@@ -1,21 +1,37 @@
 package view;
 
+import utils.Consola;
+import utils.CancelamentoException;
+
 import java.util.Scanner;
+
 
 public class GestorView {
     private Scanner scanner = new Scanner(System.in);
 
+    /**
+     * Exibe uma mensagem genérica prefixada com ">> ".
+     * @param msg Mensagem a exibir
+     */
     public void mostrarMensagem(String msg) {
         System.out.println(">> " + msg);
     }
 
+    /**
+     * Solicita uma string ao utilizador.
+     * @param msg Texto a apresentar antes da entrada
+     * @return A string introduzida (nunca nula)
+     */
     public String pedirInput(String msg) {
-        System.out.print(msg + ": ");
-        return scanner.nextLine().trim();
+        return Consola.lerString(msg + ": ");
     }
 
     // --- MENUS ---
 
+    /**
+     * Apresenta o menu principal do Gestor e lê a opção escolhida.
+     * @return Número da opção selecionada (0 a 8)
+     */
     public int mostrarMenu() {
         mostrarMensagem("\n=== MENU GESTOR ===");
         mostrarMensagem("1 - Registar Novo Estudante");
@@ -25,15 +41,16 @@ public class GestorView {
         mostrarMensagem("5 - Avançar Ano Letivo");
         mostrarMensagem("6 - Listar Devedores");
         mostrarMensagem("7 - Alterar Password");
-        System.out.println("8 - Registar Docente");
+        mostrarMensagem("8 - Registar Docente");
         mostrarMensagem("0 - Sair / Logout");
-        try {
-            return Integer.parseInt(pedirInput("Opção"));
-        } catch (Exception e) {
-            return -1;
-        }
+        return Consola.lerOpcaoMenu();
     }
 
+    /**
+     * Apresenta um sub‑menu CRUD genérico para UCs ou Cursos.
+     * @param entidade "Unidades Curriculares" ou "Cursos"
+     * @return Opção escolhida (0 a 5)
+     */
     public int mostrarMenuCRUD(String entidade) {
         mostrarMensagem("\n--- GERIR " + entidade.toUpperCase() + " ---");
         mostrarMensagem("1 - Adicionar " + entidade);
@@ -47,23 +64,19 @@ public class GestorView {
             mostrarMensagem("5 - Listar UCs do Curso por Ano");
         }
         mostrarMensagem("0 - Voltar");
-        try {
-            return Integer.parseInt(pedirInput("Opção"));
-        } catch (Exception e) {
-            return -1;
-        }
+        return Consola.lerOpcaoMenu();
     }
 
+    /**
+     * Apresenta o menu de estatísticas.
+     * @return Opção escolhida (0 a 2)
+     */
     public int mostrarMenuEstatisticas() {
         mostrarMensagem("\n--- ESTATÍSTICAS ---");
         mostrarMensagem("1 - Média Global Institucional");
         mostrarMensagem("2 - Melhor Aluno");
         mostrarMensagem("0 - Voltar");
-        try {
-            return Integer.parseInt(pedirInput("Opção"));
-        } catch (Exception e) {
-            return -1;
-        }
+        return Consola.lerOpcaoMenu();
     }
 
     // --- INPUTS GENÉRICOS ---
@@ -78,15 +91,15 @@ public class GestorView {
     public String pedirNovaSiglaDocente() { return pedirInput("Nova Sigla Docente"); }
     public String pedirNovaSiglaCurso() { return pedirInput("Nova Sigla Curso"); }
     public String pedirNomeCurso() { return pedirInput("Nome do Curso"); }
-    public String pedirDepartamento() { return pedirInput("Departamento (ex: DEIS)"); }
-    public String pedirNovoDepartamento() { return pedirInput("Novo Departamento"); }
+    public String pedirDepartamento() { return pedirInput("Departamento"); }
 
+    /**
+     * Solicita um valor decimal.
+     * @param msg Mensagem a exibir
+     * @return O valor double introduzido
+     */
     public double pedirValorDouble(String msg) {
-        try {
-            return Double.parseDouble(pedirInput(msg));
-        } catch (Exception e) {
-            return 0.0;
-        }
+        return Consola.lerDouble(msg + ": ");
     }
 
     // --- REGISTO DE DOCENTE ---
@@ -107,12 +120,10 @@ public class GestorView {
         mostrarMensagem("\n--- REGISTAR ESTUDANTE ---");
     }
 
-    public String pedirNumMecanografico() { return pedirInput("Nº Mecanográfico"); }
     public String pedirNome() { return pedirInput("Nome"); }
     public String pedirNif() { return pedirInput("NIF (9 dígitos)"); }
     public String pedirMorada() { return pedirInput("Morada"); }
     public String pedirDataNascimento() { return pedirInput("Data Nasc. (DD-MM-AAAA)"); }
-    public String pedirAnoInscricao() { return pedirInput("Ano de Inscrição"); }
 
     public void mostrarNumMecanograficoAtribuido(int numMec) {
         mostrarMensagem("Nº Mecanográfico atribuído: " + numMec);
@@ -135,7 +146,6 @@ public class GestorView {
     public void mostrarErroDataInvalida() { mostrarMensagem("ERRO: Data inválida. Utilize rigorosamente o formato DD-MM-AAAA."); }
     public void mostrarErroNifDuplicado() { mostrarMensagem("ERRO: Este NIF já se encontra registado num aluno existente."); }
 
-    public void mostrarErroEdicaoCurso() { mostrarMensagem("ERRO: Ação bloqueada! Existem estudantes inscritos neste curso."); }
     public void mostrarErroLimiteUcs(int ano) { mostrarMensagem("ERRO: Não é possível associar mais de 5 UCs ao " + ano + "º ano deste Curso."); }
 
     public void mostrarSucessoCriacao(String entidade) { mostrarMensagem("Sucesso: " + entidade + " adicionado(a) com sucesso ao sistema!"); }
@@ -147,7 +157,6 @@ public class GestorView {
     public void mostrarAvisoSemCursos() { mostrarMensagem("Aviso: Não existem cursos registados no sistema."); }
 
     public void mostrarErroCarregarDados(String entidade) { mostrarMensagem("Erro ao carregar os dados de " + entidade + "."); }
-    public void mostrarSucessoAssociacaoUc(String nomeUc, String siglaCurso) { mostrarMensagem("Sucesso: A UC '" + nomeUc + "' foi associada ao curso " + siglaCurso + "!"); }
     public void mostrarResultadosListagem(String resultados) { System.out.println(resultados); }
 
     // --- LISTAS DE SELEÇÃO NUMERADA ---
@@ -159,14 +168,19 @@ public class GestorView {
         }
     }
 
+    /**
+     * Solicita ao utilizador que selecione um curso a partir de uma lista numerada.
+     * @param max Número máximo de opções (índice do último curso)
+     * @return Índice da opção escolhida (1..max) ou -1 se cancelado
+     */
     public int pedirOpcaoCurso(int max) {
         while (true) {
             try {
-                int opcao = Integer.parseInt(pedirInput("Selecione o número do Curso"));
-                if (opcao > 0 && opcao <= max) return opcao;
+                int opcao = Consola.lerInt("Selecione o número do Curso: ");
+                if (opcao >= 1 && opcao <= max) return opcao;
                 mostrarMensagem("Erro: Opção inválida. Escolha entre 1 e " + max + ".");
-            } catch (NumberFormatException e) {
-                mostrarMensagem("Erro: Introduza um número válido.");
+            } catch (CancelamentoException e) {
+                return -1;
             }
         }
     }
@@ -178,14 +192,19 @@ public class GestorView {
         }
     }
 
+    /**
+     * Solicita ao utilizador que selecione uma UC a partir de uma lista numerada.
+     * @param max Número total de UCs na lista
+     * @return Índice escolhido (1..max) ou -1 se cancelado
+     */
     public int pedirOpcaoUc(int max) {
         while (true) {
             try {
-                int opcao = Integer.parseInt(pedirInput("Selecione o número da UC"));
-                if (opcao > 0 && opcao <= max) return opcao;
+                int opcao = Consola.lerInt("Selecione o número da UC: ");
+                if (opcao >= 1 && opcao <= max) return opcao;
                 mostrarMensagem("ERRO: Opção inválida. Escolha entre 1 e " + max + ".");
-            } catch (NumberFormatException e) {
-                mostrarMensagem("ERRO: Introduza um número válido.");
+            } catch (CancelamentoException e) {
+                return -1;
             }
         }
     }
@@ -194,6 +213,11 @@ public class GestorView {
 
     public void mostrarCabecalhoAlterarPassword() { mostrarMensagem("\n--- ALTERAR PASSWORD ---"); }
 
+    /**
+     * Solicita a nova password ao utilizador, sem eco na consola.
+     * Não é cancelável (o Enter em branco é interpretado como cancelamento manual).
+     * @return A nova password ou uma string vazia se o utilizador premir Enter
+     */
     public String pedirNovaPassword() {
         System.out.print("Introduza a nova Password (ou prima Enter para cancelar): ");
         if (System.console() != null) {
@@ -255,5 +279,8 @@ public class GestorView {
      * Mostra uma mensagem de erro específica para quando a remoção falha no ficheiro.
      */
     public void mostrarErroRemocao(String entidade) { mostrarMensagem("Erro: Não foi possível remover " + entidade + ". O ficheiro pode estar em uso."); }
-}
 
+    public void mostrarOperacaoCancelada() {
+        System.out.println(">> Operação cancelada. A regressar ao menu...");
+    }
+}

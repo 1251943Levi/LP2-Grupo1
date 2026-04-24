@@ -67,77 +67,90 @@ public class GestorController {
     /**
      * Coordena o fluxo de registo de um novo docente, incluindo recolha de dados,
      * validação de NIF e delegação da criação para a BLL.
+     * A operação pode ser cancelada durante a introdução dos dados.
      */
     private void executarRegistoDocente() {
-        view.mostrarTituloRegistoDocente();
+        try {
+            view.mostrarTituloRegistoDocente();
 
-        String nome;
-        do {
-            nome = view.pedirNome();
-            if (!Validador.isNomeValido(nome)) view.mostrarErroNomeInvalido();
-        } while (!Validador.isNomeValido(nome));
+            String nome;
+            do {
+                nome = view.pedirNome();
+                if (!Validador.isNomeValido(nome)) view.mostrarErroNomeInvalido();
+            } while (!Validador.isNomeValido(nome));
 
-        String sigla = view.pedirSiglaDocente();
+            String sigla = view.pedirSiglaDocente();
 
-        String nif;
-        boolean duplicado;
-        do {
-            nif = view.pedirNif();
-            duplicado = Validador.isNifDuplicado(nif, PASTA_BD);
-            if (!Validador.validarNif(nif)) {
-                view.mostrarErroNifInvalido();
-            } else if (duplicado) {
-                view.mostrarErroNifDuplicado();
-            }
-        } while (!Validador.validarNif(nif) || duplicado);
+            String nif;
+            boolean duplicado;
+            do {
+                nif = view.pedirNif();
+                duplicado = Validador.isNifDuplicado(nif, PASTA_BD);
+                if (!Validador.validarNif(nif)) {
+                    view.mostrarErroNifInvalido();
+                } else if (duplicado) {
+                    view.mostrarErroNifDuplicado();
+                }
+            } while (!Validador.validarNif(nif) || duplicado);
 
-        String morada = view.pedirMorada();
-        String dataNasc = view.pedirDataNascimento();
+            String morada = view.pedirMorada();
+            String dataNasc = view.pedirDataNascimento();
 
-        String emailGerado = bll.registarDocente(nome, sigla, nif, morada, dataNasc);
-        view.mostrarResumoRegistoDocente(emailGerado);
+            String emailGerado = bll.registarDocente(nome, sigla, nif, morada, dataNasc);
+            view.mostrarResumoRegistoDocente(emailGerado);
+
+        } catch (CancelamentoException e) {
+            view.mostrarOperacaoCancelada();
+        }
     }
 
     /**
      * Coordena o fluxo de registo de um novo estudante, gerindo a atribuição
      * automática de número mecanográfico e a seleção do curso.
+     * A operação pode ser cancelada durante a introdução dos dados.
      */
     private void executarRegistoEstudante() {
-        view.mostrarTituloRegistoEstudante();
+        try {
+            view.mostrarTituloRegistoEstudante();
 
-        int anoInscricao = repo.getAnoAtual();
-        int numMec = ImportadorCSV.obterProximoNumeroMecanografico(PASTA_BD, anoInscricao);
-        view.mostrarNumMecanograficoAtribuido(numMec);
+            int anoInscricao = repo.getAnoAtual();
+            int numMec = ImportadorCSV.obterProximoNumeroMecanografico(PASTA_BD, anoInscricao);
+            view.mostrarNumMecanograficoAtribuido(numMec);
 
-        String nome;
-        do {
-            nome = view.pedirNome();
-            if (!Validador.isNomeValido(nome)) view.mostrarErroNomeInvalido();
-        } while (!Validador.isNomeValido(nome));
+            String nome;
+            do {
+                nome = view.pedirNome();
+                if (!Validador.isNomeValido(nome)) view.mostrarErroNomeInvalido();
+            } while (!Validador.isNomeValido(nome));
 
-        String nif;
-        boolean duplicado;
-        do {
-            nif = view.pedirNif();
-            duplicado = Validador.isNifDuplicado(nif, PASTA_BD);
-            if (!Validador.validarNif(nif)) {
-                view.mostrarErroNifInvalido();
-            } else if (duplicado) {
-                view.mostrarErroNifDuplicado();
-            }
-        } while (!Validador.validarNif(nif) || duplicado);
+            String nif;
+            boolean duplicado;
+            do {
+                nif = view.pedirNif();
+                duplicado = Validador.isNifDuplicado(nif, PASTA_BD);
+                if (!Validador.validarNif(nif)) {
+                    view.mostrarErroNifInvalido();
+                } else if (duplicado) {
+                    view.mostrarErroNifDuplicado();
+                }
+            } while (!Validador.validarNif(nif) || duplicado);
 
-        String morada = view.pedirMorada();
-        String dataNasc;
-        do {
-            dataNasc = view.pedirDataNascimento();
-            if (!Validador.isDataNascimentoValida(dataNasc)) view.mostrarErroDataInvalida();
-        } while (!Validador.isDataNascimentoValida(dataNasc));
+            String morada = view.pedirMorada();
+            String dataNasc;
+            do {
+                dataNasc = view.pedirDataNascimento();
+                if (!Validador.isDataNascimentoValida(dataNasc)) view.mostrarErroDataInvalida();
+            } while (!Validador.isDataNascimentoValida(dataNasc));
 
-        String siglaCurso = obterSiglaCursoPelaView();
+            String siglaCurso = obterSiglaCursoPelaView();
+            if (siglaCurso == null) return;
 
-        String emailGerado = bll.registarEstudante(numMec, nome, nif, morada, dataNasc, siglaCurso, anoInscricao);
-        view.mostrarResumoRegistoEstudante(emailGerado);
+            String emailGerado = bll.registarEstudante(numMec, nome, nif, morada, dataNasc, siglaCurso, anoInscricao);
+            view.mostrarResumoRegistoEstudante(emailGerado);
+
+        } catch (CancelamentoException e) {
+            view.mostrarOperacaoCancelada();
+        }
     }
 
     // --- Métodos de Estatísticas e Listagens ---
@@ -200,58 +213,78 @@ public class GestorController {
     /**
      * Recolhe dados da View para criar uma nova Unidade Curricular e
      * valida o limite máximo de UCs por ano via BLL.
+     * A operação pode ser cancelada durante a introdução dos dados.
      */
     private void adicionarUc() {
-        String siglaCurso = obterSiglaCursoPelaView();
-        if (siglaCurso.isEmpty()) return;
+        try {
+            String siglaCurso = obterSiglaCursoPelaView();
+            if (siglaCurso == null || siglaCurso.isEmpty()) return;
 
-        int anoUc = Integer.parseInt(view.pedirAnoCurricular());
-        String siglaUc = view.pedirSiglaUc();
-        String nomeUc = view.pedirNomeUc();
-        String docente = view.pedirSiglaDocente();
+            int anoUc = Integer.parseInt(view.pedirAnoCurricular());
+            String siglaUc = view.pedirSiglaUc();
+            String nomeUc = view.pedirNomeUc();
+            String docente = view.pedirSiglaDocente();
 
-        if (bll.adicionarUc(siglaCurso, anoUc, siglaUc, nomeUc, docente, repo)) {
-            view.mostrarSucessoCriacao("UC");
-        } else {
-            view.mostrarErroLimiteUcs(anoUc);
+            if (bll.adicionarUc(siglaCurso, anoUc, siglaUc, nomeUc, docente, repo)) {
+                view.mostrarSucessoCriacao("UC");
+            } else {
+                view.mostrarErroLimiteUcs(anoUc);
+            }
+        } catch (CancelamentoException e) {
+            view.mostrarOperacaoCancelada();
+        } catch (NumberFormatException e) {
+            view.mostrarErroLeituraOpcao(); // caso o ano não seja número válido
         }
     }
 
     /**
      * Permite a edição de uma UC existente, substituindo os dados antigos
      * pelos novos introduzidos pelo Gestor.
+     * A operação pode ser cancelada durante a introdução dos dados.
      */
     private void editarUc() {
-        String[] ucs = ImportadorCSV.obterListaUcs(PASTA_BD);
-        if (ucs.length == 0) { view.mostrarErroNaoEncontrado("UCs"); return; }
+        try {
+            String[] ucs = ImportadorCSV.obterListaUcs(PASTA_BD);
+            if (ucs.length == 0) { view.mostrarErroNaoEncontrado("UCs"); return; }
 
-        view.mostrarListaUcs(ucs);
-        int escolha = view.pedirOpcaoUc(ucs.length);
-        String siglaAntiga = ucs[escolha - 1].split(" - ")[0];
+            view.mostrarListaUcs(ucs);
+            int escolha = view.pedirOpcaoUc(ucs.length);
+            if (escolha == -1) return;
+            String siglaAntiga = ucs[escolha - 1].split(" - ")[0];
 
-        view.mostrarMensagemModoEdicao();
-        boolean sucesso = bll.editarUc(siglaAntiga, view.pedirSiglaUc(), view.pedirNovoNome(),
-                view.pedirNovoAnoCurricular(), view.pedirNovaSiglaDocente(),
-                view.pedirNovaSiglaCurso());
+            view.mostrarMensagemModoEdicao();
+            boolean sucesso = bll.editarUc(siglaAntiga, view.pedirSiglaUc(), view.pedirNovoNome(),
+                    view.pedirNovoAnoCurricular(), view.pedirNovaSiglaDocente(),
+                    view.pedirNovaSiglaCurso());
 
-        if (sucesso) view.mostrarSucessoAtualizacao("UC");
+            if (sucesso) view.mostrarSucessoAtualizacao("UC");
+        } catch (CancelamentoException e) {
+            view.mostrarOperacaoCancelada();
+        }
     }
 
     // --- Métodos Auxiliares ---
 
     /**
      * Mostra uma lista numerada de cursos para seleção e retorna a sigla do curso escolhido.
-     * * @return A sigla do curso selecionado (ex: "LEI").
+     * Suporta cancelamento da operação, retornando {@code null} nesse caso.
+     *
+     * @return A sigla do curso selecionado (ex: "LEI") ou {@code null} se o utilizador cancelar.
      */
     private String obterSiglaCursoPelaView() {
         String[] listaCursos = ImportadorCSV.obterListaCursos(PASTA_BD);
         if (listaCursos.length > 0) {
             view.mostrarListaCursos(listaCursos);
             int escolha = view.pedirOpcaoCurso(listaCursos.length);
+            if (escolha == -1) return null;
             return listaCursos[escolha - 1].split(" - ")[0];
         } else {
             view.mostrarAvisoSemCursos();
-            return view.pedirSiglaCurso();
+            try {
+                return view.pedirSiglaCurso();
+            } catch (CancelamentoException e) {
+                return null;
+            }
         }
     }
 
@@ -312,9 +345,13 @@ public class GestorController {
             int opcao = view.mostrarMenuCRUD("Cursos");
             switch (opcao) {
                 case 1:
-                    bll.adicionarCurso(view.pedirSiglaCurso(), view.pedirNomeCurso(),
-                            view.pedirDepartamento(), view.pedirValorDouble("Propina"));
-                    view.mostrarSucessoCriacao("Curso");
+                    try {
+                        bll.adicionarCurso(view.pedirSiglaCurso(), view.pedirNomeCurso(),
+                                view.pedirDepartamento(), view.pedirValorDouble("Propina"));
+                        view.mostrarSucessoCriacao("Curso");
+                    } catch (CancelamentoException e) {
+                        view.mostrarOperacaoCancelada();
+                    }
                     break;
                 case 2: view.mostrarResultadosListagem(ImportadorCSV.listarTodosCursos(PASTA_BD)); break;
                 case 0: correr = false; break;
@@ -326,26 +363,32 @@ public class GestorController {
     /**
      * Gere o fluxo de remoção de uma Unidade Curricular, solicitando confirmação
      * antes de delegar a eliminação à BLL.
+     * A operação pode ser cancelada durante a seleção da UC.
      */
     private void removerUc() {
-        String[] ucs = ImportadorCSV.obterListaUcs(PASTA_BD);
+        try {
+            String[] ucs = ImportadorCSV.obterListaUcs(PASTA_BD);
 
-        if (ucs.length == 0) {
-            view.mostrarErroNaoEncontrado("UCs");
-            return;
-        }
-
-        view.mostrarListaUcs(ucs);
-        int escolha = view.pedirOpcaoUc(ucs.length);
-
-        String siglaUc = ucs[escolha - 1].split(" - ")[0];
-
-        if (view.confirmarRemocao(siglaUc)) {
-            if (bll.removerUc(siglaUc)) {
-                view.mostrarSucessoRemocao("UC");
-            } else {
-                view.mostrarErroRemocao("UC");
+            if (ucs.length == 0) {
+                view.mostrarErroNaoEncontrado("UCs");
+                return;
             }
+
+            view.mostrarListaUcs(ucs);
+            int escolha = view.pedirOpcaoUc(ucs.length);
+            if (escolha == -1) return;
+
+            String siglaUc = ucs[escolha - 1].split(" - ")[0];
+
+            if (view.confirmarRemocao(siglaUc)) {
+                if (bll.removerUc(siglaUc)) {
+                    view.mostrarSucessoRemocao("UC");
+                } else {
+                    view.mostrarErroRemocao("UC");
+                }
+            }
+        } catch (CancelamentoException e) {
+            view.mostrarOperacaoCancelada();
         }
     }
 }
