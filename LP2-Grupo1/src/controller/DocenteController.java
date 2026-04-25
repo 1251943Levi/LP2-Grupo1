@@ -6,6 +6,7 @@ import bll.DocenteBLL;
 import utils.ImportadorCSV;
 import utils.ExportadorCSV;
 import utils.SegurancaPasswords;
+import utils.CancelamentoException;
 
 public class DocenteController {
     private RepositorioDados repo;
@@ -87,6 +88,7 @@ public class DocenteController {
 
     /**
      * Fluxo de recolha de notas e envio para a BLL processar o registo.
+     * A operação pode ser cancelada durante a introdução dos dados.
      */
     private void executarLancamentoNotas() {
         view.mostrarCabecalhoLancamentoNotas();
@@ -104,6 +106,8 @@ public class DocenteController {
             } else {
                 view.mostrarErroAlunoNaoEncontrado(numMec);
             }
+        } catch (CancelamentoException e) {
+            view.mostrarOperacaoCancelada();
         } catch (Exception e) {
             view.mostrarErroLeituraOpcao();
         }
