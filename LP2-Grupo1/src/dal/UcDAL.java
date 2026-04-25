@@ -213,36 +213,6 @@ public class UcDAL {
                 uc.getSigla() + ";" + uc.getNome() + ";"
                         + uc.getAnoCurricular() + ";" + siglaDocente + ";" + cursoStr);
     }
-
-    public static void atualizarUC(UnidadeCurricular ucAtualizada, String siglaCurso, String pastaBase) {
-        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
-        List<String> linhasAntigas = DALUtil.lerFicheiro(caminho);
-        if (linhasAntigas.isEmpty()) return;
-
-        List<String> linhasAtualizadas = new ArrayList<>();
-        boolean atualizado = false;
-
-        for (String linha : linhasAntigas) {
-            if (linha.equalsIgnoreCase(CABECALHO)) { linhasAtualizadas.add(linha); continue; }
-            String[] dados = linha.split(";", -1);
-            if (dados.length > 0 && dados[0].trim().equalsIgnoreCase(ucAtualizada.getSigla())) {
-                String siglaDocente = (ucAtualizada.getDocenteResponsavel() != null)
-                        ? ucAtualizada.getDocenteResponsavel().getSigla() : "N/A";
-                String cursoStr = (siglaCurso != null && !siglaCurso.isEmpty()) ? siglaCurso : "N/A";
-                linhasAtualizadas.add(ucAtualizada.getSigla() + ";" + ucAtualizada.getNome() + ";"
-                        + ucAtualizada.getAnoCurricular() + ";" + siglaDocente + ";" + cursoStr);
-                atualizado = true;
-            } else {
-                linhasAtualizadas.add(linha);
-            }
-        }
-        if (atualizado) DALUtil.reescreverFicheiro(caminho, linhasAtualizadas);
-    }
-
-    /**
-     * Remove todas as linhas cuja primeira coluna corresponda à sigla dada.
-     * @return true se pelo menos uma linha foi removida.
-     */
     public static boolean removerUC(String siglaUc, String pastaBase) {
         String caminho = pastaBase + File.separator + NOME_FICHEIRO;
         List<String> linhasAntigas = DALUtil.lerFicheiro(caminho);
@@ -255,7 +225,7 @@ public class UcDAL {
             if (linha.equalsIgnoreCase(CABECALHO)) { linhasAtualizadas.add(linha); continue; }
             String[] dados = linha.split(";", -1);
             if (dados.length > 0 && dados[0].trim().equalsIgnoreCase(siglaUc)) {
-                encontrou = true; // não adiciona → apaga
+                encontrou = true;
             } else {
                 linhasAtualizadas.add(linha);
             }
@@ -264,6 +234,4 @@ public class UcDAL {
         if (encontrou) DALUtil.reescreverFicheiro(caminho, linhasAtualizadas);
         return encontrou;
     }
-
-
 }

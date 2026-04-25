@@ -8,17 +8,6 @@ public class GestorDAL {
     private static final String NOME_FICHEIRO = "gestores.csv";
     private static final String CABECALHO = "email;nome;nif;morada;dataNascimento";
 
-    public static void adicionarGestor(Gestor gestor, String pastaBase) {
-        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
-        DALUtil.garantirFicheiroECabecalho(caminho, CABECALHO);
-
-        String linha = gestor.getEmail() + ";" + gestor.getNome() + ";" +
-                gestor.getNif() + ";" + gestor.getMorada() + ";" +
-                gestor.getDataNascimento();
-
-        DALUtil.adicionarLinhaCSV(caminho, linha);
-    }
-
     public static Gestor procurarPorEmail(String email, String hash, String pastaBase) {
         String caminho = pastaBase + File.separator + NOME_FICHEIRO;
         List<String> linhas = DALUtil.lerFicheiro(caminho);

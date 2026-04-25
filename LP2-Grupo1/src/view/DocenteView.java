@@ -67,10 +67,6 @@ public class DocenteView {
         System.out.println(">> Não foram encontrados alunos nas suas Unidades Curriculares.");
     }
 
-    public void mostrarAluno(int numMecanografico, String nome) {
-        System.out.println(">> Nº: " + numMecanografico + " | Aluno: " + nome);
-    }
-
     /**
      * Mostra um aluno com a sua média académica nas UCs lecionadas por este docente.
      * @param estudante O objeto estudante.
@@ -82,16 +78,6 @@ public class DocenteView {
                 estudante.getNome(),
                 media);
     }
-
-    public void mostrarMedia(double media) {
-        System.out.println(">> Média das suas disciplinas: " + String.format("%.2f", media));
-    }
-
-    public void mostrarSemAlunos() {
-        System.out.println(">> Não tem alunos inscritos nas suas UCs.");
-    }
-
-
 
     // --- MÉTODOS DE LANÇAMENTO DE NOTAS ---
 
@@ -133,16 +119,9 @@ public class DocenteView {
         System.out.println(">> Notas lançadas e guardadas com sucesso!");
     }
 
-    public void mostrarErroAlunoNaoEncontrado(int numAluno) {
-        System.out.println(">> ERRO: Aluno com o número " + numAluno + " não encontrado.");
-    }
 
 
     // --- MÉTODOS DE ALTERAÇÃO DE PASSWORD ---
-
-    public void mostrarCabecalhoAlterarPassword() {
-        System.out.println("\n--- ALTERAR PASSWORD ---");
-    }
 
     public String pedirNovaPassword() {
         System.out.print("Nova Password (Enter para cancelar): ");

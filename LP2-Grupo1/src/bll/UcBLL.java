@@ -55,12 +55,4 @@ public class UcBLL {
     public String[] obterListaUcs() {
         return UcDAL.obterListaUcs(PASTA_BD);
     }
-
-    /**
-     * Devolve uma listagem formatada de todas as UCs para exibição no ecrã.
-     */
-    public String listarTodasUcs() {
-        return UcDAL.listarTodasUcs(PASTA_BD);
-    }
-
 }

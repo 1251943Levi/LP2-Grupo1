@@ -24,8 +24,8 @@ public class DALUtil {
         File ficheiro = new File(caminhoCompleto);
         File pasta = ficheiro.getParentFile();
 
-        if (pasta != null && !pasta.exists()) {
-            pasta.mkdirs();
+        if (pasta != null && !pasta.exists() && !pasta.mkdirs()) {
+            System.err.println(">> AVISO: Não foi possível criar a pasta " + pasta.getPath());
         }
 
         if (!ficheiro.exists()) {
@@ -66,7 +66,10 @@ public class DALUtil {
      */
     public static void adicionarLinhaCSV(String caminhoCompleto, String linha) {
         File f = new File(caminhoCompleto);
-        if (f.getParentFile() != null) f.getParentFile().mkdirs();
+        File pastaParente = f.getParentFile();
+        if (pastaParente != null && !pastaParente.exists() && !pastaParente.mkdirs()) {
+            System.err.println(">> AVISO: Não foi possível criar a pasta " + pastaParente.getPath());
+        }
 
         try (FileWriter fw = new FileWriter(caminhoCompleto, true);
              BufferedWriter bw = new BufferedWriter(fw);
@@ -89,5 +92,4 @@ public class DALUtil {
             System.err.println(">> ERRO: Falha ao reescrever ficheiro (" + caminhoCompleto + "): " + e.getMessage());
         }
     }
-
 }

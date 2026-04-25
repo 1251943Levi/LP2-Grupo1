@@ -11,15 +11,16 @@ public class PercursoAcademico {
     private UnidadeCurricular[] ucsInscrito;
     private int totalUcsInscrito;
 
-    private Avaliacao[] historicoAvaliacoes;
+    private final Avaliacao[] historicoAvaliacoes;
     private int totalAvaliacoes;
+
 
     // ---------- CONSTRUTOR ----------
     public PercursoAcademico() {
         this.ucsInscrito = new UnidadeCurricular[15];
         this.totalUcsInscrito = 0;
         this.historicoAvaliacoes = new Avaliacao[100];
-        this.totalAvaliacoes = 0;
+        this.totalAvaliacoes  = 0;
     }
 
     // ---------- MÉTODOS DE LÓGICA E INTEGRIDADE ----------
@@ -27,28 +28,23 @@ public class PercursoAcademico {
     /**
      * Inscreve o estudante numa Unidade Curricular, garantindo que não há duplicados.
      */
-    public boolean inscreverEmUc(UnidadeCurricular uc) {
+    public void inscreverEmUc(UnidadeCurricular uc) {
         for (int i = 0; i < totalUcsInscrito; i++) {
-            if (ucsInscrito[i].getSigla().equals(uc.getSigla())) return false;
+            if (ucsInscrito[i].getSigla().equals(uc.getSigla())) return;
         }
         if (totalUcsInscrito < ucsInscrito.length) {
             ucsInscrito[totalUcsInscrito] = uc;
             totalUcsInscrito++;
-            return true;
         }
-        return false;
     }
-
     /**
      * Regista uma nova avaliação no histórico permanente do estudante.
      */
-    public boolean registarAvaliacao(Avaliacao avaliacao) {
+    public void registarAvaliacao(Avaliacao avaliacao) {
         if (totalAvaliacoes < historicoAvaliacoes.length) {
             historicoAvaliacoes[totalAvaliacoes] = avaliacao;
             totalAvaliacoes++;
-            return true;
         }
-        return false;
     }
 
     /**
@@ -67,11 +63,9 @@ public class PercursoAcademico {
         for (int i = 0; i < totalUcsInscrito; i++) {
             if (ucsInscrito[i] == null) continue;
             String siglaUc = ucsInscrito[i].getSigla();
-
             for (int j = 0; j < totalAvaliacoes; j++) {
                 Avaliacao av = historicoAvaliacoes[j];
-                if (av != null
-                        && av.getUc() != null
+                if (av != null && av.getUc() != null
                         && av.getUc().getSigla().equalsIgnoreCase(siglaUc)
                         && av.isAprovado()) {
                     aprovadas++;
@@ -109,13 +103,9 @@ public class PercursoAcademico {
      * Limpa as inscrições do ano corrente (usado na transição de ano letivo).
      */
     public void limparInscricoesAtivas() {
-        this.ucsInscrito = new UnidadeCurricular[15];
+        this.ucsInscrito      = new UnidadeCurricular[15];
         this.totalUcsInscrito = 0;
     }
 
-    // ---------- GETTERS ----------
-    public UnidadeCurricular[] getUcsInscrito()    { return ucsInscrito; }
-    public int getTotalUcsInscrito()               { return totalUcsInscrito; }
-    public Avaliacao[] getHistoricoAvaliacoes()    { return historicoAvaliacoes; }
-    public int getTotalAvaliacoes()                { return totalAvaliacoes; }
-}
+    public Avaliacao[] getHistoricoAvaliacoes() { return historicoAvaliacoes; }
+    public int         getTotalAvaliacoes()      { return totalAvaliacoes; }}

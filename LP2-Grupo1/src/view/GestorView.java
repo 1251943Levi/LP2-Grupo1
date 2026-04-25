@@ -92,13 +92,10 @@ public class GestorView {
     public String pedirNovaSiglaCurso()   { return pedirInput("Nova Sigla Curso"); }
     public String pedirNomeCurso()        { return pedirInput("Nome do Curso"); }
     public String pedirDepartamento()     { return pedirInput("Departamento (ex: DEIS)"); }
-    public String pedirNovoDepartamento() { return pedirInput("Novo Departamento"); }
     public String pedirNome()             { return pedirInput("Nome"); }
     public String pedirNif()              { return pedirInput("NIF (9 dígitos)"); }
     public String pedirMorada()           { return pedirInput("Morada"); }
     public String pedirDataNascimento()   { return pedirInput("Data Nasc. (DD-MM-AAAA)"); }
-    public String pedirAnoInscricao()     { return pedirInput("Ano de Inscrição"); }
-    public String pedirNumMecanografico() { return pedirInput("Nº Mecanográfico"); }
 
     public double pedirValorDouble(String msg) {
         try { return Double.parseDouble(pedirInput(msg)); }
@@ -144,7 +141,6 @@ public class GestorView {
     public void mostrarErroDataInvalida()  { mostrarMensagem("ERRO: Data inválida. Use o formato DD-MM-AAAA."); }
     public void mostrarErroNifDuplicado()  { mostrarMensagem("ERRO: Este NIF já se encontra registado no sistema."); }
 
-    public void mostrarErroEdicaoCurso()         { mostrarMensagem("ERRO: Existem estudantes inscritos neste curso."); }
     public void mostrarErroLimiteUcs(int ano)    { mostrarMensagem("ERRO: Não é possível ter mais de 5 UCs no " + ano + "º ano deste Curso."); }
 
     public void mostrarSucessoCriacao(String e)  { mostrarMensagem("Sucesso: " + e + " adicionado(a) com sucesso!"); }
@@ -153,10 +149,6 @@ public class GestorView {
     public void mostrarErroNaoEncontrado(String e){ mostrarMensagem("Erro: " + e + " não encontrado(a)."); }
     public void mostrarErroCarregarDados(String e){ mostrarMensagem("Erro ao carregar os dados de " + e + "."); }
     public void mostrarMensagemModoEdicao()      { mostrarMensagem("Registo encontrado! Introduza os novos dados:"); }
-    public void mostrarAvisoSemCursos()          { mostrarMensagem("Aviso: Não existem cursos registados no sistema."); }
-    public void mostrarSucessoAssociacaoUc(String uc, String curso) {
-        mostrarMensagem("Sucesso: UC '" + uc + "' associada ao curso " + curso + "!");
-    }
     public void mostrarResultadosListagem(String r) { System.out.println(r); }
 
     public void mostrarListaCursos(String[] cursos) {

@@ -159,7 +159,6 @@ public class GestorBLL {
     public Object[] obterMelhorAluno() {
         return Estatisticas.calcularMelhorAluno();
     }
-
     // --- 4. GESTÃO DE ENTIDADES (UCs E CURSOS) ---
 
     /**
@@ -167,7 +166,7 @@ public class GestorBLL {
      * * @return true se a UC foi adicionada com sucesso.
      */
     public boolean adicionarUc(String siglaCurso, int anoUc, String siglaUc,
-                               String nomeUc, String siglaDocente, RepositorioDados repo) {
+                               String nomeUc, String siglaDocente) {
         if (UcDAL.contarUcsPorCursoEAno(siglaCurso, anoUc, PASTA_BD) >= 5) return false;
         Docente doc = DocenteDAL.procurarPorSigla(siglaDocente, PASTA_BD);
         UcDAL.adicionarUC(new UnidadeCurricular(siglaUc, nomeUc, anoUc, doc), siglaCurso, PASTA_BD);
@@ -187,6 +186,7 @@ public class GestorBLL {
             return true;
         } catch (NumberFormatException ex) { return false; }
     }
+
 
     /**
      * Cria um novo curso no sistema com estado inicial "Inativo".

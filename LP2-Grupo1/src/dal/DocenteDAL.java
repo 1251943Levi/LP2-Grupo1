@@ -1,7 +1,6 @@
 package dal;
 
 import model.Docente;
-import model.UnidadeCurricular;
 import java.io.File;
 import java.util.List;
 
@@ -51,28 +50,6 @@ public class DocenteDAL {
             }
         }
         return null;
-    }
-
-    /**
-     * Método auxiliar privado para ler ucs.csv e associar as disciplinas a este docente.
-     */
-    private static void carregarUcsDoDocente(Docente d, String pastaBase) {
-        String caminho = pastaBase + File.separator + "ucs.csv";
-        List<String> linhas = DALUtil.lerFicheiro(caminho);
-
-        for (String linha : linhas) {
-            if (linha.toLowerCase().startsWith("sigla")) continue;
-
-            String[] dados = linha.split(";", -1);
-            if (dados.length >= 4 && dados[3].trim().equalsIgnoreCase(d.getSigla())) {
-                try {
-                    UnidadeCurricular uc = new UnidadeCurricular(
-                            dados[0].trim(), dados[1].trim(),
-                            Integer.parseInt(dados[2].trim()), d);
-                    d.adicionarUcLecionada(uc);
-                } catch (NumberFormatException ignored) { }
-            }
-        }
     }
 
     /**

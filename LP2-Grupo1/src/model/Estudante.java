@@ -9,11 +9,10 @@ public class Estudante extends Utilizador {
     private final int numeroMecanografico;
     private final int anoPrimeiraInscricao;
     private int anoCurricular;
-    private int anoFrequencia;
-    private PercursoAcademico percurso;
+    private final PercursoAcademico percurso;
     private double saldoDevedor;
     private String siglaCurso;
-    private Pagamento[] historicoPagamentos;
+    private final Pagamento[] historicoPagamentos;
     private int totalPagamentos;
 
 
@@ -23,69 +22,31 @@ public class Estudante extends Utilizador {
     public Estudante(int numeroMecanografico, String email, String password, String nome,
                      String nif, String morada, String dataNascimento, int anoPrimeiraInscricao) {
         super(email, password, nome, nif, morada, dataNascimento);
-        this.numeroMecanografico = numeroMecanografico;
+        this.numeroMecanografico  = numeroMecanografico;
         this.anoPrimeiraInscricao = anoPrimeiraInscricao;
-        this.anoCurricular = 1;
-        this.anoFrequencia = 1;
-        this.percurso = new PercursoAcademico();
-        this.historicoPagamentos = new Pagamento[100];
-        this.totalPagamentos = 0;
+        this.anoCurricular        = 1;
+        this.percurso             = new PercursoAcademico();
+        this.historicoPagamentos  = new Pagamento[100];
+        this.totalPagamentos      = 0;
     }
 
     // ---------- GETTERS ----------
-    public int getNumeroMecanografico() {
-        return numeroMecanografico;
-    }
-
-    public int getAnoPrimeiraInscricao() {
-        return anoPrimeiraInscricao;
-    }
-
-    public int getAnoCurricular() {
-        return anoCurricular;
-    }
-
-    public int getAnoFrequencia() {
-        return anoFrequencia;
-    }
-
-    public PercursoAcademico getPercurso() {
-        return percurso;
-    }
-
-    public double getSaldoDevedor() {
-        return saldoDevedor;
-    }
-
-    public String getSiglaCurso() {
-        return siglaCurso;
-    }
-
-    public Pagamento[] getHistoricoPagamentos() {
-        return historicoPagamentos;
-    }
-
-    public int getTotalPagamentos() {
-        return totalPagamentos;
-    }
+    public int               getNumeroMecanografico()  { return numeroMecanografico; }
+    public int               getAnoPrimeiraInscricao() { return anoPrimeiraInscricao; }
+    public int               getAnoCurricular()        { return anoCurricular; }
+    public PercursoAcademico getPercurso()             { return percurso; }
+    public double            getSaldoDevedor()         { return saldoDevedor; }
+    public String            getSiglaCurso()           { return siglaCurso; }
+    public Pagamento[]       getHistoricoPagamentos()  { return historicoPagamentos; }
+    public int               getTotalPagamentos()      { return totalPagamentos; }
 
 
     // ---------- SETTERS ----------
-    public void setAnoCurricular(int anoCurricular) {
-        this.anoCurricular = anoCurricular;
-    }
+    public void setAnoCurricular(int anoCurricular)  { this.anoCurricular = anoCurricular; }
+    public void setSaldoDevedor(double saldoDevedor) { this.saldoDevedor = saldoDevedor; }
+    public void setSiglaCurso(String siglaCurso)     { this.siglaCurso = siglaCurso; }
 
-    public void setAnoFrequencia(int anoFrequencia) {
-        this.anoFrequencia = anoFrequencia;
-    }
 
-    public void setSaldoDevedor(double saldoDevedor) {
-        this.saldoDevedor = saldoDevedor;
-    }
-
-    public void setSiglaCurso(String siglaCurso) {
-        this.siglaCurso = siglaCurso;
-    }
 
     /**
      * Regista um pagamento no histórico em memória do estudante.
@@ -113,5 +74,4 @@ public class Estudante extends Utilizador {
     public String toString() {
         return numeroMecanografico + " - " + getNome();
     }
-
 }

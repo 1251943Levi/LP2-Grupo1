@@ -3,8 +3,8 @@ package controller;
 import model.*;
 import view.DocenteView;
 import bll.DocenteBLL;
-import bll.PasswordBLL;
 import java.util.List;
+
 
 /**
  * Controlador responsável por gerir as interações do Docente.
@@ -16,14 +16,12 @@ public class DocenteController {
     private final Docente docente;
     private final DocenteView view;
     private final DocenteBLL docenteBll;
-    private final PasswordBLL passwordBll;
 
     public DocenteController(RepositorioDados repo, Docente docente) {
         this.repo        = repo;
         this.docente     = docente;
         this.view        = new DocenteView();
         this.docenteBll  = new DocenteBLL();
-        this.passwordBll = new PasswordBLL();
     }
 
     public void iniciar() {

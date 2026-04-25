@@ -225,12 +225,12 @@ public class GestorController {
         String siglaCurso = obterSiglaCursoPelaView();
         if (siglaCurso.isEmpty()) return;
 
-        int    anoUc      = Integer.parseInt(view.pedirAnoCurricular());
-        String siglaUc    = view.pedirSiglaUc();
-        String nomeUc     = view.pedirNomeUc();
-        String docente    = view.pedirSiglaDocente();
+        int anoUc = Integer.parseInt(view.pedirAnoCurricular());
+        String siglaUc = view.pedirSiglaUc();
+        String nomeUc = view.pedirNomeUc();
+        String docente = view.pedirSiglaDocente();
 
-        if (gestorBll.adicionarUc(siglaCurso, anoUc, siglaUc, nomeUc, docente, repo))
+        if (gestorBll.adicionarUc(siglaCurso, anoUc, siglaUc, nomeUc, docente))
             view.mostrarSucessoCriacao("UC");
         else
             view.mostrarErroLimiteUcs(anoUc);
@@ -271,7 +271,7 @@ public class GestorController {
 
         if (view.confirmarRemocao(siglaUc)) {
             if (gestorBll.removerUc(siglaUc)) view.mostrarSucessoRemocao("UC");
-            else                              view.mostrarErroRemocao("UC");
+            else view.mostrarErroRemocao("UC");
         }
     }
 

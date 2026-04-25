@@ -22,18 +22,4 @@ public class PasswordBLL {
         CredencialDAL.atualizarPassword(email, novaPassSegura, PASTA_BD);
         EmailService.enviarRecuperacaoPassword("Utilizador", email, novaPassLimpa);
     }
-
-    /**
-     * Permite a um utilizador autenticado alterar a sua própria password.
-     */
-    public boolean alterarPassword(String email, String passAntiga, String passNova) {
-        String[] creds = CredencialDAL.obterCredenciais(email, PASTA_BD);
-
-        if (creds != null && SegurancaPasswords.verificarPassword(passAntiga, creds[0])) {
-            String novaHash = SegurancaPasswords.gerarCredencialMista(passNova);
-            CredencialDAL.atualizarPassword(email, novaHash, PASTA_BD);
-            return true;
-        }
-        return false;
-    }
 }

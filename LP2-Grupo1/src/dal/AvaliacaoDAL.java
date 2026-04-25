@@ -40,6 +40,7 @@ public class AvaliacaoDAL {
         return false;
     }
 
+
     /**
      * Adiciona uma nova avaliação ao ficheiro CSV.
      * Na escrita podemos usar o objeto Avaliacao porque a DAL sabe extrair a sigla (String) da UC.

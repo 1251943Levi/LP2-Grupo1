@@ -17,7 +17,6 @@ public class Validador {
     public static boolean validarNif(String nif) {
         return nif != null && nif.matches("[12356789]\\d{8}");
     }
-
     /**
      * Verifica se um endereço de e-mail pertence a um domínio institucional
      * reconhecido pelo sistema e tem a estrutura correta (utilizador@dominio).
@@ -27,7 +26,7 @@ public class Validador {
 
         String e = email.trim().toLowerCase();
 
-        if (!e.matches("^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$")) {
+        if (!e.matches("^[\\w-.]+@([\\w-]+\\.)+[\\w-]{2,4}$")) {
             return false;
         }
 
@@ -44,7 +43,7 @@ public class Validador {
 
         String e = email.trim().toLowerCase();
 
-        return e.endsWith("@issmf.ipp.pt") && e.matches("^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$");
+        return e.endsWith("@issmf.ipp.pt") && e.matches("^[\\w-.]+@([\\w-]+\\.)+[\\w-]{2,4}$");
     }
 
     /**

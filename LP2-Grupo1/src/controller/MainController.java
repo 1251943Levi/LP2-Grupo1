@@ -27,8 +27,7 @@ public class MainController {
      */
     public void iniciarSistema() {
         java.io.File pasta = new java.io.File(PASTA_BD);
-        if (!pasta.exists()) {
-            pasta.mkdirs();
+        if (!pasta.exists() && pasta.mkdirs()) {
             view.mostrarPastaCriada();
         }
     }
@@ -62,6 +61,8 @@ public class MainController {
         } else if (user instanceof Docente) {
             view.mostrarLoginDocente();
             new DocenteController(repositorio, (Docente) user).iniciar();
+        } else {
+            view.mostrarCredenciaisInvalidas();
         }
 
         repositorio.limparSessao();
@@ -119,7 +120,7 @@ public class MainController {
         String[] credenciais = bll.realizarAutoMatricula(
                 nome, nif, morada, dataNasc, siglaCurso, repositorio.getAnoAtual());
 
-        view.mostrarSucessoAutoMatricula(credenciais[0], credenciais[1]);
+        view.mostrarSucessoAutoMatricula(credenciais[0]);
     }
 
     /**

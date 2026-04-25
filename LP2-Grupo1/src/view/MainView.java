@@ -23,6 +23,7 @@ public class MainView {
             switch (opcao) {
                 case 1:
                     String email = pedirInputString("Email");
+                    // Validação imediata de sufixo antes de prosseguir
                     if (controller.validarFormatoEmailLogin(email)) {
                         String pass = pedirPassword("Password");
                         controller.processarLogin(email, pass);
@@ -67,7 +68,6 @@ public class MainView {
 
     public String pedirPassword(String mensagem) {
         System.out.print(mensagem + ": ");
-        // Requisito: Password oculta na consola
         if (System.console() != null) {
             char[] passwordChars = System.console().readPassword();
             return new String(passwordChars).trim();
@@ -90,7 +90,6 @@ public class MainView {
     public void mostrarTituloAutoMatricula() { System.out.println("\n--- AUTO-MATRÍCULA ---"); }
     public void mostrarErroNomeInvalido() { System.out.println(">> Nome inválido (apenas letras)."); }
     public void mostrarErroNifInvalido() { System.out.println(">> NIF inválido (9 dígitos)."); }
-    public void mostrarErroNifDuplicado() { System.out.println(">> Erro: NIF já registado."); }
     public void mostrarErroDataInvalida() { System.out.println(">> Formato de data inválido (DD-MM-AAAA)."); }
     public void mostrarErroSemCursos() { System.out.println(">> Não existem cursos ativos."); }
 
@@ -110,8 +109,9 @@ public class MainView {
         }
     }
 
-    public void mostrarSucessoAutoMatricula(String email, String pass) {
+    public void mostrarSucessoAutoMatricula(String email) {
         System.out.println("\n>> MATRÍCULA CONCLUÍDA!");
         System.out.println(">> E-mail Institucional: " + email);
+        System.out.println(">> As credenciais de acesso foram enviadas para o seu email.");
     }
 }

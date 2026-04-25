@@ -8,33 +8,29 @@ public class UnidadeCurricular {
     private int anoCurricular;
     private Docente docenteResponsavel;
 
-    private Curso[] cursos;
+    private final Curso[] cursos;
     private int totalCursos;
 
-    // ---------- CONSTRUTOR ----------
     public UnidadeCurricular(String sigla, String nome, int anoCurricular, Docente docenteResponsavel) {
         this.sigla = sigla;
-        this.nome = nome;
-        this.anoCurricular = anoCurricular;
+        this.nome               = nome;
+        this.anoCurricular      = anoCurricular;
         this.docenteResponsavel = docenteResponsavel;
-
-        this.cursos = new Curso[10];
-        this.totalCursos = 0;
+        this.cursos             = new Curso[10];
+        this.totalCursos        = 0;
     }
 
     // ---------- GETTERS ----------
-    public String getSigla() { return sigla; }
-    public String getNome() { return nome; }
-    public int getAnoCurricular() { return anoCurricular; }
+    public String  getSigla()              { return sigla; }
+    public String  getNome()               { return nome; }
+    public int     getAnoCurricular()      { return anoCurricular; }
     public Docente getDocenteResponsavel() { return docenteResponsavel; }
-    public Curso[] getCursos() { return cursos; }
-    public int getTotalCursos() { return totalCursos; }
+    public Curso[] getCursos()             { return cursos; }
 
     // ---------- SETTERS ----------
-    public void setSigla(String sigla) { this.sigla = sigla; }
-    public void setNome(String nome) { this.nome = nome; }
-    public void setAnoCurricular(int anoCurricular) { this.anoCurricular = anoCurricular; }
-    public void setDocenteResponsavel(Docente docenteResponsavel) { this.docenteResponsavel = docenteResponsavel; }
+    public void setSigla(String sigla)                    { this.sigla = sigla; }
+    public void setNome(String nome)                      { this.nome = nome; }
+    public void setAnoCurricular(int anoCurricular)       { this.anoCurricular = anoCurricular; }
 
     // ---------- MÉTODOS DE LÓGICA E AÇÃO ----------
 

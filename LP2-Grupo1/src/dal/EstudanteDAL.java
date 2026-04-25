@@ -1,4 +1,5 @@
 package dal;
+
 import model.Estudante;
 import java.io.File;
 import java.util.ArrayList;
@@ -55,6 +56,7 @@ public class EstudanteDAL {
         if (atualizado) DALUtil.reescreverFicheiro(caminho, linhasAtualizadas);
     }
 
+
     /**
      * Substitui o carregarPerfilEstudante do ImportadorCSV.
      */
@@ -77,7 +79,7 @@ public class EstudanteDAL {
                     if (dados.length > 9 && !dados[9].isEmpty())
                         e.setAnoCurricular(Integer.parseInt(dados[9].trim()));
                     return e;
-                } catch (NumberFormatException ex) { continue; }
+                } catch (NumberFormatException ex) { }
             }
         }
         return null;
@@ -145,16 +147,6 @@ public class EstudanteDAL {
         return lista;
     }
 
-    public static boolean existeEstudanteNoCurso(String siglaCurso, String pastaBase) {
-        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
-        List<String> linhas = DALUtil.lerFicheiro(caminho);
-        for (String linha : linhas) {
-            if (linha.equalsIgnoreCase(CABECALHO)) continue;
-            String[] dados = linha.split(";", -1);
-            if (dados.length >= 8 && dados[7].trim().equalsIgnoreCase(siglaCurso)) return true;
-        }
-        return false;
-    }
 
     public static int contarEstudantesPorCursoEAno(String siglaCurso, int anoCurricular, String pastaBase) {
         String caminho = pastaBase + File.separator + NOME_FICHEIRO;

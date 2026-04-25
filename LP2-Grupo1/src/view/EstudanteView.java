@@ -3,7 +3,6 @@ package view;
 import model.Avaliacao;
 import model.Estudante;
 import model.Pagamento;
-import model.UnidadeCurricular;
 import java.util.Scanner;
 
 /**
@@ -65,7 +64,7 @@ public class EstudanteView {
                         av.getUc().getSigla(),
                         av.getUc().getNome(),
                         av.getAnoLetivo(),
-                        sb.toString(),
+                        sb,
                         estado);
             }
         }
@@ -135,26 +134,6 @@ public class EstudanteView {
         System.out.println("2 - Pagamento Parcial");
         System.out.println("0 - Cancelar");
         System.out.print("Escolha uma opção: ");
-        try {
-            return Integer.parseInt(scanner.nextLine().trim());
-        } catch (NumberFormatException e) {
-            return -1;
-        }
-    }
-
-
-    public void mostrarSaldoDevedor(double divida) {
-        System.out.println("\n--- DADOS FINANCEIROS ---");
-        System.out.println(">> O seu saldo devedor atual (propinas) é: " + divida + "€");
-    }
-
-    public int pedirTipoPagamento() {
-        System.out.println("\n--- OPÇÕES DE PAGAMENTO ---");
-        System.out.println("1 - Pagamento Total");
-        System.out.println("2 - Pagamento Parcial");
-        System.out.println("0 - Cancelar");
-        System.out.print("Escolha uma opção: ");
-
         try {
             return Integer.parseInt(scanner.nextLine().trim());
         } catch (NumberFormatException e) {
