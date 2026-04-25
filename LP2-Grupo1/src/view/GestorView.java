@@ -1,278 +1,263 @@
 package view;
 
-import java.util.Scanner;
+import utils.Consola;
 
 /**
- * Interface de utilizador do portal do Gestor.
- * Apenas mostra informação e recolhe inputs — sem lógica de negócio.
+ * View do Gestor. Usa Consola para toda a apresentação e leitura.
+ * pedirInput() → Consola.lerString() — "0" lança CancelamentoException.
+ * Menus → Consola.lerOpcaoMenu() — "0" é saída legítima.
  */
 public class GestorView {
 
-    private final Scanner scanner = new Scanner(System.in);
-
-    public void mostrarMensagem(String msg) { System.out.println(">> " + msg); }
-
-    public String pedirInput(String msg) {
-        System.out.print(msg + ": ");
-        return scanner.nextLine().trim();
-    }
-
-    // --- MENUS ---
+    // ---------- MENUS ----------
 
     public int mostrarMenu() {
-        mostrarMensagem("\n=== MENU GESTOR ===");
-        mostrarMensagem("1 - Registar Novo Estudante");
-        mostrarMensagem("2 - Gerir Unidades Curriculares");
-        mostrarMensagem("3 - Gerir Cursos");
-        mostrarMensagem("4 - Ver Estatísticas");
-        mostrarMensagem("5 - Avançar Ano Letivo");
-        mostrarMensagem("6 - Listar Devedores");
-        mostrarMensagem("7 - Alterar Password");
-        mostrarMensagem("8 - Registar Docente");
-        mostrarMensagem("9 - Registar Departamento");
-        mostrarMensagem("0 - Sair / Logout");
-        try { return Integer.parseInt(pedirInput("Opção")); }
-        catch (Exception e) { return -1; }
-    }
-
-    public void mostrarTituloRegistoDepartamento() {
-        System.out.println("\n=== REGISTAR NOVO DEPARTAMENTO ===");
-    }
-
-    public String pedirSiglaDepartamento() {
-        return pedirInput("Sigla do Departamento (ex: DEIS)");
-    }
-
-    public String pedirNomeDepartamento() {
-        return pedirInput("Nome do Departamento");
-    }
-
-    public void mostrarResumoRegistoDepartamento(String sigla, String nome) {
-        mostrarMensagem("Departamento '" + nome + "' (" + sigla + ") registado com sucesso!");
-    }
-
-    public void mostrarErroDepartamentoDuplicado() {
-        mostrarMensagem("ERRO: Já existe um departamento com essa sigla.");
+        Consola.imprimirCabecalho("Portal Gestor — ISSMF");
+        Consola.imprimirMenu(new String[]{
+                "Registar Novo Estudante",
+                "Gerir Unidades Curriculares",
+                "Gerir Cursos",
+                "Ver Estatísticas",
+                "Avançar Ano Letivo",
+                "Listar Devedores de Propinas",
+                "Alterar Password",
+                "Registar Docente",
+                "Registar Departamento"
+        }, "Sair / Logout");
+        return Consola.lerOpcaoMenu();
     }
 
     public int mostrarMenuCRUD(String entidade) {
-        mostrarMensagem("\n--- GERIR " + entidade.toUpperCase() + " ---");
-        mostrarMensagem("1 - Adicionar " + entidade);
-        mostrarMensagem("2 - Listar " + entidade);
-        mostrarMensagem("3 - Editar " + entidade);
-        mostrarMensagem("4 - Remover " + entidade);
-        if (entidade.equalsIgnoreCase("Unidades Curriculares"))
-            mostrarMensagem("5 - Associar UC Existente a um Curso");
-        if (entidade.equalsIgnoreCase("Cursos"))
-            mostrarMensagem("5 - Listar UCs do Curso por Ano");
-        mostrarMensagem("0 - Voltar");
-        try { return Integer.parseInt(pedirInput("Opção")); }
-        catch (Exception e) { return -1; }
+        boolean ehUC    = entidade.equalsIgnoreCase("Unidades Curriculares");
+        boolean ehCurso = entidade.equalsIgnoreCase("Cursos");
+        String[] opcoes;
+        if (ehUC || ehCurso) {
+            opcoes = new String[]{
+                    "Adicionar " + entidade,
+                    "Listar " + entidade,
+                    "Editar " + entidade,
+                    "Remover " + entidade,
+                    ehUC ? "Associar UC Existente a um Curso" : "Listar UCs do Curso por Ano"
+            };
+        } else {
+            opcoes = new String[]{
+                    "Adicionar " + entidade,
+                    "Listar " + entidade,
+                    "Editar " + entidade,
+                    "Remover " + entidade
+            };
+        }
+        Consola.imprimirCabecalho("Gerir " + entidade);
+        Consola.imprimirMenu(opcoes);
+        return Consola.lerOpcaoMenu();
     }
 
     public int mostrarMenuEstatisticas() {
-        mostrarMensagem("\n--- ESTATÍSTICAS ---");
-        mostrarMensagem("1 - Média Global Institucional");
-        mostrarMensagem("2 - Melhor Aluno");
-        mostrarMensagem("0 - Voltar");
-        try { return Integer.parseInt(pedirInput("Opção")); }
-        catch (Exception e) { return -1; }
+        Consola.imprimirCabecalho("Estatísticas — ISSMF");
+        Consola.imprimirMenu(new String[]{
+                "Média Global Institucional",
+                "Melhor Aluno"
+        });
+        return Consola.lerOpcaoMenu();
     }
 
-    // --- INPUTS GENÉRICOS ---
+    // ---------- INPUTS GENÉRICOS ----------
 
-    public String pedirSiglaCurso()       { return pedirInput("Sigla do Curso"); }
-    public String pedirAnoCurricular()    { return pedirInput("Ano Curricular (ex: 1, 2, 3)"); }
-    public String pedirSiglaUc()          { return pedirInput("Sigla da UC (ex: POO, BD)"); }
-    public String pedirNomeUc()           { return pedirInput("Nome da UC"); }
-    public String pedirSiglaDocente()     { return pedirInput("Sigla do Docente Responsável"); }
-    public String pedirNovoNome()         { return pedirInput("Novo Nome"); }
-    public String pedirNovoAnoCurricular(){ return pedirInput("Novo Ano Curricular"); }
-    public String pedirNovaSiglaDocente() { return pedirInput("Nova Sigla Docente"); }
-    public String pedirNovaSiglaCurso()   { return pedirInput("Nova Sigla Curso"); }
-    public String pedirNomeCurso()        { return pedirInput("Nome do Curso"); }
-    public String pedirDepartamento()     { return pedirInput("Departamento (ex: DEIS)"); }
-    public String pedirNome()             { return pedirInput("Nome"); }
-    public String pedirNif()              { return pedirInput("NIF (9 dígitos)"); }
-    public String pedirMorada()           { return pedirInput("Morada"); }
-    public String pedirDataNascimento()   { return pedirInput("Data Nasc. (DD-MM-AAAA)"); }
+    /** Lê um campo de texto — "0" lança CancelamentoException. */
+    public String pedirInput(String msg) { return Consola.lerString(msg); }
 
-    public double pedirValorDouble(String msg) {
-        try { return Double.parseDouble(pedirInput(msg)); }
-        catch (Exception e) { return 0.0; }
-    }
-
-    // --- REGISTO DE DOCENTE ---
-    public void mostrarTituloRegistoDocente() {
-        System.out.println("\n=== REGISTAR NOVO DOCENTE ===");
-        System.out.println("Por favor, insira os dados do docente abaixo.");
-    }
-
-    public void mostrarResumoRegistoDocente(String email) {
-        System.out.println("\n>> REGISTO CONCLUÍDO COM SUCESSO!");
-        System.out.println(">> O docente foi guardado no sistema.");
-        System.out.println(">> Credenciais enviadas para: " + email);
-    }
-
-    // --- REGISTO DE ESTUDANTE ---
-
-    public void mostrarTituloRegistoEstudante() {
-        mostrarMensagem("\n--- REGISTAR ESTUDANTE ---");
-    }
-
-    public void mostrarNumMecanograficoAtribuido(int numMec) {
-        mostrarMensagem("Nº Mecanográfico atribuído: " + numMec);
-    }
-
-    public void mostrarResumoRegistoEstudante(String email) {
-        mostrarMensagem("\nEstudante registado com sucesso!");
-        mostrarMensagem("E-mail institucional: " + email);
-        mostrarMensagem("As credenciais de acesso foram enviadas para o email do estudante.");
-    }
-
-    // --- MENSAGENS DE SUCESSO, ERRO E AVISO ---
-
-    public void mostrarOpcaoInvalida()   { mostrarMensagem("Opção inválida."); }
-    public void mostrarErroLeituraOpcao(){ mostrarMensagem("Erro na leitura. Por favor, insira um número válido."); }
-    public void mostrarDespedida()       { mostrarMensagem("A encerrar sessão do Gestor..."); }
-
-    public void mostrarErroNomeInvalido()  { mostrarMensagem("ERRO: Nome inválido. Utilize apenas letras e espaços."); }
-    public void mostrarErroNifInvalido()   { mostrarMensagem("ERRO: NIF inválido. Deve conter exatamente 9 dígitos."); }
-    public void mostrarErroDataInvalida()  { mostrarMensagem("ERRO: Data inválida. Use o formato DD-MM-AAAA."); }
-    public void mostrarErroNifDuplicado()  { mostrarMensagem("ERRO: Este NIF já se encontra registado no sistema."); }
-
-    public void mostrarErroLimiteUcs(int ano)    { mostrarMensagem("ERRO: Não é possível ter mais de 5 UCs no " + ano + "º ano deste Curso."); }
-
-    public void mostrarSucessoCriacao(String e)  { mostrarMensagem("Sucesso: " + e + " adicionado(a) com sucesso!"); }
-    public void mostrarSucessoAtualizacao(String e){ mostrarMensagem("Sucesso: " + e + " atualizado(a) com sucesso!"); }
-    public void mostrarSucessoRemocao(String e)  { mostrarMensagem("Sucesso: " + e + " removido(a) com sucesso!"); }
-    public void mostrarErroNaoEncontrado(String e){ mostrarMensagem("Erro: " + e + " não encontrado(a)."); }
-    public void mostrarErroCarregarDados(String e){ mostrarMensagem("Erro ao carregar os dados de " + e + "."); }
-    public void mostrarMensagemModoEdicao()      { mostrarMensagem("Registo encontrado! Introduza os novos dados:"); }
-    public void mostrarResultadosListagem(String r) { System.out.println(r); }
-
-    public void mostrarListaCursos(String[] cursos) {
-        mostrarMensagem("\n--- SELEÇÃO DE CURSO ---");
-        for (int i = 0; i < cursos.length; i++)
-            if (cursos[i] != null) mostrarMensagem((i + 1) + " - " + cursos[i]);
-    }
+    public double pedirValorDouble(String msg) { return Consola.lerDouble(msg); }
 
     public int pedirOpcaoCurso(int max) {
         while (true) {
             try {
-                int op = Integer.parseInt(pedirInput("Selecione o número do Curso"));
-                if (op > 0 && op <= max) return op;
-                mostrarMensagem("Erro: Opção inválida. Escolha entre 1 e " + max + ".");
-            } catch (NumberFormatException e) { mostrarMensagem("Erro: Introduza um número válido."); }
+                int opcao = Consola.lerInt("Número do Curso (1-" + max + ")");
+                if (opcao >= 1 && opcao <= max) return opcao;
+                Consola.imprimirErro("Opção fora do intervalo. Escolha entre 1 e " + max + ".");
+            } catch (utils.CancelamentoException e) { return -1; }
         }
-    }
-
-    public void mostrarListaUcs(String[] ucs) {
-        mostrarMensagem("\n--- SELEÇÃO DE UNIDADE CURRICULAR ---");
-        for (int i = 0; i < ucs.length; i++)
-            if (ucs[i] != null) mostrarMensagem((i + 1) + " - " + ucs[i]);
     }
 
     public int pedirOpcaoUc(int max) {
         while (true) {
             try {
-                int op = Integer.parseInt(pedirInput("Selecione o número da UC"));
-                if (op > 0 && op <= max) return op;
-                mostrarMensagem("ERRO: Escolha entre 1 e " + max + ".");
-            } catch (NumberFormatException e) { mostrarMensagem("ERRO: Introduza um número válido."); }
+                int opcao = Consola.lerInt("Número da UC (1-" + max + ")");
+                if (opcao >= 1 && opcao <= max) return opcao;
+                Consola.imprimirErro("Opção fora do intervalo. Escolha entre 1 e " + max + ".");
+            } catch (utils.CancelamentoException e) { return -1; }
         }
     }
 
-    // --- ALTERAR PASSWORD ---
+    // ---------- CAMPOS DE FORMULÁRIO ----------
 
-    public void mostrarCabecalhoAlterarPassword() { mostrarMensagem("\n--- ALTERAR PASSWORD ---"); }
+    public String pedirNome()             { return pedirInput("Nome Completo"); }
+    public String pedirNif()              { return pedirInput("NIF"); }
+    public String pedirMorada()           { return pedirInput("Morada"); }
+    public String pedirDataNascimento()   { return pedirInput("Data de Nascimento (DD-MM-AAAA)"); }
+    public String pedirSiglaCurso()       { return pedirInput("Sigla do Curso"); }
+    public String pedirAnoCurricular()    { return pedirInput("Ano Curricular (ex: 1, 2, 3)"); }
+    public String pedirSiglaUc()          { return pedirInput("Sigla da UC (ex: POO, BD)"); }
+    public String pedirNomeUc()           { return pedirInput("Nome da UC"); }
+    public String pedirSiglaDocente()     { return pedirInput("Sigla do Docente Responsável"); }
+    public String pedirNovaSiglaDocente() { return pedirInput("Nova Sigla Docente"); }
+    public String pedirNovoNome()         { return pedirInput("Novo Nome"); }
+    public String pedirNovoAnoCurricular(){ return pedirInput("Novo Ano Curricular"); }
+    public String pedirNovaSiglaCurso()   { return pedirInput("Nova Sigla Curso"); }
+    public String pedirNomeCurso()        { return pedirInput("Nome do Curso"); }
+    public String pedirDepartamento()     { return pedirInput("Departamento (ex: DEIS)"); }
 
+    // ---------- REGISTO DEPARTAMENTO ----------
+
+    public void   mostrarTituloRegistoDepartamento() {
+        Consola.imprimirCabecalho("Registar Departamento");
+        Consola.imprimirDicaFormulario();
+    }
+    public String pedirSiglaDepartamento()  { return pedirInput("Sigla do Departamento (ex: DEIS)"); }
+    public String pedirNomeDepartamento()   { return pedirInput("Nome do Departamento"); }
+    public void   mostrarResumoRegistoDepartamento(String sigla, String nome) {
+        Consola.imprimirSucesso("Departamento '" + nome + "' (" + sigla + ") registado com sucesso!");
+        Consola.pausar();
+    }
+    public void mostrarErroDepartamentoDuplicado() { Consola.imprimirErro("Já existe um departamento com essa sigla."); }
+
+    // ---------- REGISTO DOCENTE ----------
+
+    public void mostrarTituloRegistoDocente() {
+        Consola.imprimirCabecalho("Registar Docente");
+        Consola.imprimirDicaFormulario();
+    }
+    public void mostrarResumoRegistoDocente(String email) {
+        Consola.imprimirSucesso("Docente registado! Email institucional: " + email);
+        Consola.pausar();
+    }
+
+    // ---------- REGISTO ESTUDANTE ----------
+
+    public void mostrarTituloRegistoEstudante() {
+        Consola.imprimirCabecalho("Registar Estudante");
+        Consola.imprimirDicaFormulario();
+    }
+    public void mostrarNumMecanograficoAtribuido(int num) { Consola.imprimirInfo("Nº Mecanográfico atribuído: " + num); }
+    public void mostrarResumoRegistoEstudante(String email) {
+        Consola.imprimirSucesso("Estudante registado! Email institucional: " + email);
+        Consola.pausar();
+    }
+
+    // ---------- PASSWORD ----------
+
+    public void mostrarCabecalhoAlterarPassword() {
+        Consola.imprimirCabecalho("Alterar Password");
+        Consola.imprimirDicaFormulario();
+    }
     public String pedirNovaPassword() {
-        System.out.print("Nova Password (Enter para cancelar): ");
-        if (System.console() != null)
-            return new String(System.console().readPassword()).trim();
-        return scanner.nextLine().trim();
+        return Consola.lerPassword("Nova Password");
     }
 
-    public void mostrarSucessoAlteracaoPassword() { mostrarMensagem("Password alterada com sucesso!"); }
-    public void mostrarCancelamentoPassword()      { mostrarMensagem("Operação cancelada."); }
+    // ---------- ESTATÍSTICAS ----------
 
-    // --- ANO LETIVO ---
+    public void mostrarCabecalhoMediaGlobal() { Consola.imprimirTitulo("Média Global Institucional"); }
+    public void mostrarMediaGlobal(double media, int total) {
+        Consola.imprimirInfo(String.format("Média global: %.2f valores  (baseada em %d avaliações)", media, total));
+        Consola.pausar();
+    }
+    public void mostrarSemNotasRegistadas()  { Consola.imprimirInfo("Sem notas registadas no sistema."); }
 
-    public void mostrarCabecalhoArranqueAnoLetivo() { mostrarMensagem("\n--- ARRANQUE DO ANO LETIVO ---"); }
-    public void mostrarVerificacaoQuorum()          { mostrarMensagem("A verificar quórum dos cursos..."); }
+    public void mostrarCabecalhoMelhorAluno() { Consola.imprimirTitulo("Melhor Aluno da Instituição"); }
+    public void mostrarInfoMelhorAluno(String nome, int numMec, double media) {
+        Consola.imprimirInfo(String.format("%-30s | Nº %d | Média: %.2f", nome, numMec, media));
+        Consola.pausar();
+    }
+    public void mostrarSemAlunosAvaliados()  { Consola.imprimirInfo("Nenhum aluno com avaliações registadas."); }
 
-    public void mostrarErroQuorum(String sigla, int alunos) {
-        mostrarMensagem("BLOQUEIO: Curso " + sigla + " — apenas " + alunos
-                + " aluno(s) no 1º Ano (mínimo: 5). Curso marcado como Inativo.");
+    // ---------- DEVEDORES ----------
+
+    public void mostrarCabecalhoDevedores()  { Consola.imprimirTitulo("Alunos Devedores de Propinas"); }
+    public void mostrarEstudanteDevedor(int numMec, String nome, double divida) {
+        System.out.printf("  [%d] %-30s | Dívida: %.2f€%n", numMec, nome, divida);
+    }
+    public void mostrarSemDevedores()        { Consola.imprimirInfo("Nenhum aluno devedor."); }
+
+    // ---------- LISTAGENS ----------
+
+    public void mostrarListaCursos(String[] cursos) {
+        Consola.imprimirTitulo("Cursos Disponíveis");
+        for (int i = 0; i < cursos.length; i++) System.out.println("  [" + (i + 1) + "] " + cursos[i]);
+        Consola.imprimirLinha();
     }
 
-    public void mostrarSucessoQuorum(String sigla) {
-        mostrarMensagem("OK: Curso " + sigla + " cumpre o quórum e está ATIVO.");
+    public void mostrarListaUcs(String[] ucs) {
+        Consola.imprimirTitulo("Unidades Curriculares");
+        for (int i = 0; i < ucs.length; i++) System.out.println("  [" + (i + 1) + "] " + ucs[i]);
+        Consola.imprimirLinha();
     }
 
+    public void mostrarResultadosListagem(String[] resultados) {
+        Consola.imprimirTitulo("Resultados");
+        if (resultados == null || resultados.length == 0) { Consola.imprimirInfo("Sem resultados."); }
+        else { for (String r : resultados) System.out.println("  " + r); }
+        Consola.imprimirLinha();
+        Consola.pausar();
+    }
+
+    public boolean confirmarRemocaoBoolean(String sigla) {
+        return Consola.lerSimNao("Confirmar remoção de '" + sigla + "'?");
+    }
+
+    // ---------- AVANÇAR ANO LETIVO ----------
+
+    public void mostrarCabecalhoArranqueAnoLetivo() {
+        Consola.imprimirCabecalho("Avançar Ano Letivo");
+    }
+    public void mostrarVerificacaoQuorum() {
+        Consola.imprimirInfo("A verificar quórum mínimo por curso...");
+    }
+    public void mostrarErroQuorum(String siglaCurso, int totalAlunos) {
+        Consola.imprimirErro(String.format("Curso %-6s — quórum insuficiente (%d aluno(s), mínimo 5). Curso marcado como Inativo.", siglaCurso, totalAlunos));
+    }
+    public void mostrarSucessoQuorum(String siglaCurso) {
+        Consola.imprimirInfo(String.format("Curso %-6s — quórum OK. Curso marcado como Ativo.", siglaCurso));
+    }
     public void mostrarProcessamentoTransicoes() {
-        mostrarMensagem("\nA processar transições de estudantes...");
+        Consola.imprimirInfo("A processar transições de ano dos estudantes...");
+        Consola.imprimirLinha();
+    }
+    public void mostrarBloqueioDivida(int numMec, String nome, int ano, double divida) {
+        Consola.imprimirErro(String.format("[%d] %-30s | %dº Ano | Bloqueado — dívida de %.2f€", numMec, nome, ano, divida));
+    }
+    public void mostrarBloqueioAproveitamento(int numMec, String nome, int ano, double pct) {
+        Consola.imprimirErro(String.format("[%d] %-30s | %dº Ano | Bloqueado — aproveitamento %.0f%%", numMec, nome, ano, pct * 100));
+    }
+    public void mostrarTransicaoSucedida(int numMec, int novoAno) {
+        Consola.imprimirSucesso(String.format("[%d] Transitou para o %dº ano.", numMec, novoAno));
+    }
+    public void mostrarConclusaoCurso(int numMec) {
+        Consola.imprimirSucesso(String.format("[%d] Curso concluído com sucesso!", numMec));
+    }
+    public void mostrarSucessoAvancoAno(int novoAno) {
+        Consola.imprimirLinha();
+        Consola.imprimirSucesso("Ano letivo avançado. Ano atual: " + novoAno);
+        Consola.pausar();
     }
 
-    public void mostrarBloqueioDivida(int num, String nome, int ano, double divida) {
-        mostrarMensagem(String.format(
-                "BLOQUEIO [Dívida]  | Nº %d %-20s | %dº Ano | Dívida: %.2f€",
-                num, "(" + nome + ")", ano, divida));
-    }
-    public void mostrarBloqueioAproveitamento(int num, String nome, int ano, double percentagem) {
-        mostrarMensagem(String.format(
-                "BLOQUEIO [Aproveito] | Nº %d %-20s | %dº Ano | Aproveitamento: %.0f%% (mínimo: >60%%)",
-                num, "(" + nome + ")", ano, percentagem * 100));
-    }
+    // ---------- MENSAGENS ----------
 
-
-    public void mostrarTransicaoSucedida(int num, int novoAno) {
-        mostrarMensagem("TRANSIÇÃO OK | Nº " + num + " → " + novoAno + "º Ano.");
-    }
-
-    public void mostrarConclusaoCurso(int num) {
-        mostrarMensagem("CONCLUSÃO    | Nº " + num + " concluiu o curso!");
-    }
-
-    public void mostrarSucessoAvancoAno(int ano) {
-        mostrarMensagem("\nAno Letivo avançado com sucesso para " + ano + "!");
-    }
-
-    // --- DEVEDORES ---
-
-    public void mostrarCabecalhoDevedores() { mostrarMensagem("\n--- LISTA DE ESTUDANTES DEVEDORES ---"); }
-
-    public void mostrarEstudanteDevedor(int num, String nome, double divida) {
-        mostrarMensagem(String.format("Nº %d | %-25s | Dívida: %.2f€", num, nome, divida));
-    }
-
-    public void mostrarSemDevedores() { mostrarMensagem("Não existem estudantes com propinas em atraso."); }
-
-    // --- ESTATÍSTICAS ---
-
-    public void mostrarCabecalhoMediaGlobal()  { mostrarMensagem("\n--- MÉDIA GLOBAL INSTITUCIONAL ---"); }
-    public void mostrarSemNotasRegistadas()    { mostrarMensagem("Ainda não existem notas registadas no sistema."); }
-    public void mostrarMediaGlobal(double m, int t) {
-        mostrarMensagem("Média: " + String.format("%.2f", m) + " valores (baseada em " + t + " notas).");
-    }
-    public void mostrarCabecalhoMelhorAluno()  { mostrarMensagem("\n--- MELHOR ALUNO ---"); }
-    public void mostrarInfoMelhorAluno(String nome, int num, double media) {
-        mostrarMensagem("Melhor Aluno: " + nome + " (Nº " + num + ")");
-        mostrarMensagem("Média: " + String.format("%.2f", media) + " valores.");
-    }
-    public void mostrarSemAlunosAvaliados() { mostrarMensagem("Nenhum aluno avaliado no sistema."); }
-
-
-    // --- MÉTODOS DE CONFIRMAÇÃO E REMOÇÃO DE UCs ---
-
-    public boolean confirmarRemocao(String item) {
-        System.out.print("\nTem a certeza que deseja remover [" + item + "]? (S/N): ");
-        return scanner.nextLine().trim().equalsIgnoreCase("S");
-    }
-
-    public void mostrarErroRemocao(String e) {
-        mostrarMensagem("Erro: Não foi possível remover " + e + ".");
-    }
+    public void mostrarMensagem(String msg)           { System.out.println("  " + msg); }
+    public void mostrarErroNomeInvalido()             { Consola.imprimirErro("Nome inválido (apenas letras)."); }
+    public void mostrarErroNifInvalido()              { Consola.imprimirErro("NIF inválido (9 dígitos)."); }
+    public void mostrarErroNifDuplicado()             { Consola.imprimirErro("Este NIF já se encontra registado no sistema."); }
+    public void mostrarErroDataInvalida()             { Consola.imprimirErro("Formato de data inválido (DD-MM-AAAA)."); }
+    public void mostrarErroCarregarDados(String ent)  { Consola.imprimirErro("Não foi possível carregar os dados de " + ent + "."); }
+    public void mostrarErroNaoEncontrado(String ent)  { Consola.imprimirErro("Nenhuma " + ent + " encontrada."); }
+    public void mostrarErroLimiteUcs(int ano)         { Consola.imprimirErro("Limite de 5 UCs para o " + ano + "º ano atingido."); }
+    public void mostrarErroRemocao(String ent)        { Consola.imprimirErro("Não foi possível remover: " + ent + "."); }
+    public void mostrarSucessoCriacao(String ent)     { Consola.imprimirSucesso(ent + " criada com sucesso!"); Consola.pausar(); }
+    public void mostrarSucessoAtualizacao(String ent) { Consola.imprimirSucesso(ent + " atualizada com sucesso!"); Consola.pausar(); }
+    public void mostrarSucessoRemocao(String ent)     { Consola.imprimirSucesso(ent + " removida com sucesso!"); Consola.pausar(); }
+    public void mostrarMensagemModoEdicao()           { Consola.imprimirInfo("Introduza os novos valores ('sair' para cancelar):"); }
+    public void mostrarSucessoAlteracaoPassword()     { Consola.imprimirSucesso("Password alterada com sucesso!"); Consola.pausar(); }
+    public void mostrarCancelamentoPassword()         { Consola.imprimirInfo("Operação cancelada."); }
+    public void mostrarErroLeituraOpcao()             { Consola.imprimirErro("Erro de leitura. Tente novamente."); }
+    public void mostrarOpcaoInvalida()                { Consola.imprimirErro("Opção inválida."); }
+    public void mostrarDespedida()                    { Consola.imprimirInfo("Logout efetuado. Até breve!"); }
+    public void mostrarOperacaoCancelada()            { Consola.imprimirInfo("Operação cancelada. A regressar ao menu..."); }
 }
-

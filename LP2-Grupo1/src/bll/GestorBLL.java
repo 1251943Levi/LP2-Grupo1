@@ -79,6 +79,7 @@ public class GestorBLL {
             if (e.getAnoCurricular() < 3) {
                 e.setAnoCurricular(e.getAnoCurricular() + 1);
                 e.getPercurso().limparInscricoesAtivas();
+                // Repor propina do novo ano letivo
                 Curso cursoDoEstudante = new CursoBLL().procurarCursoCompleto(e.getSiglaCurso());
                 if (cursoDoEstudante != null) {
                     e.setSaldoDevedor(cursoDoEstudante.getValorPropinaAnual());
@@ -128,8 +129,9 @@ public class GestorBLL {
      * @param anoInscricao Ano letivo da matrícula.
      * @return O e-mail institucional gerado.
      */
-    public String registarEstudante(int numMec, String nome, String nif, String morada,
+    public String registarEstudante(String nome, String nif, String morada,
                                     String dataNasc, String siglaCurso, int anoInscricao) {
+        int numMec = EstudanteDAL.obterProximoNumeroMecanografico(PASTA_BD, anoInscricao);
         String email = EmailGenerator.gerarEmailEstudante(numMec);
         String passLimpa = PasswordGenerator.gerarPasswordSegura();
         EmailService.enviarCredenciaisTodos(nome, email, passLimpa);
@@ -159,6 +161,7 @@ public class GestorBLL {
     public Object[] obterMelhorAluno() {
         return Estatisticas.calcularMelhorAluno();
     }
+
     // --- 4. GESTÃO DE ENTIDADES (UCs E CURSOS) ---
 
     /**
@@ -187,10 +190,10 @@ public class GestorBLL {
         } catch (NumberFormatException ex) { return false; }
     }
 
-
     /**
      * Cria um novo curso no sistema com estado inicial "Inativo".
      */
+
     public void adicionarCurso(String sigla, String nome, String siglaDep, double propina) {
         Departamento dep = DepartamentoDAL.procurarDepartamento(siglaDep, PASTA_BD);
         Curso c = new Curso(sigla, nome, dep, propina);
@@ -207,8 +210,8 @@ public class GestorBLL {
         return CursoDAL.obterListaCursos(PASTA_BD);
     }
 
-    public String listarTodasUcs()    { return UcDAL.listarTodasUcs(PASTA_BD); }
-    public String listarTodosCursos() { return CursoDAL.listarTodosCursos(PASTA_BD); }
+    public String[] listarTodasUcs()    { return UcDAL.obterListaUcs(PASTA_BD); }
+    public String[] listarTodosCursos() { return CursoDAL.obterListaCursos(PASTA_BD); }
 
     public List<Estudante> obterListaDevedores() {
         List<Estudante> devedores = new ArrayList<>();

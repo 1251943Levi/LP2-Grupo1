@@ -3,12 +3,16 @@ package controller;
 import model.*;
 import view.DocenteView;
 import bll.DocenteBLL;
+import utils.CancelamentoException;
 import java.util.List;
-
 
 /**
  * Controlador responsável por gerir as interações do Docente.
  * Atua como intermediário entre a interface (DocenteView) e a lógica de negócio (DocenteBLL).
+ *
+ * Regras MVC respeitadas:
+ *   - NÃO acede a qualquer DAL diretamente.
+ *   - NÃO referencia ImportadorCSV nem ExportadorCSV.
  */
 public class DocenteController {
 
@@ -63,8 +67,8 @@ public class DocenteController {
         }
         for (Object[] par : alunos) {
             Estudante e  = (Estudante) par[0];
-            double media = (double) par[1];
-            view.mostrarAlunoComMedia(e, media);
+            double media = (double)    par[1];
+            view.mostrarAlunoComMedia(e.getNumeroMecanografico(), e.getNome(), media);
         }
     }
 
@@ -82,7 +86,6 @@ public class DocenteController {
         view.mostrarUcsDocente(docente);
     }
 
-
     /**
      * Fluxo de recolha de notas e envio para a DocenteBLL processar o registo.
      * Inclui validação de UC, duplicados e pertença ao docente.
@@ -90,12 +93,12 @@ public class DocenteController {
     private void executarLancamentoNotas() {
         view.mostrarCabecalhoLancamentoNotas();
         try {
-            int numMec = view.pedirNumeroAluno();
+            int numMec     = view.pedirNumeroAluno();
             String siglaUc = view.pedirSiglaUc();
-            int ano = view.pedirAnoLetivo();
-            double n1 = view.pedirNotaNormal();
-            double n2 = view.pedirNotaRecurso();
-            double n3 = view.pedirNotaEspecial();
+            int ano        = view.pedirAnoLetivo();
+            double n1      = view.pedirNotaNormal();
+            double n2      = view.pedirNotaRecurso();
+            double n3      = view.pedirNotaEspecial();
 
             String erro = docenteBll.lancarNota(numMec, siglaUc, ano, n1, n2, n3, docente);
             if (erro == null) {
@@ -103,17 +106,19 @@ public class DocenteController {
             } else {
                 System.out.println(">> " + erro);
             }
+        } catch (CancelamentoException e) {
+            view.mostrarOperacaoCancelada();
         } catch (Exception e) {
             view.mostrarErroLeituraOpcao();
         }
     }
 
     private void alterarPassword() {
-        String novaPass = view.pedirNovaPassword();
-        if (!novaPass.trim().isEmpty()) {
+        try {
+            String novaPass = view.pedirNovaPassword();
             docenteBll.alterarPassword(docente, novaPass);
             view.mostrarSucessoAlteracaoPassword();
-        } else {
+        } catch (CancelamentoException e) {
             view.mostrarCancelamentoPassword();
         }
     }

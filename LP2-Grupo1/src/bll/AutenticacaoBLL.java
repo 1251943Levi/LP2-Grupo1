@@ -1,9 +1,6 @@
 package bll;
 
-import dal.CredencialDAL;
-import dal.DocenteDAL;
-import dal.GestorDAL;
-import dal.UcDAL;
+import dal.*;
 import model.*;
 import utils.SegurancaPasswords;
 
@@ -64,10 +61,12 @@ public class AutenticacaoBLL {
         }
     }
 
-    public void recuperarPassword(String email) {
+    public boolean recuperarPassword(String email) {
+        String[] creds = CredencialDAL.obterCredenciais(email, PASTA_BD);
+        if (creds == null) return false;
         new PasswordBLL().recuperarPassword(email);
+        return true;
     }
-
     /**
      * Delega o processo de auto-matrícula à MatriculaBLL.
      * @return String[] com [0] = email gerado, [1] = password em texto limpo.
@@ -76,5 +75,10 @@ public class AutenticacaoBLL {
                                           String dataNasc, String siglaCurso, int anoAtual) {
         return new MatriculaBLL().realizarAutoMatricula(
                 nome, nif, morada, dataNasc, siglaCurso, anoAtual);
+    }
+
+    public boolean isNifDuplicado(String nif) {
+        return EstudanteDAL.existeNif(nif, PASTA_BD)
+                || DocenteDAL.existeNif(nif, PASTA_BD);
     }
 }

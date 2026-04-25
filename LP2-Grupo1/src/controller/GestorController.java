@@ -5,9 +5,9 @@ import view.GestorView;
 import bll.GestorBLL;
 import bll.EstudanteBLL;
 import bll.UcBLL;
+import utils.CancelamentoException;
 import utils.Validador;
 import java.util.List;
-
 
 /**
  * Controlador responsável por gerir as interações e permissões do Gestor.
@@ -71,36 +71,41 @@ public class GestorController {
      * Validação de NIF delegada à GestorBLL (que consulta as DALs).
      */
     private void executarRegistoDocente() {
-        view.mostrarTituloRegistoDocente();
+        try {
+            view.mostrarTituloRegistoDocente();
 
-        String nome;
-        do {
-            nome = view.pedirNome();
-            if (!Validador.isNomeValido(nome)) view.mostrarErroNomeInvalido();
-        } while (!Validador.isNomeValido(nome));
+            String nome;
+            do {
+                nome = view.pedirNome();
+                if (!Validador.isNomeValido(nome)) view.mostrarErroNomeInvalido();
+            } while (!Validador.isNomeValido(nome));
 
-        String sigla;
-        do {
-            sigla = view.pedirSiglaDocente();
-            if (!Validador.isSiglaDocenteValida(sigla))
-                view.mostrarMensagem("ERRO: A sigla deve ter exatamente 3 letras (ex: JDO).");
-        } while (!Validador.isSiglaDocenteValida(sigla));
+            String sigla;
+            do {
+                sigla = view.pedirSiglaDocente();
+                if (!Validador.isSiglaDocenteValida(sigla))
+                    view.mostrarMensagem("ERRO: A sigla deve ter exatamente 3 letras (ex: JDO).");
+            } while (!Validador.isSiglaDocenteValida(sigla));
 
-        String nif;
-        boolean nifInvalido, nifDuplicado;
-        do {
-            nif          = view.pedirNif();
-            nifInvalido  = !Validador.validarNif(nif);
-            nifDuplicado = !nifInvalido && gestorBll.isNifDuplicado(nif);
-            if (nifInvalido)       view.mostrarErroNifInvalido();
-            else if (nifDuplicado) view.mostrarErroNifDuplicado();
-        } while (nifInvalido || nifDuplicado);
+            String nif;
+            boolean nifInvalido, nifDuplicado;
+            do {
+                nif          = view.pedirNif();
+                nifInvalido  = !Validador.validarNif(nif);
+                nifDuplicado = !nifInvalido && gestorBll.isNifDuplicado(nif);
+                if (nifInvalido)       view.mostrarErroNifInvalido();
+                else if (nifDuplicado) view.mostrarErroNifDuplicado();
+            } while (nifInvalido || nifDuplicado);
 
-        String morada   = view.pedirMorada();
-        String dataNasc = view.pedirDataNascimento();
+            String morada   = view.pedirMorada();
+            String dataNasc = view.pedirDataNascimento();
 
-        String email = gestorBll.registarDocente(nome, sigla, nif, morada, dataNasc);
-        view.mostrarResumoRegistoDocente(email);
+            String email = gestorBll.registarDocente(nome, sigla, nif, morada, dataNasc);
+            view.mostrarResumoRegistoDocente(email);
+
+        } catch (CancelamentoException e) {
+            view.mostrarOperacaoCancelada();
+        }
     }
 
     /**
@@ -108,27 +113,32 @@ public class GestorController {
      * Valida sigla não duplicada e nome não vazio.
      */
     private void executarRegistoDepartamento() {
-        view.mostrarTituloRegistoDepartamento();
+        try {
+            view.mostrarTituloRegistoDepartamento();
 
-        String sigla;
-        do {
-            sigla = view.pedirSiglaDepartamento().toUpperCase().trim();
-            if (sigla.isEmpty()) {
-                view.mostrarMensagem("ERRO: Sigla não pode estar vazia.");
-            } else if (gestorBll.isDepartamentoDuplicado(sigla)) {
-                view.mostrarErroDepartamentoDuplicado();
-                sigla = "";
-            }
-        } while (sigla.isEmpty());
+            String sigla;
+            do {
+                sigla = view.pedirSiglaDepartamento().toUpperCase().trim();
+                if (sigla.isEmpty()) {
+                    view.mostrarMensagem("ERRO: Sigla não pode estar vazia.");
+                } else if (gestorBll.isDepartamentoDuplicado(sigla)) {
+                    view.mostrarErroDepartamentoDuplicado();
+                    sigla = "";
+                }
+            } while (sigla.isEmpty());
 
-        String nome;
-        do {
-            nome = view.pedirNomeDepartamento().trim();
-            if (nome.isEmpty()) view.mostrarMensagem("ERRO: Nome não pode estar vazio.");
-        } while (nome.isEmpty());
+            String nome;
+            do {
+                nome = view.pedirNomeDepartamento().trim();
+                if (nome.isEmpty()) view.mostrarMensagem("ERRO: Nome não pode estar vazio.");
+            } while (nome.isEmpty());
 
-        gestorBll.registarDepartamento(sigla, nome);
-        view.mostrarResumoRegistoDepartamento(sigla, nome);
+            gestorBll.registarDepartamento(sigla, nome);
+            view.mostrarResumoRegistoDepartamento(sigla, nome);
+
+        } catch (CancelamentoException e) {
+            view.mostrarOperacaoCancelada();
+        }
     }
 
 
@@ -137,41 +147,45 @@ public class GestorController {
      * Número mecanográfico gerado automaticamente via EstudanteBLL.
      */
     private void executarRegistoEstudante() {
-        view.mostrarTituloRegistoEstudante();
+        try {
+            view.mostrarTituloRegistoEstudante();
+            int anoInscricao = repo.getAnoAtual();
+            // numMec é calculado automaticamente pela BLL
+            String nome;
+            do {
+                nome = view.pedirNome();
+                if (!Validador.isNomeValido(nome)) view.mostrarErroNomeInvalido();
+            } while (!Validador.isNomeValido(nome));
 
-        int numMec = estudanteBll.obterProximoNumeroMecanografico(repo.getAnoAtual());
-        view.mostrarNumMecanograficoAtribuido(numMec);
+            String nif;
+            boolean nifInvalido, nifDuplicado;
+            do {
+                nif          = view.pedirNif();
+                nifInvalido  = !Validador.validarNif(nif);
+                nifDuplicado = !nifInvalido && gestorBll.isNifDuplicado(nif);
+                if (nifInvalido)       view.mostrarErroNifInvalido();
+                else if (nifDuplicado) view.mostrarErroNifDuplicado();
+            } while (nifInvalido || nifDuplicado);
 
-        String nome;
-        do {
-            nome = view.pedirNome();
-            if (!Validador.isNomeValido(nome)) view.mostrarErroNomeInvalido();
-        } while (!Validador.isNomeValido(nome));
+            String morada = view.pedirMorada();
 
-        String nif;
-        boolean nifInvalido, nifDuplicado;
-        do {
-            nif          = view.pedirNif();
-            nifInvalido  = !Validador.validarNif(nif);
-            nifDuplicado = !nifInvalido && gestorBll.isNifDuplicado(nif);
-            if (nifInvalido)       view.mostrarErroNifInvalido();
-            else if (nifDuplicado) view.mostrarErroNifDuplicado();
-        } while (nifInvalido || nifDuplicado);
+            String dataNasc;
+            do {
+                dataNasc = view.pedirDataNascimento();
+                if (!Validador.isDataNascimentoValida(dataNasc)) view.mostrarErroDataInvalida();
+            } while (!Validador.isDataNascimentoValida(dataNasc));
 
-        String morada = view.pedirMorada();
+            String siglaCurso = obterSiglaCursoPelaView();
+            if (siglaCurso == null) return;
 
-        String dataNasc;
-        do {
-            dataNasc = view.pedirDataNascimento();
-            if (!Validador.isDataNascimentoValida(dataNasc)) view.mostrarErroDataInvalida();
-        } while (!Validador.isDataNascimentoValida(dataNasc));
+            String email = gestorBll.registarEstudante(nome, nif, morada, dataNasc, siglaCurso, anoInscricao);
+            view.mostrarResumoRegistoEstudante(email);
 
-        String siglaCurso = obterSiglaCursoPelaView();
-
-        String email = gestorBll.registarEstudante(
-                numMec, nome, nif, morada, dataNasc, siglaCurso, repo.getAnoAtual());
-        view.mostrarResumoRegistoEstudante(email);
+        } catch (CancelamentoException e) {
+            view.mostrarOperacaoCancelada();
+        }
     }
+
 
     // --- Métodos de Estatísticas e Listagens ---
 
@@ -225,10 +239,10 @@ public class GestorController {
         String siglaCurso = obterSiglaCursoPelaView();
         if (siglaCurso.isEmpty()) return;
 
-        int anoUc = Integer.parseInt(view.pedirAnoCurricular());
-        String siglaUc = view.pedirSiglaUc();
-        String nomeUc = view.pedirNomeUc();
-        String docente = view.pedirSiglaDocente();
+        int    anoUc      = Integer.parseInt(view.pedirAnoCurricular());
+        String siglaUc    = view.pedirSiglaUc();
+        String nomeUc     = view.pedirNomeUc();
+        String docente    = view.pedirSiglaDocente();
 
         if (gestorBll.adicionarUc(siglaCurso, anoUc, siglaUc, nomeUc, docente))
             view.mostrarSucessoCriacao("UC");
@@ -260,7 +274,6 @@ public class GestorController {
         if (sucesso) view.mostrarSucessoAtualizacao("UC");
     }
 
-
     private void removerUc() {
         String[] ucs = ucBll.obterListaUcs();
         if (ucs.length == 0) { view.mostrarErroNaoEncontrado("UCs"); return; }
@@ -269,9 +282,9 @@ public class GestorController {
         int escolha    = view.pedirOpcaoUc(ucs.length);
         String siglaUc = ucs[escolha - 1].split(" - ")[0];
 
-        if (view.confirmarRemocao(siglaUc)) {
+        if (view.confirmarRemocaoBoolean(siglaUc)) {
             if (gestorBll.removerUc(siglaUc)) view.mostrarSucessoRemocao("UC");
-            else view.mostrarErroRemocao("UC");
+            else                              view.mostrarErroRemocao("UC");
         }
     }
 
