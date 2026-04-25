@@ -6,6 +6,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+
 /**
  * Responsável pelo acesso ao ficheiro avaliacoes.csv.
  */
@@ -14,8 +15,34 @@ public class AvaliacaoDAL {
     private static final String NOME_FICHEIRO = "avaliacoes.csv";
     private static final String CABECALHO = "numMec;siglaUC;anoLetivo;nota1;nota2;nota3";
 
+
+    /**
+     * Verifica se já existe uma avaliação para o aluno/UC/anoLetivo indicados.
+     * Impede registos duplicados ao lançar notas.
+     */
+    public static boolean existeAvaliacao(int numMec, String siglaUc, int anoLetivo, String pastaBase) {
+        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
+        List<String> linhas = DALUtil.lerFicheiro(caminho);
+
+        for (String linha : linhas) {
+            if (linha.equalsIgnoreCase(CABECALHO)) continue;
+            String[] dados = linha.split(";", -1);
+            if (dados.length >= 3) {
+                try {
+                    if (Integer.parseInt(dados[0].trim()) == numMec
+                            && dados[1].trim().equalsIgnoreCase(siglaUc)
+                            && Integer.parseInt(dados[2].trim()) == anoLetivo) {
+                        return true;
+                    }
+                } catch (NumberFormatException ignored) {}
+            }
+        }
+        return false;
+    }
+
     /**
      * Adiciona uma nova avaliação ao ficheiro CSV.
+     * Na escrita podemos usar o objeto Avaliacao porque a DAL sabe extrair a sigla (String) da UC.
      */
     public static void adicionarAvaliacao(Avaliacao avaliacao, int numMec, String pastaBase) {
         if (avaliacao == null || avaliacao.getUc() == null) return;
@@ -35,6 +62,7 @@ public class AvaliacaoDAL {
 
         DALUtil.adicionarLinhaCSV(caminho, linha);
     }
+
 
     /**
      * Retorna a lista de todas as avaliações de um determinado aluno.

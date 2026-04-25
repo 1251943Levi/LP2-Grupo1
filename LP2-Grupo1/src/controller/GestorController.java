@@ -2,32 +2,33 @@ package controller;
 
 import model.*;
 import view.GestorView;
-import utils.*;
 import bll.GestorBLL;
+import bll.EstudanteBLL;
+import bll.UcBLL;
+import utils.Validador;
+import java.util.List;
+
 
 /**
  * Controlador responsável por gerir as interações e permissões do Gestor.
- * Atua como intermediário entre a interface (GestorView), as regras de negócio (GestorBLL)
- * e o repositório de dados.
+ * Liga a GestorView às BLLs correspondentes.
  */
 public class GestorController {
-    private RepositorioDados repo;
-    private Gestor gestor;
-    private GestorView view;
-    private GestorBLL bll;
 
-    private static final String PASTA_BD = "bd";
+    private final RepositorioDados repo;
+    private final Gestor gestor;
+    private final GestorView view;
+    private final GestorBLL gestorBll;
+    private final EstudanteBLL estudanteBll;
+    private final UcBLL ucBll;
 
-    /**
-     * Construtor do GestorController.
-     * * @param repo   O repositório central de dados da aplicação.
-     * @param gestor O modelo do gestor que iniciou a sessão.
-     */
     public GestorController(RepositorioDados repo, Gestor gestor) {
         this.repo = repo;
         this.gestor = gestor;
         this.view = new GestorView();
-        this.bll = new GestorBLL();
+        this.gestorBll = new GestorBLL();
+        this.estudanteBll = new EstudanteBLL();
+        this.ucBll  = new UcBLL();
     }
 
     /**
@@ -40,14 +41,15 @@ public class GestorController {
             try {
                 int opcao = view.mostrarMenu();
                 switch (opcao) {
-                    case 1: executarRegistoEstudante(); break;
-                    case 2: menuGerirUcs(); break;
-                    case 3: menuGerirCursos(); break;
-                    case 4: menuEstatisticas(); break;
-                    case 5: bll.avancarAnoLetivo(repo, view); break;
-                    case 6: listarDevedores(); break;
-                    case 7: alterarPassword(); break;
-                    case 8: executarRegistoDocente(); break;
+                    case 1: executarRegistoEstudante();                    break;
+                    case 2: menuGerirUcs();                                break;
+                    case 3: menuGerirCursos();                             break;
+                    case 4: menuEstatisticas();                            break;
+                    case 5: gestorBll.avancarAnoLetivo(repo, view);       break;
+                    case 6: listarDevedores();                             break;
+                    case 7: alterarPassword();                             break;
+                    case 8: executarRegistoDocente();                      break;
+                    case 9: executarRegistoDepartamento();                 break;
                     case 0:
                         view.mostrarDespedida();
                         repo.limparSessao();
@@ -65,8 +67,8 @@ public class GestorController {
     // --- Métodos de Registo ---
 
     /**
-     * Coordena o fluxo de registo de um novo docente, incluindo recolha de dados,
-     * validação de NIF e delegação da criação para a BLL.
+     * Coordena o registo de um novo docente.
+     * Validação de NIF delegada à GestorBLL (que consulta as DALs).
      */
     private void executarRegistoDocente() {
         view.mostrarTituloRegistoDocente();
@@ -77,36 +79,67 @@ public class GestorController {
             if (!Validador.isNomeValido(nome)) view.mostrarErroNomeInvalido();
         } while (!Validador.isNomeValido(nome));
 
-        String sigla = view.pedirSiglaDocente();
+        String sigla;
+        do {
+            sigla = view.pedirSiglaDocente();
+            if (!Validador.isSiglaDocenteValida(sigla))
+                view.mostrarMensagem("ERRO: A sigla deve ter exatamente 3 letras (ex: JDO).");
+        } while (!Validador.isSiglaDocenteValida(sigla));
 
         String nif;
-        boolean duplicado;
+        boolean nifInvalido, nifDuplicado;
         do {
-            nif = view.pedirNif();
-            duplicado = Validador.isNifDuplicado(nif, PASTA_BD);
-            if (!Validador.validarNif(nif)) {
-                view.mostrarErroNifInvalido();
-            } else if (duplicado) {
-                view.mostrarErroNifDuplicado();
-            }
-        } while (!Validador.validarNif(nif) || duplicado);
+            nif          = view.pedirNif();
+            nifInvalido  = !Validador.validarNif(nif);
+            nifDuplicado = !nifInvalido && gestorBll.isNifDuplicado(nif);
+            if (nifInvalido)       view.mostrarErroNifInvalido();
+            else if (nifDuplicado) view.mostrarErroNifDuplicado();
+        } while (nifInvalido || nifDuplicado);
 
-        String morada = view.pedirMorada();
+        String morada   = view.pedirMorada();
         String dataNasc = view.pedirDataNascimento();
 
-        String emailGerado = bll.registarDocente(nome, sigla, nif, morada, dataNasc);
-        view.mostrarResumoRegistoDocente(emailGerado);
+        String email = gestorBll.registarDocente(nome, sigla, nif, morada, dataNasc);
+        view.mostrarResumoRegistoDocente(email);
     }
 
     /**
-     * Coordena o fluxo de registo de um novo estudante, gerindo a atribuição
-     * automática de número mecanográfico e a seleção do curso.
+     * Fluxo de registo de um novo Departamento.
+     * Valida sigla não duplicada e nome não vazio.
+     */
+    private void executarRegistoDepartamento() {
+        view.mostrarTituloRegistoDepartamento();
+
+        String sigla;
+        do {
+            sigla = view.pedirSiglaDepartamento().toUpperCase().trim();
+            if (sigla.isEmpty()) {
+                view.mostrarMensagem("ERRO: Sigla não pode estar vazia.");
+            } else if (gestorBll.isDepartamentoDuplicado(sigla)) {
+                view.mostrarErroDepartamentoDuplicado();
+                sigla = "";
+            }
+        } while (sigla.isEmpty());
+
+        String nome;
+        do {
+            nome = view.pedirNomeDepartamento().trim();
+            if (nome.isEmpty()) view.mostrarMensagem("ERRO: Nome não pode estar vazio.");
+        } while (nome.isEmpty());
+
+        gestorBll.registarDepartamento(sigla, nome);
+        view.mostrarResumoRegistoDepartamento(sigla, nome);
+    }
+
+
+    /**
+     * Coordena o registo de um novo estudante.
+     * Número mecanográfico gerado automaticamente via EstudanteBLL.
      */
     private void executarRegistoEstudante() {
         view.mostrarTituloRegistoEstudante();
 
-        int anoInscricao = repo.getAnoAtual();
-        int numMec = ImportadorCSV.obterProximoNumeroMecanografico(PASTA_BD, anoInscricao);
+        int numMec = estudanteBll.obterProximoNumeroMecanografico(repo.getAnoAtual());
         view.mostrarNumMecanograficoAtribuido(numMec);
 
         String nome;
@@ -116,18 +149,17 @@ public class GestorController {
         } while (!Validador.isNomeValido(nome));
 
         String nif;
-        boolean duplicado;
+        boolean nifInvalido, nifDuplicado;
         do {
-            nif = view.pedirNif();
-            duplicado = Validador.isNifDuplicado(nif, PASTA_BD);
-            if (!Validador.validarNif(nif)) {
-                view.mostrarErroNifInvalido();
-            } else if (duplicado) {
-                view.mostrarErroNifDuplicado();
-            }
-        } while (!Validador.validarNif(nif) || duplicado);
+            nif          = view.pedirNif();
+            nifInvalido  = !Validador.validarNif(nif);
+            nifDuplicado = !nifInvalido && gestorBll.isNifDuplicado(nif);
+            if (nifInvalido)       view.mostrarErroNifInvalido();
+            else if (nifDuplicado) view.mostrarErroNifDuplicado();
+        } while (nifInvalido || nifDuplicado);
 
         String morada = view.pedirMorada();
+
         String dataNasc;
         do {
             dataNasc = view.pedirDataNascimento();
@@ -136,8 +168,9 @@ public class GestorController {
 
         String siglaCurso = obterSiglaCursoPelaView();
 
-        String emailGerado = bll.registarEstudante(numMec, nome, nif, morada, dataNasc, siglaCurso, anoInscricao);
-        view.mostrarResumoRegistoEstudante(emailGerado);
+        String email = gestorBll.registarEstudante(
+                numMec, nome, nif, morada, dataNasc, siglaCurso, repo.getAnoAtual());
+        view.mostrarResumoRegistoEstudante(email);
     }
 
     // --- Métodos de Estatísticas e Listagens ---
@@ -148,15 +181,10 @@ public class GestorController {
      */
     private void mostrarMediaGlobal() {
         view.mostrarCabecalhoMediaGlobal();
-        double[] stats = bll.calcularEstatisticasGlobais();
-
-        if (stats == null) {
-            view.mostrarErroCarregarDados("Estudantes");
-        } else if (stats[1] == 0) {
-            view.mostrarSemNotasRegistadas();
-        } else {
-            view.mostrarMediaGlobal(stats[0] / stats[1], (int) stats[1]);
-        }
+        double[] stats = gestorBll.calcularEstatisticasGlobais();
+        if (stats == null)          { view.mostrarErroCarregarDados("Estudantes"); return; }
+        if (stats[1] == 0)          { view.mostrarSemNotasRegistadas();           return; }
+        view.mostrarMediaGlobal(stats[0] / stats[1], (int) stats[1]);
     }
 
     /**
@@ -165,11 +193,10 @@ public class GestorController {
      */
     private void mostrarMelhorAluno() {
         view.mostrarCabecalhoMelhorAluno();
-        Object[] resultado = bll.obterMelhorAluno();
-
+        Object[] resultado = gestorBll.obterMelhorAluno();
         if (resultado != null) {
             Estudante melhor = (Estudante) resultado[0];
-            double media = (double) resultado[1];
+            double media     = (double) resultado[1];
             view.mostrarInfoMelhorAluno(melhor.getNome(), melhor.getNumeroMecanografico(), media);
         } else {
             view.mostrarSemAlunosAvaliados();
@@ -181,18 +208,11 @@ public class GestorController {
      */
     private void listarDevedores() {
         view.mostrarCabecalhoDevedores();
-        Estudante[] estudantes = ImportadorCSV.carregarTodosEstudantes(PASTA_BD);
-        boolean encontrou = false;
-
-        if (estudantes != null) {
-            for (Estudante e : estudantes) {
-                if (e != null && e.getSaldoDevedor() > 0) {
-                    view.mostrarEstudanteDevedor(e.getNumeroMecanografico(), e.getNome(), e.getSaldoDevedor());
-                    encontrou = true;
-                }
-            }
-        }
-        if (!encontrou) view.mostrarSemDevedores();
+        List<Estudante> devedores = gestorBll.obterListaDevedores();
+        if (devedores.isEmpty()) { view.mostrarSemDevedores(); return; }
+        for (Estudante e : devedores)
+            view.mostrarEstudanteDevedor(
+                    e.getNumeroMecanografico(), e.getNome(), e.getSaldoDevedor());
     }
 
     // --- Gestão de UCs ---
@@ -205,16 +225,15 @@ public class GestorController {
         String siglaCurso = obterSiglaCursoPelaView();
         if (siglaCurso.isEmpty()) return;
 
-        int anoUc = Integer.parseInt(view.pedirAnoCurricular());
-        String siglaUc = view.pedirSiglaUc();
-        String nomeUc = view.pedirNomeUc();
-        String docente = view.pedirSiglaDocente();
+        int    anoUc      = Integer.parseInt(view.pedirAnoCurricular());
+        String siglaUc    = view.pedirSiglaUc();
+        String nomeUc     = view.pedirNomeUc();
+        String docente    = view.pedirSiglaDocente();
 
-        if (bll.adicionarUc(siglaCurso, anoUc, siglaUc, nomeUc, docente, repo)) {
+        if (gestorBll.adicionarUc(siglaCurso, anoUc, siglaUc, nomeUc, docente, repo))
             view.mostrarSucessoCriacao("UC");
-        } else {
+        else
             view.mostrarErroLimiteUcs(anoUc);
-        }
     }
 
     /**
@@ -222,50 +241,37 @@ public class GestorController {
      * pelos novos introduzidos pelo Gestor.
      */
     private void editarUc() {
-        String[] ucs = ImportadorCSV.obterListaUcs(PASTA_BD);
+        String[] ucs = ucBll.obterListaUcs();
         if (ucs.length == 0) { view.mostrarErroNaoEncontrado("UCs"); return; }
 
         view.mostrarListaUcs(ucs);
-        int escolha = view.pedirOpcaoUc(ucs.length);
+        int escolha      = view.pedirOpcaoUc(ucs.length);
         String siglaAntiga = ucs[escolha - 1].split(" - ")[0];
 
         view.mostrarMensagemModoEdicao();
-        boolean sucesso = bll.editarUc(siglaAntiga, view.pedirSiglaUc(), view.pedirNovoNome(),
-                view.pedirNovoAnoCurricular(), view.pedirNovaSiglaDocente(),
+        boolean sucesso = gestorBll.editarUc(
+                siglaAntiga,
+                view.pedirSiglaUc(),
+                view.pedirNovoNome(),
+                view.pedirNovoAnoCurricular(),
+                view.pedirNovaSiglaDocente(),
                 view.pedirNovaSiglaCurso());
 
         if (sucesso) view.mostrarSucessoAtualizacao("UC");
     }
 
-    // --- Métodos Auxiliares ---
 
-    /**
-     * Mostra uma lista numerada de cursos para seleção e retorna a sigla do curso escolhido.
-     * * @return A sigla do curso selecionado (ex: "LEI").
-     */
-    private String obterSiglaCursoPelaView() {
-        String[] listaCursos = ImportadorCSV.obterListaCursos(PASTA_BD);
-        if (listaCursos.length > 0) {
-            view.mostrarListaCursos(listaCursos);
-            int escolha = view.pedirOpcaoCurso(listaCursos.length);
-            return listaCursos[escolha - 1].split(" - ")[0];
-        } else {
-            view.mostrarAvisoSemCursos();
-            return view.pedirSiglaCurso();
-        }
-    }
+    private void removerUc() {
+        String[] ucs = ucBll.obterListaUcs();
+        if (ucs.length == 0) { view.mostrarErroNaoEncontrado("UCs"); return; }
 
-    /**
-     * Processa a alteração de password do Gestor atualmente logado.
-     */
-    private void alterarPassword() {
-        view.mostrarCabecalhoAlterarPassword();
-        String novaPass = view.pedirNovaPassword();
-        if (!novaPass.trim().isEmpty()) {
-            bll.alterarPasswordGestor(gestor, novaPass);
-            view.mostrarSucessoAlteracaoPassword();
-        } else {
-            view.mostrarCancelamentoPassword();
+        view.mostrarListaUcs(ucs);
+        int escolha    = view.pedirOpcaoUc(ucs.length);
+        String siglaUc = ucs[escolha - 1].split(" - ")[0];
+
+        if (view.confirmarRemocao(siglaUc)) {
+            if (gestorBll.removerUc(siglaUc)) view.mostrarSucessoRemocao("UC");
+            else                              view.mostrarErroRemocao("UC");
         }
     }
 
@@ -279,7 +285,7 @@ public class GestorController {
             switch (opcao) {
                 case 1: mostrarMediaGlobal(); break;
                 case 2: mostrarMelhorAluno(); break;
-                case 0: correr = false; break;
+                case 0: correr = false;       break;
                 default: view.mostrarOpcaoInvalida();
             }
         }
@@ -293,11 +299,11 @@ public class GestorController {
         while (correr) {
             int opcao = view.mostrarMenuCRUD("Unidades Curriculares");
             switch (opcao) {
-                case 1: adicionarUc(); break;
-                case 2: view.mostrarResultadosListagem(ImportadorCSV.listarTodasUcs(PASTA_BD)); break;
-                case 3: editarUc(); break;
-                case 4: removerUc(); break;
-                case 0: correr = false; break;
+                case 1: adicionarUc();                                          break;
+                case 2: view.mostrarResultadosListagem(gestorBll.listarTodasUcs()); break;
+                case 3: editarUc();                                             break;
+                case 4: removerUc();                                            break;
+                case 0: correr = false;                                         break;
                 default: view.mostrarOpcaoInvalida();
             }
         }
@@ -312,40 +318,42 @@ public class GestorController {
             int opcao = view.mostrarMenuCRUD("Cursos");
             switch (opcao) {
                 case 1:
-                    bll.adicionarCurso(view.pedirSiglaCurso(), view.pedirNomeCurso(),
-                            view.pedirDepartamento(), view.pedirValorDouble("Propina"));
+                    gestorBll.adicionarCurso(
+                            view.pedirSiglaCurso(),
+                            view.pedirNomeCurso(),
+                            view.pedirDepartamento(),
+                            view.pedirValorDouble("Propina anual (€)"));
                     view.mostrarSucessoCriacao("Curso");
                     break;
-                case 2: view.mostrarResultadosListagem(ImportadorCSV.listarTodosCursos(PASTA_BD)); break;
-                case 0: correr = false; break;
+                case 2: view.mostrarResultadosListagem(gestorBll.listarTodosCursos()); break;
+                case 0: correr = false;                                                break;
                 default: view.mostrarOpcaoInvalida();
             }
         }
     }
 
     /**
-     * Gere o fluxo de remoção de uma Unidade Curricular, solicitando confirmação
-     * antes de delegar a eliminação à BLL.
+     * Mostra a lista numerada de cursos para seleção e devolve a sigla escolhida.
+     * A lista é obtida via GestorBLL — o Controller NÃO acede à DAL diretamente.
      */
-    private void removerUc() {
-        String[] ucs = ImportadorCSV.obterListaUcs(PASTA_BD);
-
-        if (ucs.length == 0) {
-            view.mostrarErroNaoEncontrado("UCs");
-            return;
+    private String obterSiglaCursoPelaView() {
+        String[] cursos = gestorBll.obterListaCursos();
+        if (cursos.length > 0) {
+            view.mostrarListaCursos(cursos);
+            int escolha = view.pedirOpcaoCurso(cursos.length);
+            return cursos[escolha - 1].split(" - ")[0];
         }
+        return view.pedirSiglaCurso();
+    }
 
-        view.mostrarListaUcs(ucs);
-        int escolha = view.pedirOpcaoUc(ucs.length);
-
-        String siglaUc = ucs[escolha - 1].split(" - ")[0];
-
-        if (view.confirmarRemocao(siglaUc)) {
-            if (bll.removerUc(siglaUc)) {
-                view.mostrarSucessoRemocao("UC");
-            } else {
-                view.mostrarErroRemocao("UC");
-            }
+    private void alterarPassword() {
+        view.mostrarCabecalhoAlterarPassword();
+        String novaPass = view.pedirNovaPassword();
+        if (!novaPass.trim().isEmpty()) {
+            gestorBll.alterarPasswordGestor(gestor, novaPass);
+            view.mostrarSucessoAlteracaoPassword();
+        } else {
+            view.mostrarCancelamentoPassword();
         }
     }
 }

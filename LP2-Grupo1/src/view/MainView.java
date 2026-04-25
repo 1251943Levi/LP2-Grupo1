@@ -23,7 +23,6 @@ public class MainView {
             switch (opcao) {
                 case 1:
                     String email = pedirInputString("Email");
-                    // Validação imediata de sufixo antes de prosseguir
                     if (controller.validarFormatoEmailLogin(email)) {
                         String pass = pedirPassword("Password");
                         controller.processarLogin(email, pass);

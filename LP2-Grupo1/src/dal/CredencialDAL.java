@@ -75,34 +75,4 @@ public class CredencialDAL {
             DALUtil.reescreverFicheiro(caminho, linhasAtualizadas);
         }
     }
-
-    /**
-     * Substitui o antigo ImportadorCSV.autenticarNoFicheiro.
-     * Centraliza a verificação de password e o carregamento do objeto de utilizador correto.
-     */
-    public static model.Utilizador autenticar(String email, String passwordIntroduzida, String pastaBase) {
-        String[] creds = obterCredenciais(email, pastaBase);
-
-        if (creds == null) return null;
-
-        String hashGuardado = creds[0];
-        String tipo = creds[1];
-
-        if (!utils.SegurancaPasswords.verificarPassword(passwordIntroduzida, hashGuardado)) {
-            return null;
-        }
-
-        switch (tipo) {
-            case "ESTUDANTE":
-                return EstudanteDAL.carregarPerfil(email, hashGuardado, pastaBase);
-            case "DOCENTE":
-                return DocenteDAL.procurarPorEmail(email, hashGuardado, pastaBase);
-            case "GESTOR":
-                return GestorDAL.procurarPorEmail(email, hashGuardado, pastaBase);
-            default:
-                return null;
-        }
-    }
-
-
 }

@@ -26,34 +26,25 @@ public class EstudanteDAL {
     public static void atualizarEstudante(Estudante estudante, String pastaBase) {
         String caminho = pastaBase + File.separator + NOME_FICHEIRO;
         List<String> linhasAntigas = DALUtil.lerFicheiro(caminho);
-
         if (linhasAntigas.isEmpty()) return;
 
         List<String> linhasAtualizadas = new ArrayList<>();
         boolean atualizado = false;
 
         for (String linha : linhasAntigas) {
-            if (linha.equalsIgnoreCase(CABECALHO)) {
-                linhasAtualizadas.add(linha);
-                continue;
-            }
-
+            if (linha.equalsIgnoreCase(CABECALHO)) { linhasAtualizadas.add(linha); continue; }
             String[] dados = linha.split(";", -1);
             if (dados.length >= 10) {
                 try {
                     if (Integer.parseInt(dados[0].trim()) == estudante.getNumeroMecanografico()) {
                         String siglaCurso = (estudante.getSiglaCurso() != null && !estudante.getSiglaCurso().isEmpty())
                                 ? estudante.getSiglaCurso() : dados[7].trim();
-
-                        String novaLinha = estudante.getNumeroMecanografico() + ";"
+                        linhasAtualizadas.add(estudante.getNumeroMecanografico() + ";"
                                 + estudante.getEmail() + ";" + estudante.getNome() + ";"
                                 + estudante.getNif() + ";" + estudante.getMorada() + ";"
                                 + estudante.getDataNascimento() + ";"
                                 + estudante.getAnoPrimeiraInscricao() + ";" + siglaCurso + ";"
-                                + estudante.getSaldoDevedor() + ";"
-                                + estudante.getAnoCurricular();
-
-                        linhasAtualizadas.add(novaLinha);
+                                + estudante.getSaldoDevedor() + ";" + estudante.getAnoCurricular());
                         atualizado = true;
                         continue;
                     }
@@ -61,23 +52,106 @@ public class EstudanteDAL {
             }
             linhasAtualizadas.add(linha);
         }
-
-        if (atualizado) {
-            DALUtil.reescreverFicheiro(caminho, linhasAtualizadas);
-        }
+        if (atualizado) DALUtil.reescreverFicheiro(caminho, linhasAtualizadas);
     }
 
-    public static boolean existeEstudanteNoCurso(String siglaCurso, String pastaBase) {
+    /**
+     * Substitui o carregarPerfilEstudante do ImportadorCSV.
+     */
+    public static Estudante carregarPerfil(String email, String hash, String pastaBase) {
         String caminho = pastaBase + File.separator + NOME_FICHEIRO;
         List<String> linhas = DALUtil.lerFicheiro(caminho);
 
         for (String linha : linhas) {
             if (linha.equalsIgnoreCase(CABECALHO)) continue;
-
             String[] dados = linha.split(";", -1);
-            if (dados.length >= 8 && dados[7].trim().equalsIgnoreCase(siglaCurso)) {
-                return true;
+            if (dados.length >= 7 && dados[1].trim().equalsIgnoreCase(email)) {
+                try {
+                    int numMec  = Integer.parseInt(dados[0].trim());
+                    int anoInsc = Integer.parseInt(dados[6].trim());
+                    Estudante e = new Estudante(numMec, email, hash,
+                            dados[2].trim(), dados[3].trim(), dados[4].trim(), dados[5].trim(), anoInsc);
+                    if (dados.length > 7) e.setSiglaCurso(dados[7].trim());
+                    if (dados.length > 8 && !dados[8].isEmpty())
+                        e.setSaldoDevedor(Double.parseDouble(dados[8].trim()));
+                    if (dados.length > 9 && !dados[9].isEmpty())
+                        e.setAnoCurricular(Integer.parseInt(dados[9].trim()));
+                    return e;
+                } catch (NumberFormatException ex) { continue; }
             }
+        }
+        return null;
+    }
+
+    public static Estudante procurarPorNumMec(int numMec, String pastaBase) {
+        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
+        List<String> linhas = DALUtil.lerFicheiro(caminho);
+
+        for (String linha : linhas) {
+            if (linha.equalsIgnoreCase(CABECALHO)) continue;
+            String[] dados = linha.split(";", -1);
+            if (dados.length >= 7) {
+                try {
+                    if (Integer.parseInt(dados[0].trim()) == numMec) {
+                        int anoInsc = Integer.parseInt(dados[6].trim());
+                        Estudante e = new Estudante(numMec, dados[1].trim(), "",
+                                dados[2].trim(), dados[3].trim(), dados[4].trim(), dados[5].trim(), anoInsc);
+                        if (dados.length > 7 && !dados[7].trim().isEmpty())
+                            e.setSiglaCurso(dados[7].trim());
+                        if (dados.length > 8 && !dados[8].trim().isEmpty())
+                            e.setSaldoDevedor(Double.parseDouble(dados[8].trim()));
+                        if (dados.length > 9 && !dados[9].trim().isEmpty())
+                            e.setAnoCurricular(Integer.parseInt(dados[9].trim()));
+                        return e;
+                    }
+                } catch (NumberFormatException ignored) {}
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Carrega todos os estudantes com os dados básicos do CSV (sem percurso académico).
+     * Usado pela GestorBLL para estatísticas, devedores e avanço de ano letivo.
+     */
+    public static List<Estudante> carregarTodos(String pastaBase) {
+        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
+        List<String> linhas = DALUtil.lerFicheiro(caminho);
+        List<Estudante> lista = new ArrayList<>();
+
+        for (String linha : linhas) {
+            if (linha.equalsIgnoreCase(CABECALHO)) continue;
+            String[] dados = linha.split(";", -1);
+            if (dados.length >= 7) {
+                try {
+                    int numMec  = Integer.parseInt(dados[0].trim());
+                    int anoInsc = Integer.parseInt(dados[6].trim());
+                    Estudante e = new Estudante(numMec, dados[1].trim(), "",
+                            dados[2].trim(), dados[3].trim(), dados[4].trim(), dados[5].trim(), anoInsc);
+                    if (dados.length > 7 && !dados[7].trim().isEmpty())
+                        e.setSiglaCurso(dados[7].trim());
+                    if (dados.length > 8 && !dados[8].trim().isEmpty()) {
+                        try { e.setSaldoDevedor(Double.parseDouble(dados[8].trim())); }
+                        catch (NumberFormatException ignored) {}
+                    }
+                    if (dados.length > 9 && !dados[9].trim().isEmpty()) {
+                        try { e.setAnoCurricular(Integer.parseInt(dados[9].trim())); }
+                        catch (NumberFormatException ignored) {}
+                    }
+                    lista.add(e);
+                } catch (NumberFormatException ignored) {}
+            }
+        }
+        return lista;
+    }
+
+    public static boolean existeEstudanteNoCurso(String siglaCurso, String pastaBase) {
+        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
+        List<String> linhas = DALUtil.lerFicheiro(caminho);
+        for (String linha : linhas) {
+            if (linha.equalsIgnoreCase(CABECALHO)) continue;
+            String[] dados = linha.split(";", -1);
+            if (dados.length >= 8 && dados[7].trim().equalsIgnoreCase(siglaCurso)) return true;
         }
         return false;
     }
@@ -86,13 +160,12 @@ public class EstudanteDAL {
         String caminho = pastaBase + File.separator + NOME_FICHEIRO;
         List<String> linhas = DALUtil.lerFicheiro(caminho);
         int contagem = 0;
-
         for (String linha : linhas) {
             if (linha.equalsIgnoreCase(CABECALHO)) continue;
-
             String[] dados = linha.split(";", -1);
             if (dados.length > 7 && dados[7].trim().equalsIgnoreCase(siglaCurso)) {
-                int anoAluno = (dados.length > 9 && !dados[9].trim().isEmpty()) ? Integer.parseInt(dados[9].trim()) : 1;
+                int anoAluno = (dados.length > 9 && !dados[9].trim().isEmpty())
+                        ? Integer.parseInt(dados[9].trim()) : 1;
                 if (anoAluno == anoCurricular) contagem++;
             }
         }
@@ -103,10 +176,8 @@ public class EstudanteDAL {
         String caminho = pastaBase + File.separator + NOME_FICHEIRO;
         List<String> linhas = DALUtil.lerFicheiro(caminho);
         int maxSufixo = 0;
-
         for (String linha : linhas) {
             if (linha.equalsIgnoreCase(CABECALHO)) continue;
-
             String[] dados = linha.split(";", -1);
             if (dados.length > 0 && !dados[0].isEmpty()) {
                 try {
@@ -122,52 +193,18 @@ public class EstudanteDAL {
     }
 
     /**
-     * Substitui o carregarPerfilEstudante do ImportadorCSV.
+     * Verifica se já existe um estudante com o NIF indicado.
+     * Usado pela GestorBLL.isNifDuplicado() antes de registar um novo utilizador.
      */
-    public static Estudante carregarPerfil(String email, String hash, String pastaBase) {
-        String caminho = pastaBase + File.separator + "estudantes.csv";
+    public static boolean existeNif(String nif, String pastaBase) {
+        if (nif == null || nif.trim().isEmpty()) return false;
+        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
         List<String> linhas = DALUtil.lerFicheiro(caminho);
-
         for (String linha : linhas) {
+            if (linha.equalsIgnoreCase(CABECALHO)) continue;
             String[] dados = linha.split(";", -1);
-            if (dados.length >= 7 && dados[1].trim().equalsIgnoreCase(email)) {
-                try {
-                    int numMec = Integer.parseInt(dados[0].trim());
-                    int anoInsc = Integer.parseInt(dados[6].trim());
-
-                    Estudante e = new Estudante(numMec, email, hash,
-                            dados[2].trim(), dados[3].trim(), dados[4].trim(), dados[5].trim(), anoInsc);
-
-                    if (dados.length > 7) e.setSiglaCurso(dados[7].trim());
-                    if (dados.length > 8 && !dados[8].isEmpty()) e.setSaldoDevedor(Double.parseDouble(dados[8].trim()));
-                    if (dados.length > 9 && !dados[9].isEmpty()) e.setAnoCurricular(Integer.parseInt(dados[9].trim()));
-
-                    carregarDadosAcademicos(e, pastaBase);
-                    return e;
-                } catch (NumberFormatException ex) { continue; }
-            }
+            if (dados.length >= 4 && dados[3].trim().equals(nif.trim())) return true;
         }
-        return null;
-    }
-
-    private static void carregarDadosAcademicos(Estudante e, String pastaBase) {
-        String caminhoInsc = pastaBase + File.separator + "inscricoes.csv";
-        List<String> linhasInsc = DALUtil.lerFicheiro(caminhoInsc);
-        for (String linha : linhasInsc) {
-            String[] dados = linha.split(";", -1);
-            if (dados.length >= 2) {
-                try {
-                    if (Integer.parseInt(dados[0].trim()) == e.getNumeroMecanografico()) {
-                        model.UnidadeCurricular uc = UcDAL.procurarUC(dados[1].trim(), pastaBase);
-                        if (uc != null) e.getPercurso().inscreverEmUc(uc);
-                    }
-                } catch (NumberFormatException ex) { continue; }
-            }
-        }
-
-        List<model.Avaliacao> historico = AvaliacaoDAL.obterAvaliacoesPorAluno(e.getNumeroMecanografico(), pastaBase);
-        for (model.Avaliacao av : historico) {
-            e.getPercurso().registarAvaliacao(av);
-        }
+        return false;
     }
 }

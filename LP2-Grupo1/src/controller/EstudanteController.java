@@ -1,49 +1,45 @@
 package controller;
 
+import bll.EstudanteBLL;
+import bll.PagamentoBLL;
 import model.Estudante;
 import model.RepositorioDados;
 import view.EstudanteView;
-import dal.EstudanteDAL;
-import dal.CredencialDAL;
-import utils.SegurancaPasswords;
 
 /**
  * Controlador responsável por gerir o painel do Estudante.
- * Permite a visualização de dados pessoais e a atualização do perfil e credenciais,
- * gravando as alterações diretamente nos ficheiros correspondentes (On-Demand).
- */
+ * Liga a EstudanteView às BLLs correspondentes, sem aceder a DALs
+ * nem a ficheiros CSV diretamente.
+  */
 public class EstudanteController {
 
-    private RepositorioDados repositorio;
-    private Estudante estudanteAtivo;
-    private EstudanteView view;
-    private static final String PASTA_BD = "bd";
+    private final RepositorioDados repositorio;
+    private final Estudante estudanteAtivo;
+    private final EstudanteView view;
+    private final EstudanteBLL estudanteBll;
+    private final PagamentoBLL pagamentoBll;
 
     public EstudanteController(RepositorioDados repositorio, Estudante estudanteAtivo) {
         this.repositorio = repositorio;
         this.estudanteAtivo = estudanteAtivo;
         this.view = new EstudanteView();
+        this.estudanteBll = new EstudanteBLL();
+        this.pagamentoBll = new PagamentoBLL();
     }
 
     public void iniciar() {
         boolean aExecutar = true;
-
         while (aExecutar) {
             try {
                 int opcao = view.mostrarMenuPrincipal();
-
                 switch (opcao) {
-                    case 1:
-                        visualizarDadosPessoais();
+                    case 1: visualizarDadosPessoais();
                         break;
-                    case 2:
-                        atualizarDadosPessoais();
+                    case 2: atualizarMorada();
                         break;
-                    case 3:
-                        alterarPassword();
+                    case 3: alterarPassword();
                         break;
-                    case 4:
-                        consultarDadosFinanceiros();
+                    case 4: consultarDadosFinanceiros();
                         break;
                     case 0:
                         view.mostrarDespedida();
@@ -59,16 +55,17 @@ public class EstudanteController {
         }
     }
 
+    /**
+     * Mostra os dados pessoais e o percurso académico do estudante.
+     */
     private void visualizarDadosPessoais() {
         view.mostrarDadosPessoais(estudanteAtivo);
     }
 
-    private void atualizarDadosPessoais() {
+    private void atualizarMorada() {
         String novaMorada = view.pedirNovaMorada();
-
         if (!novaMorada.isEmpty()) {
-            estudanteAtivo.setMorada(novaMorada);
-            EstudanteDAL.atualizarEstudante(estudanteAtivo, PASTA_BD);
+            estudanteBll.atualizarMorada(estudanteAtivo, novaMorada);
             view.mostrarSucessoAtualizacaoMorada();
         } else {
             view.mostrarSemAlteracaoMorada();
@@ -77,51 +74,47 @@ public class EstudanteController {
 
     private void alterarPassword() {
         String novaPass = view.pedirNovaPassword();
-
         if (!novaPass.isEmpty()) {
-            String passSegura = SegurancaPasswords.gerarCredencialMista(novaPass);
-
-            estudanteAtivo.setPassword(passSegura);
-            CredencialDAL.atualizarPassword(estudanteAtivo.getEmail(), passSegura, PASTA_BD);
-
+            estudanteBll.alterarPassword(estudanteAtivo, novaPass);
             view.mostrarSucessoAtualizacaoPassword();
         } else {
             view.mostrarCancelamentoPassword();
         }
     }
 
+    /**
+     * Mostra o histórico de pagamentos e o saldo devedor.
+     * Se existir dívida, oferece as opções de pagamento total ou parcial.
+     */
     private void consultarDadosFinanceiros() {
+        view.mostrarDadosFinanceiros(estudanteAtivo);
+
         double divida = estudanteAtivo.getSaldoDevedor();
-        view.mostrarSaldoDevedor(divida);
+        if (divida <= 0) {
+            view.mostrarSemPagamentosPendentes();
+            return;
+        }
+        int opcao = view.pedirTipoPagamento(divida);
+        double valorAPagar;
 
-        if (divida > 0) {
-            int opcao = view.pedirTipoPagamento();
-            double valorAPagar = 0.0;
+        switch (opcao) {
+            case 1:
+                valorAPagar = divida; // pagamento total
+                break;
+            case 2:
+                valorAPagar = view.pedirValorPagamentoParcial(divida); // pagamento parcial
+                break;
+            default:
+                return; // cancelar
+        }
 
-            if (opcao == 1) {
-                valorAPagar = divida;   // Pagamento Total
-            } else if (opcao == 2) {
-                valorAPagar = view.pedirValorPagamentoParcial(divida);  // Pagamento Parcial
+        if (valorAPagar <= 0) return;
 
-                if (valorAPagar <= 0 || valorAPagar > divida) {
-                    view.mostrarErroValorInvalido();
-                    return; // Aborta a operação
-                }
-            } else {
-
-                return;
-            }
-
-
-            if (valorAPagar > 0) {
-                estudanteAtivo.efetuarPagamento(valorAPagar);
-
-                EstudanteDAL.atualizarEstudante(estudanteAtivo, PASTA_BD);
-
-                view.mostrarSucessoPagamento();
-            } else {
-                view.mostrarSemPagamentosPendentes();
-            }
+        boolean sucesso = pagamentoBll.processarPagamento(estudanteAtivo, valorAPagar);
+        if (sucesso) {
+            view.mostrarSucessoPagamento(valorAPagar, estudanteAtivo.getSaldoDevedor());
+        } else {
+            view.mostrarErroValorInvalido();
         }
     }
 }

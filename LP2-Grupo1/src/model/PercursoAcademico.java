@@ -15,14 +15,10 @@ public class PercursoAcademico {
     private int totalAvaliacoes;
 
     // ---------- CONSTRUTOR ----------
-    /**
-     * Inicializa um novo percurso académico com limites para inscrições anuais e histórico.
-     */
     public PercursoAcademico() {
-        this.ucsInscrito = new UnidadeCurricular[15]; // Limite de UCs por ano letivo
+        this.ucsInscrito = new UnidadeCurricular[15];
         this.totalUcsInscrito = 0;
-
-        this.historicoAvaliacoes = new Avaliacao[100]; // Histórico total do curso
+        this.historicoAvaliacoes = new Avaliacao[100];
         this.totalAvaliacoes = 0;
     }
 
@@ -30,18 +26,11 @@ public class PercursoAcademico {
 
     /**
      * Inscreve o estudante numa Unidade Curricular, garantindo que não há duplicados.
-     * @param uc A Unidade Curricular a inscrever.
-     * @return true se a inscrição foi bem-sucedida; false se já estiver inscrito ou se o limite foi atingido.
      */
     public boolean inscreverEmUc(UnidadeCurricular uc) {
-        // Validação de duplicados
         for (int i = 0; i < totalUcsInscrito; i++) {
-            if (ucsInscrito[i].getSigla().equals(uc.getSigla())) {
-                return false;
-            }
+            if (ucsInscrito[i].getSigla().equals(uc.getSigla())) return false;
         }
-
-        // Validação de limite físico
         if (totalUcsInscrito < ucsInscrito.length) {
             ucsInscrito[totalUcsInscrito] = uc;
             totalUcsInscrito++;
@@ -52,8 +41,6 @@ public class PercursoAcademico {
 
     /**
      * Regista uma nova avaliação no histórico permanente do estudante.
-     * @param avaliacao O objeto de avaliação a registar.
-     * @return true se gravado com sucesso no histórico.
      */
     public boolean registarAvaliacao(Avaliacao avaliacao) {
         if (totalAvaliacoes < historicoAvaliacoes.length) {
@@ -65,9 +52,61 @@ public class PercursoAcademico {
     }
 
     /**
-     * Limpa as inscrições do ano corrente.
-     * Este método é essencial para o processo de transição de ano letivo,
-     * permitindo que o estudante comece um novo ano com a lista de UCs vazia.
+     * Verifica se o estudante tem aproveitamento suficiente (> 60%) para
+     * transitar de ano letivo.
+     * Regra: para cada UC em que o estudante está inscrito, verifica se
+     * existe pelo menos uma avaliação positiva (>= 9.5) no histórico.
+     * Se a proporção de UCs aprovadas for superior a 60%, o estudante
+     * pode transitar.
+     * @return true se o aproveitamento for estritamente superior a 60%.
+     */
+    public boolean temAproveitamentoSuficiente() {
+        if (totalUcsInscrito == 0) return false;
+
+        int aprovadas = 0;
+        for (int i = 0; i < totalUcsInscrito; i++) {
+            if (ucsInscrito[i] == null) continue;
+            String siglaUc = ucsInscrito[i].getSigla();
+
+            for (int j = 0; j < totalAvaliacoes; j++) {
+                Avaliacao av = historicoAvaliacoes[j];
+                if (av != null
+                        && av.getUc() != null
+                        && av.getUc().getSigla().equalsIgnoreCase(siglaUc)
+                        && av.isAprovado()) {
+                    aprovadas++;
+                    break;
+                }
+            }
+        }
+        return (double) aprovadas / totalUcsInscrito >= 0.60;
+    }
+
+    /**
+     * Calcula a percentagem de aproveitamento atual (para apresentação ao utilizador).
+     * @return Valor entre 0.0 e 1.0.
+     */
+    public double calcularPercentagemAproveitamento() {
+        if (totalUcsInscrito == 0) return 0.0;
+        int aprovadas = 0;
+        for (int i = 0; i < totalUcsInscrito; i++) {
+            if (ucsInscrito[i] == null) continue;
+            String siglaUc = ucsInscrito[i].getSigla();
+            for (int j = 0; j < totalAvaliacoes; j++) {
+                Avaliacao av = historicoAvaliacoes[j];
+                if (av != null && av.getUc() != null
+                        && av.getUc().getSigla().equalsIgnoreCase(siglaUc)
+                        && av.isAprovado()) {
+                    aprovadas++;
+                    break;
+                }
+            }
+        }
+        return (double) aprovadas / totalUcsInscrito;
+    }
+
+    /**
+     * Limpa as inscrições do ano corrente (usado na transição de ano letivo).
      */
     public void limparInscricoesAtivas() {
         this.ucsInscrito = new UnidadeCurricular[15];
@@ -75,8 +114,8 @@ public class PercursoAcademico {
     }
 
     // ---------- GETTERS ----------
-    public UnidadeCurricular[] getUcsInscrito() { return ucsInscrito; }
-    public int getTotalUcsInscrito() { return totalUcsInscrito; }
-    public Avaliacao[] getHistoricoAvaliacoes() { return historicoAvaliacoes; }
-    public int getTotalAvaliacoes() { return totalAvaliacoes; }
+    public UnidadeCurricular[] getUcsInscrito()    { return ucsInscrito; }
+    public int getTotalUcsInscrito()               { return totalUcsInscrito; }
+    public Avaliacao[] getHistoricoAvaliacoes()    { return historicoAvaliacoes; }
+    public int getTotalAvaliacoes()                { return totalAvaliacoes; }
 }
