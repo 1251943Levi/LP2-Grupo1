@@ -1,117 +1,108 @@
 package view;
 
 import controller.MainController;
-import java.util.Scanner;
+import utils.Consola;
 
+/**
+ * View do ecrã principal: login, recuperação de password e auto-matrícula.
+ * Main.java instancia esta View e chama iniciar() — a View cria o MainController.
+ */
 public class MainView {
-    private Scanner scanner;
-    private MainController controller;
 
-    public MainView() {
-        this.scanner = new Scanner(System.in);
-        this.controller = new MainController(this);
+    /**
+     * Ponto de entrada da aplicação.
+     * Cria o MainController, passa-se a si própria, e delega o arranque.
+     */
+    public void iniciar() {
+        new MainController(this).iniciar();
     }
 
-    public void iniciar() {
-        mostrarBemVindo();
-        controller.iniciarSistema();
 
-        boolean aExecutar = true;
-        while (aExecutar) {
-            int opcao = mostrarMenu();
+    // ---------- MENU ----------
 
-            switch (opcao) {
-                case 1:
-                    String email = pedirInputString("Email");
-                    // Validação imediata de sufixo antes de prosseguir
-                    if (controller.validarFormatoEmailLogin(email)) {
-                        String pass = pedirPassword("Password");
-                        controller.processarLogin(email, pass);
-                    }
-                    break;
+    public int mostrarMenu() {
+        Consola.imprimirCabecalho("Sistema ISSMF — 2025/2026");
+        Consola.imprimirMenu(new String[]{
+                "Login",
+                "Recuperar Password",
+                "Matricular Estudante"
+        }, "Sair");
+        return Consola.lerOpcaoMenu();
+    }
 
-                case 2:
-                    String emailRecup = pedirInputString("Email de recuperação");
-                    controller.recuperarPassword(emailRecup);
-                    break;
-                case 3:
-                    controller.executarAutoMatricula();
-                    break;
-                case 0:
-                    mostrarDespedida();
-                    aExecutar = false;
-                    break;
-                default:
-                    mostrarOpcaoInvalida();
+    // ---------- INPUTS ----------
+
+    /** Lê um campo de texto — "0" lança CancelamentoException. */
+    public String pedirInputString(String mensagem) {
+        return Consola.lerString(mensagem);
+    }
+
+    /**
+     * Lê uma password com mascaramento. Delega para Consola.lerPassword().
+     * "0" lança CancelamentoException.
+     */
+    public String pedirPassword(String mensagem) {
+        return Consola.lerPassword(mensagem);
+    }
+
+    /**
+     * Apresenta lista numerada de cursos e pede seleção.
+     * Captura CancelamentoException internamente e devolve -1.
+     */
+    public int pedirOpcaoCurso(int max) {
+        while (true) {
+            try {
+                int opcao = Consola.lerInt("Número do Curso (1-" + max + ")");
+                if (opcao >= 1 && opcao <= max) return opcao;
+                Consola.imprimirErro("Opção fora do intervalo.");
+            } catch (utils.CancelamentoException e) {
+                return -1;
             }
         }
     }
 
-    public int mostrarMenu() {
-        System.out.println("\n===== SISTEMA ISSMF =====");
-        System.out.println("1 - Login");
-        System.out.println("2 - Recuperar Password");
-        System.out.println("3 - Matricular Estudante");
-        System.out.println("0 - Sair");
-        System.out.print("Opção: ");
-        try {
-            return Integer.parseInt(scanner.nextLine().trim());
-        } catch (NumberFormatException e) {
-            return -1;
-        }
-    }
-
-    public String pedirInputString(String mensagem) {
-        System.out.print(mensagem + ": ");
-        return scanner.nextLine().trim();
-    }
-
-    public String pedirPassword(String mensagem) {
-        System.out.print(mensagem + ": ");
-        if (System.console() != null) {
-            char[] passwordChars = System.console().readPassword();
-            return new String(passwordChars).trim();
-        }
-        return scanner.nextLine().trim();
-    }
-
-    public void mostrarBemVindo() { System.out.println(">> Bem-vindo ao Sistema do ISSMF!"); }
-    public void mostrarPastaCriada() { System.out.println(">> Pasta de base de dados criada."); }
-    public void mostrarErroLoginSufixo() { System.out.println(">> ERRO: O e-mail deve conter '@issmf.ipp.pt'."); }
-    public void mostrarLoginGestor() { System.out.println(">> Login de Gestor efetuado!"); }
-    public void mostrarLoginEstudante() { System.out.println(">> Login de Estudante efetuado!"); }
-    public void mostrarLoginDocente() { System.out.println(">> Login de Docente efetuado!"); }
-    public void mostrarCredenciaisInvalidas() { System.out.println(">> Credenciais inválidas."); }
-    public void mostrarErroEmailInvalido() { System.out.println(">> E-mail não reconhecido pelo sistema."); }
-    public void mostrarSucessoRecuperacao(String email) { System.out.println(">> Password enviada para: " + email); }
-
-    public void mostrarDespedida() { System.out.println(">> A encerrar o sistema..."); }
-    public void mostrarOpcaoInvalida() { System.out.println(">> Opção inválida."); }
-    public void mostrarTituloAutoMatricula() { System.out.println("\n--- AUTO-MATRÍCULA ---"); }
-    public void mostrarErroNomeInvalido() { System.out.println(">> Nome inválido (apenas letras)."); }
-    public void mostrarErroNifInvalido() { System.out.println(">> NIF inválido (9 dígitos)."); }
-    public void mostrarErroDataInvalida() { System.out.println(">> Formato de data inválido (DD-MM-AAAA)."); }
-    public void mostrarErroSemCursos() { System.out.println(">> Não existem cursos ativos."); }
+    // ---------- LISTAGENS ----------
 
     public void mostrarListaCursosDisponiveis(String[] cursos) {
-        System.out.println("\n--- CURSOS DISPONÍVEIS ---");
-        for (int i = 0; i < cursos.length; i++) {
-            System.out.println((i + 1) + " - " + cursos[i]);
-        }
+        Consola.imprimirTitulo("Cursos Disponíveis");
+        for (int i = 0; i < cursos.length; i++)
+            System.out.println("  [" + (i + 1) + "] " + cursos[i]);
+        Consola.imprimirLinha();
     }
 
-    public int pedirOpcaoCurso(int max) {
-        System.out.print("Selecione o Curso (1-" + max + "): ");
-        try {
-            return Integer.parseInt(scanner.nextLine().trim());
-        } catch (Exception e) {
-            return -1;
-        }
+    // ---------- MENSAGENS ----------
+
+    public void mostrarBemVindo() {
+        Consola.imprimirCabecalho("Bem-vindo ao Sistema ISSMF");
+        Consola.imprimirInfo("Instituto Superior de Santa Maria da Feira");
+        Consola.imprimirLinha();
     }
+    public void mostrarPastaCriada()           { Consola.imprimirInfo("Pasta de base de dados criada."); }
+    public void mostrarErroLoginSufixo()       { Consola.imprimirErro("O e-mail deve terminar em '@issmf.ipp.pt'."); }
+    public void mostrarLoginGestor()           { Consola.imprimirSucesso("Login de Gestor efetuado!"); }
+    public void mostrarLoginEstudante()        { Consola.imprimirSucesso("Login de Estudante efetuado!"); }
+    public void mostrarLoginDocente()          { Consola.imprimirSucesso("Login de Docente efetuado!"); }
+    public void mostrarCredenciaisInvalidas()  { Consola.imprimirErro("Credenciais inválidas."); }
+    public void mostrarErroEmailInvalido()     { Consola.imprimirErro("E-mail não reconhecido pelo sistema."); }
+    public void mostrarSucessoRecuperacao(String email) { Consola.imprimirSucesso("Password enviada para: " + email); }
+    public void mostrarDespedida()             { Consola.imprimirInfo("A encerrar o sistema. Até breve!"); }
+    public void mostrarOpcaoInvalida()         { Consola.imprimirErro("Opção inválida."); }
+    public void mostrarTituloAutoMatricula() {
+        Consola.imprimirCabecalho("Auto-Matrícula");
+        Consola.imprimirDicaFormulario();
+    }
+    public void mostrarErroNomeInvalido()      { Consola.imprimirErro("Nome inválido (apenas letras)."); }
+    public void mostrarErroNifInvalido()       { Consola.imprimirErro("NIF inválido (9 dígitos)."); }
+    public void mostrarErroNifDuplicado()      { Consola.imprimirErro("NIF já registado no sistema."); }
+    public void mostrarErroDataInvalida()      { Consola.imprimirErro("Formato de data inválido (DD-MM-AAAA)."); }
+    public void mostrarErroSemCursos()         { Consola.imprimirErro("Não existem cursos ativos no sistema."); }
 
     public void mostrarSucessoAutoMatricula(String email) {
-        System.out.println("\n>> MATRÍCULA CONCLUÍDA!");
-        System.out.println(">> E-mail Institucional: " + email);
-        System.out.println(">> As credenciais de acesso foram enviadas para o seu email.");
+        Consola.imprimirSucesso("Matrícula concluída com sucesso!");
+        Consola.imprimirInfo("Email institucional: " + email);
+        Consola.imprimirInfo("As credenciais foram enviadas para o seu email.");
+        Consola.pausar();
     }
+
+    public void mostrarOperacaoCancelada() { Consola.imprimirInfo("Operação cancelada. A regressar ao menu..."); }
 }

@@ -3,6 +3,8 @@ package view;
 import model.Avaliacao;
 import model.Estudante;
 import model.Pagamento;
+import utils.Consola;
+
 import java.util.Scanner;
 
 /**
@@ -19,163 +21,112 @@ public class EstudanteView {
     }
 
     public int mostrarMenuPrincipal() {
-        System.out.println("\n=== MENU ESTUDANTE ===");
-        System.out.println("1 - Ver Dados Pessoais e Notas");
-        System.out.println("2 - Atualizar Morada");
-        System.out.println("3 - Alterar Password");
-        System.out.println("4 - Dados Financeiros / Propinas");
-        System.out.println("0 - Sair / Logout");
-        System.out.print("Escolha uma opção: ");
-        try {
-            return Integer.parseInt(scanner.nextLine().trim());
-        } catch (NumberFormatException e) {
-            return -1;
-        }
+        Consola.imprimirCabecalho("Portal Estudante — ISSMF");
+        Consola.imprimirMenu(new String[]{
+                "Ver Dados Pessoais e Avaliações",
+                "Atualizar Morada",
+                "Alterar Password",
+                "Consultar Dados Financeiros / Pagar"
+        }, "Sair / Logout");
+        return Consola.lerOpcaoMenu();
     }
 
-    public void mostrarDadosPessoais(Estudante estudante) {
-        System.out.println("\n--- DADOS PESSOAIS ---");
-        System.out.println(">> Nº Mecanográfico:  " + estudante.getNumeroMecanografico());
-        System.out.println(">> Nome:              " + estudante.getNome());
-        System.out.println(">> Email:             " + estudante.getEmail());
-        System.out.println(">> NIF:               " + estudante.getNif());
-        System.out.println(">> Data Nascimento:   " + estudante.getDataNascimento());
-        System.out.println(">> Morada:            " + estudante.getMorada());
-        System.out.println(">> Curso:             " + estudante.getSiglaCurso());
-        System.out.println(">> Ano Curricular:    " + estudante.getAnoCurricular() + "º Ano");
+    public void mostrarDadosPessoais(Estudante e) {
+        Consola.imprimirCabecalho("Dados Pessoais");
+        Consola.imprimirInfo("Nº Mecanográfico:  " + e.getNumeroMecanografico());
+        Consola.imprimirInfo("Nome:              " + e.getNome());
+        Consola.imprimirInfo("Email:             " + e.getEmail());
+        Consola.imprimirInfo("NIF:               " + e.getNif());
+        Consola.imprimirInfo("Data Nascimento:   " + e.getDataNascimento());
+        Consola.imprimirInfo("Morada:            " + e.getMorada());
+        Consola.imprimirInfo("Curso:             " + e.getSiglaCurso());
+        Consola.imprimirInfo("Ano Curricular:    " + e.getAnoCurricular() + "º Ano");
 
-        System.out.println("\n--- AVALIAÇÕES ---");
-        int totalAvaliacoes = estudante.getPercurso().getTotalAvaliacoes();
-        if (totalAvaliacoes == 0) {
-            System.out.println(">> Sem avaliações registadas.");
+        Consola.imprimirTitulo("Avaliações");
+        int total = e.getPercurso().getTotalAvaliacoes();
+        if (total == 0) {
+            Consola.imprimirInfo("Sem avaliações registadas.");
         } else {
-            Avaliacao[] historico = estudante.getPercurso().getHistoricoAvaliacoes();
-            for (int i = 0; i < totalAvaliacoes; i++) {
+            Avaliacao[] historico = e.getPercurso().getHistoricoAvaliacoes();
+            Consola.imprimirLinha();
+            System.out.printf("  %-8s | %-28s | Ano  | %-18s | Estado%n",
+                    "UC", "Nome", "Notas");
+            Consola.imprimirLinha();
+            for (int i = 0; i < total; i++) {
                 Avaliacao av = historico[i];
                 if (av == null || av.getUc() == null) continue;
-                String estado = av.isAprovado() ? "APROVADO" : "REPROVADO";
                 double[] notas = av.getResultados();
                 StringBuilder sb = new StringBuilder();
                 for (int j = 0; j < av.getTotalAvaliacoesLancadas(); j++) {
                     if (j > 0) sb.append(" | ");
                     sb.append(String.format("%.1f", notas[j]));
                 }
-                System.out.printf("   %-8s | %-30s | Ano: %d | Notas: %-18s | %s%n",
-                        av.getUc().getSigla(),
-                        av.getUc().getNome(),
-                        av.getAnoLetivo(),
-                        sb,
-                        estado);
+                System.out.printf("  %-8s | %-28s | %-4d | %-18s | %s%n",
+                        av.getUc().getSigla(), av.getUc().getNome(),
+                        av.getAnoLetivo(), sb,
+                        av.isAprovado() ? "APROVADO" : "REPROVADO");
             }
+            Consola.imprimirLinha();
         }
+        Consola.pausar();
     }
 
-    public String pedirNovaMorada() {
-        System.out.println("\n--- ATUALIZAR DADOS ---");
-        System.out.print("Introduza a nova Morada (ou prima Enter para manter a atual): ");
-        return scanner.nextLine().trim();
-    }
-
-    public void mostrarSucessoAtualizacaoMorada() {
-        System.out.println(">> Morada atualizada com sucesso e guardada no sistema!");
-    }
-
-    public void mostrarSemAlteracaoMorada() {
-        System.out.println(">> Nenhuma alteração efetuada na morada.");
-    }
-
-    public String pedirNovaPassword() {
-        System.out.println("\n--- ALTERAR PASSWORD ---");
-        System.out.print("Introduza a nova Password (ou prima Enter para cancelar): ");
-        if (System.console() != null) {
-            char[] passwordChars = System.console().readPassword();
-            return new String(passwordChars).trim();
-        } else {
-            return scanner.nextLine().trim();
-        }
-    }
-
-    public void mostrarSucessoAtualizacaoPassword() {
-        System.out.println(">> Password alterada com sucesso!");
-    }
-
-    public void mostrarCancelamentoPassword() {
-        System.out.println(">> Operação cancelada. A password não foi alterada.");
-    }
-
-    /**
-     * Mostra o cabeçalho da secção financeira, o histórico de pagamentos
-     * e o saldo devedor atual.
-     */
-    public void mostrarDadosFinanceiros(Estudante estudante) {
-        System.out.println("\n--- DADOS FINANCEIROS ---");
-
-        int total = estudante.getTotalPagamentos();
+    public void mostrarDadosFinanceiros(Estudante e) {
+        Consola.imprimirCabecalho("Dados Financeiros");
+        System.out.printf("  Saldo devedor:  %.2f€%n", e.getSaldoDevedor());
+        Consola.imprimirTitulo("Histórico de Pagamentos");
+        int total = e.getTotalPagamentos();
         if (total == 0) {
-            System.out.println(">> Histórico de pagamentos: Sem pagamentos registados.");
+            Consola.imprimirInfo("Sem pagamentos registados.");
         } else {
-            System.out.println(">> Histórico de pagamentos:");
-            double totalPago = 0;
+            Pagamento[] hist = e.getHistoricoPagamentos();
             for (int i = 0; i < total; i++) {
-                Pagamento p = estudante.getHistoricoPagamentos()[i];
-                if (p != null) {
-                    System.out.printf("   [%d] %.2f€  em  %s%n", i + 1, p.getValorPago(), p.getDataPagamento());
-                    totalPago += p.getValorPago();
-                }
+                if (hist[i] != null) System.out.println("  " + hist[i]);
             }
-            System.out.printf(">> Total já pago: %.2f€%n", totalPago);
         }
-        System.out.printf(">> Saldo devedor atual: %.2f€%n", estudante.getSaldoDevedor());
+        Consola.imprimirLinha();
     }
 
     public int pedirTipoPagamento(double divida) {
-        System.out.println("\n--- OPÇÕES DE PAGAMENTO ---");
-        System.out.printf("1 - Pagamento Total (%.2f€)%n", divida);
-        System.out.println("2 - Pagamento Parcial");
-        System.out.println("0 - Cancelar");
-        System.out.print("Escolha uma opção: ");
-        try {
-            return Integer.parseInt(scanner.nextLine().trim());
-        } catch (NumberFormatException e) {
-            return -1;
-        }
+        Consola.imprimirMenu(new String[]{
+                String.format("Pagamento Total   (%.2f€)", divida),
+                "Pagamento Parcial"
+        }, "Cancelar");
+        return Consola.lerOpcaoMenu();
     }
 
-    public double pedirValorPagamentoParcial(double dividaAtual) {
-        System.out.printf("Valor a pagar (máx. %.2f€): ", dividaAtual);
-        try {
-            return Double.parseDouble(scanner.nextLine().trim());
-        } catch (NumberFormatException e) {
-            return -1.0;
-        }
+    public double pedirValorPagamentoParcial(double max) {
+        return Consola.lerDouble(String.format("Valor a pagar (máx %.2f€)", max));
     }
 
-    public void mostrarErroValorInvalido() {
-        System.out.println(">> Erro: valor inválido ou superior ao saldo devedor.");
+
+    // ---------- ATUALIZAR DADOS ----------
+
+    public String pedirNovaMorada() {
+        Consola.imprimirTitulo("Atualizar Morada");
+        Consola.imprimirDicaFormulario();
+        return Consola.lerString("Nova Morada (Enter mantém a atual)");
     }
 
-    public void mostrarSucessoPagamento(double valorPago, double novoSaldo) {
-        System.out.printf(">> Pagamento de %.2f€ efetuado com sucesso!%n", valorPago);
-        if (novoSaldo <= 0) {
-            System.out.println(">> Propina totalmente liquidada. Obrigado!");
-        } else {
-            System.out.printf(">> Saldo devedor restante: %.2f€%n", novoSaldo);
-        }
+    public String pedirNovaPassword() {
+        Consola.imprimirTitulo("Alterar Password");
+        Consola.imprimirDicaFormulario();
+        return Consola.lerPassword("Nova Password");
     }
 
-    public void mostrarSemPagamentosPendentes() {
-        System.out.println(">> Não tem propinas em atraso. Bom trabalho!");
-    }
+    // ---------- MENSAGENS ----------
 
-    public void mostrarDespedida() {
-        System.out.println(">> A sair do portal do estudante...");
+    public void mostrarSucessoAtualizacaoMorada()   { Consola.imprimirSucesso("Morada atualizada com sucesso!"); }
+    public void mostrarSemAlteracaoMorada()          { Consola.imprimirInfo("Sem alterações efetuadas."); }
+    public void mostrarSucessoAtualizacaoPassword()  { Consola.imprimirSucesso("Password alterada com sucesso!"); }
+    public void mostrarCancelamentoPassword()        { Consola.imprimirInfo("Operação cancelada."); }
+    public void mostrarSucessoPagamento(double pago, double resto) {
+        Consola.imprimirSucesso(String.format("Pagamento de %.2f€ registado. Saldo restante: %.2f€", pago, resto));
     }
-
-    public void mostrarOpcaoInvalida() {
-        System.out.println(">> Opção inválida. Tente novamente.");
-    }
-
-    public void mostrarErroLeitura() {
-        System.out.println(">> Erro na leitura da opção. Por favor, insira um número válido.");
-    }
+    public void mostrarSemPagamentosPendentes() { Consola.imprimirInfo("Não tem pagamentos pendentes."); }
+    public void mostrarErroValorInvalido()       { Consola.imprimirErro("Valor inválido ou superior à dívida."); }
+    public void mostrarErroLeitura()             { Consola.imprimirErro("Erro de leitura. Tente novamente."); }
+    public void mostrarOpcaoInvalida()           { Consola.imprimirErro("Opção inválida."); }
+    public void mostrarDespedida()               { Consola.imprimirInfo("Logout efetuado. Até breve!"); }
+    public void mostrarOperacaoCancelada()       { Consola.imprimirInfo("Operação cancelada. A regressar ao menu..."); }
 }

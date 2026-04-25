@@ -4,28 +4,84 @@ import dal.CursoDAL;
 import model.*;
 import view.MainView;
 import bll.AutenticacaoBLL;
+import utils.CancelamentoException;
 import utils.Validador;
 
 /**
  * Controlador principal que orquestra o arranque do sistema, login e auto-matrícula.
+ * Recebe a MainView por parâmetro — é instanciado por MainView.iniciar().
  */
 public class MainController {
 
     private static final String PASTA_BD = "bd";
+
     private final MainView view;
     private final RepositorioDados repositorio;
     private final AutenticacaoBLL bll;
 
     public MainController(MainView view) {
-        this.view = view;
+        this.view        = view;
         this.repositorio = new RepositorioDados();
-        this.bll = new AutenticacaoBLL();
+        this.bll         = new AutenticacaoBLL();
+    }
+
+    /**
+     * Ponto de entrada: arranca o sistema e entra no loop de menu principal.
+     */
+    public void iniciar() {
+        iniciarSistema();
+        view.mostrarBemVindo();
+
+        boolean aExecutar = true;
+        while (aExecutar) {
+            int opcao = view.mostrarMenu();
+            switch (opcao) {
+                case 1:
+                    try {
+                        utils.Consola.imprimirTitulo("Login");
+                        utils.Consola.imprimirDicaFormulario();
+                        String email;
+                        do {
+                            email = view.pedirInputString("Email institucional");
+                        } while (!validarFormatoEmailLogin(email));
+                        String pass = view.pedirPassword("Password");
+                        processarLogin(email, pass);
+                    } catch (CancelamentoException e) {
+                        view.mostrarOperacaoCancelada();
+                    }
+                    break;
+                case 2:
+                    try {
+                        utils.Consola.imprimirTitulo("Recuperar Password");
+                        utils.Consola.imprimirDicaFormulario();
+                        String emailRecup;
+                        do {
+                            emailRecup = view.pedirInputString("Email institucional");
+                            if (!Validador.isEmailInstitucionalValido(emailRecup))
+                                view.mostrarErroLoginSufixo();
+                        } while (!Validador.isEmailInstitucionalValido(emailRecup));
+                        recuperarPassword(emailRecup);
+                    } catch (CancelamentoException e) {
+                        view.mostrarOperacaoCancelada();
+                    }
+                    break;
+                case 3:
+                    executarAutoMatricula();
+                    break;
+                case 0:
+                    view.mostrarDespedida();
+                    aExecutar = false;
+                    break;
+                default:
+                    view.mostrarOpcaoInvalida();
+            }
+        }
     }
 
     /**
      * Garante que a estrutura de pastas da base de dados existe.
      */
-    public void iniciarSistema() {
+    private void iniciarSistema() {
         java.io.File pasta = new java.io.File(PASTA_BD);
         if (!pasta.exists() && pasta.mkdirs()) {
             view.mostrarPastaCriada();
@@ -33,16 +89,23 @@ public class MainController {
     }
 
     /**
+     * Valida se o e-mail tem o formato institucional correto antes de proceder ao login.
+     */
+    public boolean validarFormatoEmailLogin(String email) {
+        if (email.equals("admin@issmf.pt") || email.equals("backoffice@issmf.ipp.pt")) {
+            return true;
+        }
+        if (!Validador.validarSufixoLogin(email)) {
+            view.mostrarErroLoginSufixo();
+            return false;
+        }
+        return true;
+    }
+
+    /**
      * Processa a tentativa de login e redireciona para o controlador específico.
      */
     public void processarLogin(String email, String pass) {
-        if (!email.contains("@issmf.pt")
-                && !email.contains("@issmf.ipp.pt")
-                && !Validador.validarSufixoLogin(email)) {
-            view.mostrarErroLoginSufixo();
-            return;
-        }
-
         Utilizador user = bll.autenticar(email, pass);
 
         if (user == null) {
@@ -69,71 +132,66 @@ public class MainController {
     }
 
     /**
-     * Gere o fluxo de recuperação de password.
+     * Recupera a password de um utilizador e envia por email.
      */
     public void recuperarPassword(String email) {
-        if (!Validador.isEmailInstitucionalValido(email)) {
+        boolean sucesso = bll.recuperarPassword(email);
+        if (sucesso) {
+            view.mostrarSucessoRecuperacao(email);
+        } else {
             view.mostrarErroEmailInvalido();
-            return;
         }
-        bll.recuperarPassword(email);
-        view.mostrarSucessoRecuperacao(email);
     }
 
     /**
-     * Gere a recolha de dados para a auto-matrícula e delega o processamento à BLL.
-     * A lista de cursos disponíveis é obtida diretamente via CursoDAL.
+     * Fluxo completo de auto-matrícula de um novo estudante.
      */
     public void executarAutoMatricula() {
-        view.mostrarTituloAutoMatricula();
+        try {
+            view.mostrarTituloAutoMatricula();
 
-        String nome;
-        do {
-            nome = view.pedirInputString("Nome Completo");
-            if (!Validador.isNomeValido(nome)) view.mostrarErroNomeInvalido();
-        } while (!Validador.isNomeValido(nome));
+            String nome;
+            do {
+                nome = view.pedirInputString("Nome Completo");
+                if (!Validador.isNomeValido(nome)) view.mostrarErroNomeInvalido();
+            } while (!Validador.isNomeValido(nome));
 
-        String nif;
-        do {
-            nif = view.pedirInputString("NIF");
-            if (!Validador.validarNif(nif)) view.mostrarErroNifInvalido();
-        } while (!Validador.validarNif(nif));
+            String nif;
+            boolean nifInvalido, nifDuplicado;
+            do {
+                nif          = view.pedirInputString("NIF");
+                nifInvalido  = !Validador.validarNif(nif);
+                nifDuplicado = !nifInvalido && bll.isNifDuplicado(nif);
+                if (nifInvalido)       view.mostrarErroNifInvalido();
+                else if (nifDuplicado) view.mostrarErroNifDuplicado();
+            } while (nifInvalido || nifDuplicado);
 
-        String morada = view.pedirInputString("Morada");
+            String morada = view.pedirInputString("Morada");
 
-        String dataNasc;
-        do {
-            dataNasc = view.pedirInputString("Data de Nascimento (DD-MM-AAAA)");
-            if (!Validador.isDataNascimentoValida(dataNasc)) view.mostrarErroDataInvalida();
-        } while (!Validador.isDataNascimentoValida(dataNasc));
+            String dataNasc;
+            do {
+                dataNasc = view.pedirInputString("Data de Nascimento (DD-MM-AAAA)");
+                if (!Validador.isDataNascimentoValida(dataNasc)) view.mostrarErroDataInvalida();
+            } while (!Validador.isDataNascimentoValida(dataNasc));
 
-        String[] cursos = CursoDAL.obterListaCursos(PASTA_BD);
-        if (cursos.length == 0) {
-            view.mostrarErroSemCursos();
-            return;
+            String[] cursos = CursoDAL.obterListaCursos(PASTA_BD);
+            if (cursos.length == 0) {
+                view.mostrarErroSemCursos();
+                return;
+            }
+
+            view.mostrarListaCursosDisponiveis(cursos);
+            int escolha = view.pedirOpcaoCurso(cursos.length);
+            if (escolha == -1) { view.mostrarOperacaoCancelada(); return; }
+
+            String siglaCurso  = cursos[escolha - 1].split(" - ")[0];
+            String[] credenciais = bll.realizarAutoMatricula(
+                    nome, nif, morada, dataNasc, siglaCurso, repositorio.getAnoAtual());
+
+            view.mostrarSucessoAutoMatricula(credenciais[0]);
+
+        } catch (CancelamentoException e) {
+            view.mostrarOperacaoCancelada();
         }
-
-        view.mostrarListaCursosDisponiveis(cursos);
-        int escolha = view.pedirOpcaoCurso(cursos.length);
-        String siglaCurso = cursos[escolha - 1].split(" - ")[0];
-
-        String[] credenciais = bll.realizarAutoMatricula(
-                nome, nif, morada, dataNasc, siglaCurso, repositorio.getAnoAtual());
-
-        view.mostrarSucessoAutoMatricula(credenciais[0]);
-    }
-
-    /**
-     * Valida se o e-mail tem o formato institucional correto antes de proceder ao login.
-     */
-    public boolean validarFormatoEmailLogin(String email) {
-        if (email.equals("admin@issmf.pt") || email.equals("backoffice@issmf.ipp.pt")) {
-            return true;
-        }
-        if (!Validador.validarSufixoLogin(email)) {
-            view.mostrarErroLoginSufixo();
-            return false;
-        }
-        return true;
     }
 }
