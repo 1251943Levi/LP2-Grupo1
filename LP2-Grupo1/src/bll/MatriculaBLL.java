@@ -3,6 +3,8 @@ package bll;
 import dal.CredencialDAL;
 import dal.CursoDAL;
 import dal.EstudanteDAL;
+import dal.InscricaoDAL;
+import dal.UcDAL;
 import model.Curso;
 import model.Estudante;
 import utils.EmailGenerator;
@@ -37,9 +39,11 @@ public class MatriculaBLL {
         }
         novo.setSiglaCurso(siglaCurso);
 
-        // Persistência separada: dados académicos e credenciais de acesso
         EstudanteDAL.adicionarEstudante(novo, siglaCurso, PASTA_BD);
         CredencialDAL.adicionarCredencial(emailInst, passHash, "ESTUDANTE", PASTA_BD);
+        for (String siglaUc : UcDAL.obterSiglasUcsPorCursoEAno(siglaCurso, 1, PASTA_BD)) {
+            InscricaoDAL.adicionarInscricao(numMec, siglaUc, PASTA_BD);
+        }
 
         EmailService.enviarCredenciaisTodos(nome, emailInst, passLimpa);
 

@@ -53,6 +53,23 @@ public class DocenteDAL {
     }
 
     /**
+     * Verifica se já existe um docente com a sigla indicada.
+     * Usado pela GestorBLL.gerarSiglaUnica() para garantir unicidade.
+     */
+    public static boolean existeSigla(String sigla, String pastaBase) {
+        if (sigla == null || sigla.trim().isEmpty()) return false;
+        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
+        List<String> linhas = DALUtil.lerFicheiro(caminho);
+        for (String linha : linhas) {
+            if (linha.equalsIgnoreCase(CABECALHO)) continue;
+            String[] dados = linha.split(";", -1);
+            // col 0 = sigla em docentes.csv (sigla;email;nome;nif;morada;dataNasc)
+            if (dados.length >= 1 && dados[0].trim().equalsIgnoreCase(sigla.trim())) return true;
+        }
+        return false;
+    }
+
+    /**
      * Verifica se já existe um docente com o NIF indicado.
      * Usado pela GestorBLL.isNifDuplicado() antes de registar um novo utilizador.
      */
@@ -63,7 +80,6 @@ public class DocenteDAL {
         for (String linha : linhas) {
             if (linha.equalsIgnoreCase(CABECALHO)) continue;
             String[] dados = linha.split(";", -1);
-            // col 3 = nif em docentes.csv (sigla;email;nome;nif;morada;dataNasc)
             if (dados.length >= 4 && dados[3].trim().equals(nif.trim())) return true;
         }
         return false;

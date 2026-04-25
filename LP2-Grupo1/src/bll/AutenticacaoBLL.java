@@ -81,4 +81,12 @@ public class AutenticacaoBLL {
         return EstudanteDAL.existeNif(nif, PASTA_BD)
                 || DocenteDAL.existeNif(nif, PASTA_BD);
     }
+
+    /**
+     * Devolve a lista de cursos disponíveis para a matrícula inicial.
+     * Evita que o MainController aceda diretamente à DAL.
+     */
+    public String[] obterListaCursos() {
+        return dal.CursoDAL.obterListaCursos(PASTA_BD);
+    }
 }

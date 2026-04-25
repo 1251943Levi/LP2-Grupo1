@@ -99,6 +99,31 @@ public class CursoDAL {
     }
 
     /**
+     * Remove um curso pelo sua sigla.
+     * Só deve ser chamado após verificar que não existem alocações (ver GestorBLL.isCursoAlteravel).
+     */
+    public static boolean removerCurso(String sigla, String pastaBase) {
+        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
+        List<String> linhasAntigas = DALUtil.lerFicheiro(caminho);
+        if (linhasAntigas.isEmpty()) return false;
+
+        List<String> linhasAtualizadas = new ArrayList<>();
+        boolean encontrou = false;
+
+        for (String linha : linhasAntigas) {
+            if (linha.equalsIgnoreCase(CABECALHO)) { linhasAtualizadas.add(linha); continue; }
+            String[] dados = linha.split(";", -1);
+            if (dados.length > 0 && dados[0].trim().equalsIgnoreCase(sigla)) {
+                encontrou = true;
+            } else {
+                linhasAtualizadas.add(linha);
+            }
+        }
+        if (encontrou) DALUtil.reescreverFicheiro(caminho, linhasAtualizadas);
+        return encontrou;
+    }
+
+    /**
      * Retorna uma lista de strings com o formato "Sigla - Nome" de todos os cursos.
      */
     public static String[] obterListaCursos(String pastaBase) {

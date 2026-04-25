@@ -16,7 +16,7 @@ import java.util.TreeMap;
  */
 public class UcDAL {
     private static final String NOME_FICHEIRO = "ucs.csv";
-    private static final String CABECALHO = "sigla;nome;anoCurricular;siglaDocenteResponsavel;siglaCurso";
+    private static final String CABECALHO = "sigla;nome;anoCurricular;siglaDocenteResponsavel;siglaCurso;ects";
 
 
     /**
@@ -50,9 +50,12 @@ public class UcDAL {
             if (dados.length >= 4 && dados[0].trim().equalsIgnoreCase(sigla)) {
                 if (ucEncontrada == null) {
                     try {
-                        int ano = Integer.parseInt(dados[2].trim());
+                        int ano  = Integer.parseInt(dados[2].trim());
+                        int ects = (dados.length >= 6 && !dados[5].trim().isEmpty())
+                                ? Integer.parseInt(dados[5].trim())
+                                : model.UnidadeCurricular.ECTS_PADRAO;
                         Docente doc = DocenteDAL.procurarPorSigla(dados[3].trim(), pastaBase);
-                        ucEncontrada = new UnidadeCurricular(dados[0].trim(), dados[1].trim(), ano, doc);
+                        ucEncontrada = new UnidadeCurricular(dados[0].trim(), dados[1].trim(), ano, doc, ects);
                     } catch (NumberFormatException e) { continue; }
                 }
                 if (dados.length >= 5 && !dados[4].trim().equalsIgnoreCase("N/A")) {
@@ -64,6 +67,31 @@ public class UcDAL {
         return ucEncontrada;
     }
 
+
+    /**
+     * Devolve as siglas de todas as UCs de um determinado curso e ano curricular.
+     * Usado ao inscrever um estudante nas UCs do seu primeiro ano.
+     */
+    public static List<String> obterSiglasUcsPorCursoEAno(String siglaCurso, int ano, String pastaBase) {
+        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
+        List<String> linhas = DALUtil.lerFicheiro(caminho);
+        List<String> siglas = new ArrayList<>();
+
+        for (String linha : linhas) {
+            if (linha.equalsIgnoreCase(CABECALHO)) continue;
+            String[] dados = linha.split(";", -1);
+            if (dados.length >= 5) {
+                try {
+                    int anoCurricular = Integer.parseInt(dados[2].trim());
+                    if (anoCurricular == ano && dados[4].trim().equalsIgnoreCase(siglaCurso)) {
+                        String sigla = dados[0].trim();
+                        if (!siglas.contains(sigla)) siglas.add(sigla);
+                    }
+                } catch (NumberFormatException ignored) {}
+            }
+        }
+        return siglas;
+    }
 
     /**
      * Conta quantas UCs existem num determinado curso e ano.
@@ -124,7 +152,10 @@ public class UcDAL {
                         .append(" | Nome: ").append(dados[1].trim())
                         .append(" | Ano: ").append(dados[2].trim())
                         .append(" | Docente: ").append(dados[3].trim())
-                        .append(" | Curso: ").append(dados[4].trim()).append("\n");
+                        .append(" | Curso: ").append(dados[4].trim());
+                if (dados.length >= 6 && !dados[5].trim().isEmpty())
+                    sb.append(" | ECTS: ").append(dados[5].trim());
+                sb.append("\n");
             }
         }
         return sb.toString();
@@ -146,7 +177,9 @@ public class UcDAL {
                     int ano = Integer.parseInt(dados[2].trim());
                     ucsPorAno.putIfAbsent(ano, new ArrayList<>());
                     ucsPorAno.get(ano).add("[" + dados[0].trim() + "] "
-                            + dados[1].trim() + " (Doc. Resp: " + dados[3].trim() + ")");
+                            + dados[1].trim()
+                            + " (Doc. Resp: " + dados[3].trim()
+                            + " | ECTS: " + (dados.length >= 6 && !dados[5].trim().isEmpty() ? dados[5].trim() : model.UnidadeCurricular.ECTS_PADRAO) + ")");
                 } catch (NumberFormatException ignored) {}
             }
         }
@@ -192,8 +225,11 @@ public class UcDAL {
             try {
                 String[] dados = obterDadosBrutosUC(sigla, pastaBase);
                 if (dados != null && dados.length >= 3) {
-                    int ano = Integer.parseInt(dados[2].trim());
-                    ucs.add(new UnidadeCurricular(dados[0].trim(), dados[1].trim(), ano, docente));
+                    int ano  = Integer.parseInt(dados[2].trim());
+                    int ects = (dados.length >= 6 && !dados[5].trim().isEmpty())
+                            ? Integer.parseInt(dados[5].trim())
+                            : model.UnidadeCurricular.ECTS_PADRAO;
+                    ucs.add(new UnidadeCurricular(dados[0].trim(), dados[1].trim(), ano, docente, ects));
                 }
             } catch (NumberFormatException ignored) {}
         }
@@ -211,7 +247,8 @@ public class UcDAL {
 
         DALUtil.adicionarLinhaCSV(caminho,
                 uc.getSigla() + ";" + uc.getNome() + ";"
-                        + uc.getAnoCurricular() + ";" + siglaDocente + ";" + cursoStr);
+                        + uc.getAnoCurricular() + ";" + siglaDocente + ";" + cursoStr
+                        + ";" + uc.getEcts());
     }
     public static boolean removerUC(String siglaUc, String pastaBase) {
         String caminho = pastaBase + File.separator + NOME_FICHEIRO;

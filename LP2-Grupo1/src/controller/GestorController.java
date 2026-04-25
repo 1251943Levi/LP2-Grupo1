@@ -80,12 +80,7 @@ public class GestorController {
                 if (!Validador.isNomeValido(nome)) view.mostrarErroNomeInvalido();
             } while (!Validador.isNomeValido(nome));
 
-            String sigla;
-            do {
-                sigla = view.pedirSiglaDocente();
-                if (!Validador.isSiglaDocenteValida(sigla))
-                    view.mostrarMensagem("ERRO: A sigla deve ter exatamente 3 letras (ex: JDO).");
-            } while (!Validador.isSiglaDocenteValida(sigla));
+            // Sigla gerada automaticamente — não é pedida ao utilizador
 
             String nif;
             boolean nifInvalido, nifDuplicado;
@@ -100,8 +95,8 @@ public class GestorController {
             String morada   = view.pedirMorada();
             String dataNasc = view.pedirDataNascimento();
 
-            String email = gestorBll.registarDocente(nome, sigla, nif, morada, dataNasc);
-            view.mostrarResumoRegistoDocente(email);
+            String[] resultado = gestorBll.registarDocente(nome, nif, morada, dataNasc);
+            view.mostrarResumoRegistoDocente(resultado[0], resultado[1]);
 
         } catch (CancelamentoException e) {
             view.mostrarOperacaoCancelada();
@@ -236,18 +231,33 @@ public class GestorController {
      * valida o limite máximo de UCs por ano via BLL.
      */
     private void adicionarUc() {
-        String siglaCurso = obterSiglaCursoPelaView();
-        if (siglaCurso.isEmpty()) return;
+        try {
+            String siglaCurso = obterSiglaCursoPelaView();
+            if (siglaCurso == null || siglaCurso.isEmpty()) return;
 
-        int    anoUc      = Integer.parseInt(view.pedirAnoCurricular());
-        String siglaUc    = view.pedirSiglaUc();
-        String nomeUc     = view.pedirNomeUc();
-        String docente    = view.pedirSiglaDocente();
+            int anoUc;
+            try {
+                anoUc = Integer.parseInt(view.pedirAnoCurricular());
+                if (anoUc < 1 || anoUc > 3) {
+                    view.mostrarMensagem("ERRO: Ano curricular deve ser 1, 2 ou 3.");
+                    return;
+                }
+            } catch (NumberFormatException ex) {
+                view.mostrarMensagem("ERRO: Ano curricular inválido. Introduza um número entre 1 e 3.");
+                return;
+            }
 
-        if (gestorBll.adicionarUc(siglaCurso, anoUc, siglaUc, nomeUc, docente))
-            view.mostrarSucessoCriacao("UC");
-        else
-            view.mostrarErroLimiteUcs(anoUc);
+            String siglaUc = view.pedirSiglaUc();
+            String nomeUc  = view.pedirNomeUc();
+            String docente = view.pedirSiglaDocente();
+
+            if (gestorBll.adicionarUc(siglaCurso, anoUc, siglaUc, nomeUc, docente))
+                view.mostrarSucessoCriacao("UC");
+            else
+                view.mostrarErroLimiteUcs(anoUc);
+        } catch (CancelamentoException e) {
+            view.mostrarOperacaoCancelada();
+        }
     }
 
     /**
@@ -259,7 +269,8 @@ public class GestorController {
         if (ucs.length == 0) { view.mostrarErroNaoEncontrado("UCs"); return; }
 
         view.mostrarListaUcs(ucs);
-        int escolha      = view.pedirOpcaoUc(ucs.length);
+        int escolha = view.pedirOpcaoUc(ucs.length);
+        if (escolha == -1) { view.mostrarOperacaoCancelada(); return; }
         String siglaAntiga = ucs[escolha - 1].split(" - ")[0];
 
         view.mostrarMensagemModoEdicao();
@@ -280,6 +291,7 @@ public class GestorController {
 
         view.mostrarListaUcs(ucs);
         int escolha    = view.pedirOpcaoUc(ucs.length);
+        if (escolha == -1) { view.mostrarOperacaoCancelada(); return; }
         String siglaUc = ucs[escolha - 1].split(" - ")[0];
 
         if (view.confirmarRemocaoBoolean(siglaUc)) {
@@ -331,18 +343,74 @@ public class GestorController {
             int opcao = view.mostrarMenuCRUD("Cursos");
             switch (opcao) {
                 case 1:
-                    gestorBll.adicionarCurso(
-                            view.pedirSiglaCurso(),
-                            view.pedirNomeCurso(),
-                            view.pedirDepartamento(),
-                            view.pedirValorDouble("Propina anual (€)"));
-                    view.mostrarSucessoCriacao("Curso");
+                    try {
+                        gestorBll.adicionarCurso(
+                                view.pedirSiglaCurso(),
+                                view.pedirNomeCurso(),
+                                view.pedirDepartamento(),
+                                view.pedirValorDouble("Propina anual (€)"));
+                        view.mostrarSucessoCriacao("Curso");
+                    } catch (CancelamentoException e) { view.mostrarOperacaoCancelada(); }
                     break;
                 case 2: view.mostrarResultadosListagem(gestorBll.listarTodosCursos()); break;
-                case 0: correr = false;                                                break;
+                case 3: editarCurso();    break;
+                case 4: removerCurso();   break;
+                case 5: listarUcsCurso(); break;
+                case 0: correr = false;   break;
                 default: view.mostrarOpcaoInvalida();
             }
         }
+    }
+
+    /** Permite editar o nome, departamento e propina de um curso sem alocações. */
+    private void editarCurso() {
+        try {
+            String[] cursos = gestorBll.listarTodosCursos();
+            if (cursos.length == 0) { view.mostrarErroNaoEncontrado("Cursos"); return; }
+            view.mostrarListaCursos(cursos);
+            int escolha = view.pedirOpcaoCurso(cursos.length);
+            if (escolha == -1) { view.mostrarOperacaoCancelada(); return; }
+            String sigla = cursos[escolha - 1].split(" - ")[0];
+
+            if (!gestorBll.isCursoAlteravel(sigla)) {
+                view.mostrarErroCursoComAlocacoes(); return;
+            }
+            view.mostrarMensagemModoEdicao();
+            boolean sucesso = gestorBll.editarCurso(
+                    sigla,
+                    view.pedirNomeCurso(),
+                    view.pedirDepartamento(),
+                    view.pedirValorDouble("Nova Propina anual (€)"));
+            if (sucesso) view.mostrarSucessoAtualizacao("Curso");
+        } catch (CancelamentoException e) { view.mostrarOperacaoCancelada(); }
+    }
+
+    /** Remove um curso que não tenha estudantes nem docentes alocados. */
+    private void removerCurso() {
+        String[] cursos = gestorBll.listarTodosCursos();
+        if (cursos.length == 0) { view.mostrarErroNaoEncontrado("Cursos"); return; }
+        view.mostrarListaCursos(cursos);
+        int escolha = view.pedirOpcaoCurso(cursos.length);
+        if (escolha == -1) { view.mostrarOperacaoCancelada(); return; }
+        String sigla = cursos[escolha - 1].split(" - ")[0];
+
+        if (!gestorBll.isCursoAlteravel(sigla)) {
+            view.mostrarErroCursoComAlocacoes(); return;
+        }
+        if (view.confirmarRemocaoBoolean(sigla)) {
+            if (gestorBll.removerCurso(sigla)) view.mostrarSucessoRemocao("Curso");
+            else                               view.mostrarErroRemocao("Curso");
+        }
+    }
+
+    /** Lista as UCs de um curso agrupadas por ano curricular. */
+    private void listarUcsCurso() {
+        try {
+            String siglaCurso = obterSiglaCursoPelaView();
+            if (siglaCurso == null || siglaCurso.isEmpty()) return;
+            view.mostrarMensagem(gestorBll.listarUcsPorCurso(siglaCurso));
+            utils.Consola.pausar();
+        } catch (CancelamentoException e) { view.mostrarOperacaoCancelada(); }
     }
 
     /**
@@ -354,6 +422,7 @@ public class GestorController {
         if (cursos.length > 0) {
             view.mostrarListaCursos(cursos);
             int escolha = view.pedirOpcaoCurso(cursos.length);
+            if (escolha == -1) throw new CancelamentoException();
             return cursos[escolha - 1].split(" - ")[0];
         }
         return view.pedirSiglaCurso();
