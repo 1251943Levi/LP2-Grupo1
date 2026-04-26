@@ -1,121 +1,123 @@
 package view;
 
-import java.util.Scanner;
+import model.Avaliacao;
+import model.Docente;
+import model.UnidadeCurricular;
+import utils.Consola;
 
+/**
+ * Interface de utilizador do portal do Docente.
+ * Apenas mostra informação e recolhe inputs — sem lógica de negócio.
+ */
 public class DocenteView {
-    private Scanner scanner = new Scanner(System.in);
 
+    /**
+     * Apresenta o menu principal do docente e lê a opção escolhida.
+     *
+     * @return Número da opção selecionada (0 a 3).
+     */
     public int mostrarMenu() {
-        System.out.println("\n=== MENU DOCENTE ===");
-        System.out.println("1 - Consultar os Meus Alunos e Estatísticas");
-        System.out.println("2 - Lançar Notas");
-        System.out.println("3 - Alterar Password");
-        System.out.println("0 - Sair / Logout");
-        System.out.print("Opção: ");
-        try {
-            return Integer.parseInt(scanner.nextLine());
-        } catch (Exception e) {
-            return -1;
+        Consola.imprimirCabecalho("Portal Docente — ISSMF");
+        Consola.imprimirMenu(new String[]{
+                "Consultar os Meus Alunos e Médias",
+                "Lançar Notas",
+                "Alterar Password",
+                "Ver Dados Pessoais",
+                "Ver as Minhas Unidades Curriculares"
+        }, "Sair / Logout");
+        return Consola.lerOpcaoMenu();
+    }
+
+    /**
+     * Mostra a ficha completa do docente autenticado.
+     */
+    public void mostrarFichaDocente(Docente d) {
+        Consola.imprimirTitulo("Dados Pessoais");
+        Consola.imprimirInfo("Sigla:           " + d.getSigla());
+        Consola.imprimirInfo("Nome:            " + d.getNome());
+        Consola.imprimirInfo("Email:           " + d.getEmail());
+        Consola.imprimirInfo("NIF:             " + d.getNif());
+        Consola.imprimirInfo("Data Nascimento: " + d.getDataNascimento());
+        Consola.imprimirInfo("Morada:          " + d.getMorada());
+        Consola.pausar();
+    }
+
+    /**
+     * Mostra a lista de UCs lecionadas pelo docente autenticado.
+     */
+
+    public void mostrarUcsDocente(Docente d) {
+        Consola.imprimirTitulo("As Minhas Unidades Curriculares");
+        if (d.getTotalUcsLecionadas() == 0) {
+            Consola.imprimirInfo("Não tem unidades curriculares atribuídas.");
+        } else {
+            UnidadeCurricular[] ucs = d.getUcsLecionadas();
+            for (int i = 0; i < d.getTotalUcsLecionadas(); i++) {
+                if (ucs[i] != null) {
+                    System.out.printf("  [%d] %-8s | %-35s | %dº Ano%n",
+                            i + 1, ucs[i].getSigla(), ucs[i].getNome(), ucs[i].getAnoCurricular());
+                }
+            }
         }
+        Consola.pausar();
     }
 
     // --- MÉTODOS DE LISTAGEM DE ALUNOS ---
 
+    /** Exibe o cabeçalho da lista de alunos. */
     public void mostrarCabecalhoAlunos() {
-        System.out.println("\n--- OS MEUS ALUNOS ---");
+        Consola.imprimirTitulo("Alunos e Médias");
     }
 
-    public void mostrarErroCarregarAlunos() {
-        System.out.println(">> Erro ao carregar a lista de estudantes.");
-    }
+    public void mostrarLinha(String texto) { System.out.println("  " + texto); }
 
-    public void mostrarAluno(int numMecanografico, String nome) {
-        System.out.println(">> Nº: " + numMecanografico + " | Aluno: " + nome);
-    }
 
-    public void mostrarSemAlunos() {
-        System.out.println(">> Não tem alunos inscritos nas suas UCs.");
-    }
+    // ---------- LANÇAMENTO DE NOTAS ----------
 
-    public void mostrarMedia(double media) {
-        System.out.println(">> Média das suas disciplinas: " + String.format("%.2f", media));
-    }
-
-    // --- MÉTODOS DE LANÇAMENTO DE NOTAS ---
-
+    /** Exibe o cabeçalho da secção de lançamento de notas. */
     public void mostrarCabecalhoLancamentoNotas() {
-        System.out.println("\n--- LANÇAMENTO DE NOTAS ---");
+        Consola.imprimirCabecalho("Lançar Avaliações");
+        Consola.imprimirDicaFormulario();
     }
 
-    public int pedirNumeroAluno() {
-        System.out.print("Nº Aluno: ");
-        return Integer.parseInt(scanner.nextLine().trim());
-    }
+    public int    pedirNumeroAluno()  { return Consola.lerInt("Nº Mecanográfico do Aluno"); }
+    public String pedirSiglaUc()      { return Consola.lerString("Sigla da UC"); }
+    public int    pedirAnoLetivo()    { return Consola.lerInt("Ano Letivo (ex: 2026)"); }
+    public double pedirNotaNormal()   { return Consola.lerNota("Nota Normal"); }
+    public double pedirNotaRecurso()  { return Consola.lerNota("Nota Recurso"); }
+    public double pedirNotaEspecial() { return Consola.lerNota("Nota Especial"); }
 
-    public String pedirSiglaUc() {
-        System.out.print("Sigla UC: ");
-        return scanner.nextLine().trim();
-    }
 
-    public int pedirAnoLetivo() {
-        System.out.print("Ano Letivo (ex: 2026): ");
-        return Integer.parseInt(scanner.nextLine().trim());
-    }
+    // ---------- PASSWORD ----------
 
-    public double pedirNotaNormal() {
-        System.out.print("Nota Normal (ou -1 se faltou): ");
-        return Double.parseDouble(scanner.nextLine().trim());
-    }
-
-    public double pedirNotaRecurso() {
-        System.out.print("Nota Recurso (ou -1 se faltou): ");
-        return Double.parseDouble(scanner.nextLine().trim());
-    }
-
-    public double pedirNotaEspecial() {
-        System.out.print("Nota Especial (ou -1 se faltou): ");
-        return Double.parseDouble(scanner.nextLine().trim());
-    }
-
-    public void mostrarSucessoLancamento() {
-        System.out.println(">> Notas lançadas e guardadas com sucesso na base de dados!");
-    }
-
-    public void mostrarErroAlunoNaoEncontrado(int numAluno) {
-        System.out.println(">> ERRO: Aluno com o número " + numAluno + " não encontrado.");
-    }
-
-    // --- MÉTODOS DE ALTERAÇÃO DE PASSWORD ---
-
-    public void mostrarCabecalhoAlterarPassword() {
-        System.out.println("\n--- ALTERAR PASSWORD ---");
-    }
-
+    /**
+     * Solicita a nova password ao utilizador, com ocultação de caracteres quando a consola o permite.
+     * <p>
+     * O cancelamento é feito premindo Enter sem introduzir texto, o que retorna uma string vazia.
+     *
+     * @return A nova password introduzida, ou uma string vazia se o utilizador premir Enter.
+     */
     public String pedirNovaPassword() {
-        System.out.print("Introduza a nova Password (ou prima Enter para cancelar): ");
-        if (System.console() != null) {
-            char[] passwordChars = System.console().readPassword();
-            return new String(passwordChars).trim();
-        } else {
-            return scanner.nextLine().trim();
-        }
+        Consola.imprimirTitulo("Alterar Password");
+        Consola.imprimirDicaFormulario();
+        return Consola.lerPassword("Nova Password");
     }
 
-    public void mostrarSucessoAlteracaoPassword() {
-        System.out.println(">> Password alterada com sucesso!");
+    // ---------- MENSAGENS ----------
+
+    public void mostrarSucessoLancamento()        { Consola.imprimirSucesso("Avaliação registada com sucesso!"); }
+    public void mostrarSucessoAlteracaoPassword() { Consola.imprimirSucesso("Password alterada com sucesso!"); }
+    public void mostrarCancelamentoPassword()     { Consola.imprimirInfo("Operação cancelada."); }
+    public void mostrarErroLeituraOpcao()         { Consola.imprimirErro("Erro de leitura. Tente novamente."); }
+    public void mostrarOpcaoInvalida()            { Consola.imprimirErro("Opção inválida."); }
+    public void mostrarDespedida()                { Consola.imprimirInfo("Logout efetuado. Até breve!"); }
+    public void mostrarOperacaoCancelada()        { Consola.imprimirInfo("Operação cancelada. A regressar ao menu..."); }
+
+    // --- métodos adicionados para compatibilidade com DocenteController ---
+    public void mostrarAlunoComMedia(int numMec, String nome, double media) {
+        System.out.printf("  [%d] %-30s | Média: %.1f%n", numMec, nome, media);
     }
-
-    public void mostrarCancelamentoPassword() {
-        System.out.println(">> Operação cancelada. A password não foi alterada.");
-    }
-
-    // --- MENSAGENS GENÉRICAS ---
-
-    public void mostrarOpcaoInvalida() {
-        System.out.println(">> Opção inválida.");
-    }
-
-    public void mostrarErroLeituraOpcao() {
-        System.out.println(">> Erro de leitura ou formato inválido. Tente novamente.");
+    public void mostrarErroCarregarAlunos() { Consola.imprimirErro("Não foi possível carregar a lista de alunos.");
     }
 }
+

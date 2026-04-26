@@ -9,24 +9,15 @@ public class RepositorioDados {
     private Utilizador utilizadorLogado;
     private int anoAtual;
 
-    /**
-     * Inicializa o repositório com valores padrão.
-     */
     public RepositorioDados() {
         this.utilizadorLogado = null;
-        this.anoAtual = 2026; // Valor inicial do sistema
+        this.anoAtual = 2026;
     }
 
-    // ---------- GETTERS E SETTERS ----------
-    public Utilizador getUtilizadorLogado() { return utilizadorLogado; }
-    public void setUtilizadorLogado(Utilizador utilizadorLogado) { this.utilizadorLogado = utilizadorLogado; }
+    public void setUtilizadorLogado(Utilizador u) { this.utilizadorLogado = u; }
+    public int  getAnoAtual() { return anoAtual; }
+    public void setAnoAtual(int ano) { this.anoAtual = ano; }
 
-    public int getAnoAtual() { return anoAtual; }
-    public void setAnoAtual(int anoAtual) { this.anoAtual = anoAtual; }
-
-    /**
-     * Termina a sessão atual, removendo a referência do utilizador.
-     */
     public void limparSessao() {
         this.utilizadorLogado = null;
     }
