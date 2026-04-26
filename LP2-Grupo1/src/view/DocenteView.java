@@ -11,6 +11,11 @@ import utils.Consola;
  */
 public class DocenteView {
 
+    /**
+     * Apresenta o menu principal do docente e lê a opção escolhida.
+     *
+     * @return Número da opção selecionada (0 a 3).
+     */
     public int mostrarMenu() {
         Consola.imprimirCabecalho("Portal Docente — ISSMF");
         Consola.imprimirMenu(new String[]{
@@ -59,6 +64,7 @@ public class DocenteView {
 
     // --- MÉTODOS DE LISTAGEM DE ALUNOS ---
 
+    /** Exibe o cabeçalho da lista de alunos. */
     public void mostrarCabecalhoAlunos() {
         Consola.imprimirTitulo("Alunos e Médias");
     }
@@ -68,6 +74,7 @@ public class DocenteView {
 
     // ---------- LANÇAMENTO DE NOTAS ----------
 
+    /** Exibe o cabeçalho da secção de lançamento de notas. */
     public void mostrarCabecalhoLancamentoNotas() {
         Consola.imprimirCabecalho("Lançar Avaliações");
         Consola.imprimirDicaFormulario();
@@ -83,6 +90,13 @@ public class DocenteView {
 
     // ---------- PASSWORD ----------
 
+    /**
+     * Solicita a nova password ao utilizador, com ocultação de caracteres quando a consola o permite.
+     * <p>
+     * O cancelamento é feito premindo Enter sem introduzir texto, o que retorna uma string vazia.
+     *
+     * @return A nova password introduzida, ou uma string vazia se o utilizador premir Enter.
+     */
     public String pedirNovaPassword() {
         Consola.imprimirTitulo("Alterar Password");
         Consola.imprimirDicaFormulario();

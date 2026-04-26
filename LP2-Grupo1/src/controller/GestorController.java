@@ -229,6 +229,7 @@ public class GestorController {
     /**
      * Recolhe dados da View para criar uma nova Unidade Curricular e
      * valida o limite máximo de UCs por ano via BLL.
+     * A operação pode ser cancelada durante a introdução dos dados.
      */
     private void adicionarUc() {
         try {
@@ -263,6 +264,7 @@ public class GestorController {
     /**
      * Permite a edição de uma UC existente, substituindo os dados antigos
      * pelos novos introduzidos pelo Gestor.
+     * A operação pode ser cancelada durante a introdução dos dados.
      */
     private void editarUc() {
         String[] ucs = ucBll.obterListaUcs();

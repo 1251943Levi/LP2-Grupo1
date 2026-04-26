@@ -17,9 +17,13 @@ public class EstudanteView {
     private final Scanner scanner;
 
     public EstudanteView() {
-        this.scanner = new Scanner(System.in);
     }
 
+    /**
+     * Apresenta o menu principal do estudante e lê a opção escolhida.
+     *
+     * @return Número da opção selecionada (0 a 4).
+     */
     public int mostrarMenuPrincipal() {
         Consola.imprimirCabecalho("Portal Estudante — ISSMF");
         Consola.imprimirMenu(new String[]{

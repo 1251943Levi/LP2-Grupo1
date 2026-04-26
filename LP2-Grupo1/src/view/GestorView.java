@@ -11,6 +11,10 @@ public class GestorView {
 
     // ---------- MENUS ----------
 
+    /**
+     * Apresenta o menu principal do Gestor e lê a opção escolhida.
+     * @return Número da opção selecionada (0 a 8)
+     */
     public int mostrarMenu() {
         Consola.imprimirCabecalho("Portal Gestor — ISSMF");
         Consola.imprimirMenu(new String[]{
@@ -27,6 +31,11 @@ public class GestorView {
         return Consola.lerOpcaoMenu();
     }
 
+    /**
+     * Apresenta um sub‑menu CRUD genérico para UCs ou Cursos.
+     * @param entidade "Unidades Curriculares" ou "Cursos"
+     * @return Opção escolhida (0 a 5)
+     */
     public int mostrarMenuCRUD(String entidade) {
         boolean ehUC    = entidade.equalsIgnoreCase("Unidades Curriculares");
         boolean ehCurso = entidade.equalsIgnoreCase("Cursos");
@@ -52,6 +61,10 @@ public class GestorView {
         return Consola.lerOpcaoMenu();
     }
 
+    /**
+     * Apresenta o menu de estatísticas.
+     * @return Opção escolhida (0 a 2)
+     */
     public int mostrarMenuEstatisticas() {
         Consola.imprimirCabecalho("Estatísticas — ISSMF");
         Consola.imprimirMenu(new String[]{
