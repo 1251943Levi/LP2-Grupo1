@@ -1,47 +1,53 @@
 package controller;
 
+import bll.EstudanteBLL;
+import bll.PagamentoBLL;
 import model.Estudante;
 import model.RepositorioDados;
 import view.EstudanteView;
-import bll.EstudanteBLL;
-import utils.CancelamentoException;
 
 /**
- * Controlador que gere o fluxo de ecrãs e interações do Estudante.
- */
+ * Controlador responsável por gerir o painel do Estudante.
+ * Liga a EstudanteView às BLLs correspondentes, sem aceder a DALs
+ * nem a ficheiros CSV diretamente.
+  */
 public class EstudanteController {
 
-    private RepositorioDados repositorio;
-    private Estudante estudanteAtivo;
-    private EstudanteView view;
-    private EstudanteBLL bll;
+    private final RepositorioDados repositorio;
+    private final Estudante estudanteAtivo;
+    private final EstudanteView view;
+    private final EstudanteBLL estudanteBll;
+    private final PagamentoBLL pagamentoBll;
 
     public EstudanteController(RepositorioDados repositorio, Estudante estudanteAtivo) {
         this.repositorio = repositorio;
         this.estudanteAtivo = estudanteAtivo;
         this.view = new EstudanteView();
-        this.bll = new EstudanteBLL();
+        this.estudanteBll = new EstudanteBLL();
+        this.pagamentoBll = new PagamentoBLL();
     }
 
-    /**
-     * Inicia o loop do menu principal do estudante.
-     */
     public void iniciar() {
         boolean aExecutar = true;
         while (aExecutar) {
             try {
                 int opcao = view.mostrarMenuPrincipal();
                 switch (opcao) {
-                    case 1: visualizarDadosPessoais(); break;
-                    case 2: atualizarDadosPessoais(); break;
-                    case 3: alterarPassword(); break;
-                    case 4: consultarDadosFinanceiros(); break;
+                    case 1: visualizarDadosPessoais();
+                        break;
+                    case 2: atualizarMorada();
+                        break;
+                    case 3: alterarPassword();
+                        break;
+                    case 4: consultarDadosFinanceiros();
+                        break;
                     case 0:
                         view.mostrarDespedida();
                         repositorio.limparSessao();
                         aExecutar = false;
                         break;
-                    default: view.mostrarOpcaoInvalida();
+                    default:
+                        view.mostrarOpcaoInvalida();
                 }
             } catch (Exception e) {
                 view.mostrarErroLeitura();
@@ -49,35 +55,27 @@ public class EstudanteController {
         }
     }
 
+    /**
+     * Mostra os dados pessoais e o percurso académico do estudante.
+     */
     private void visualizarDadosPessoais() {
         view.mostrarDadosPessoais(estudanteAtivo);
     }
 
-    /**
-     * Gere o fluxo de alteração de morada através da BLL.
-     * A operação pode ser cancelada durante a introdução da nova morada.
-     */
-    private void atualizarDadosPessoais() {
-        try {
-            String novaMorada = view.pedirNovaMorada();
-            if (!novaMorada.isEmpty()) {
-                bll.atualizarMorada(estudanteAtivo, novaMorada);
-                view.mostrarSucessoAtualizacaoMorada();
-            } else {
-                view.mostrarSemAlteracaoMorada();
-            }
-        } catch (CancelamentoException e) {
-            view.mostrarOperacaoCancelada();
+    private void atualizarMorada() {
+        String novaMorada = view.pedirNovaMorada();
+        if (!novaMorada.isEmpty()) {
+            estudanteBll.atualizarMorada(estudanteAtivo, novaMorada);
+            view.mostrarSucessoAtualizacaoMorada();
+        } else {
+            view.mostrarSemAlteracaoMorada();
         }
     }
 
-    /**
-     * Gere o fluxo de alteração de password.
-     */
     private void alterarPassword() {
         String novaPass = view.pedirNovaPassword();
         if (!novaPass.isEmpty()) {
-            bll.alterarPassword(estudanteAtivo, novaPass);
+            estudanteBll.alterarPassword(estudanteAtivo, novaPass);
             view.mostrarSucessoAtualizacaoPassword();
         } else {
             view.mostrarCancelamentoPassword();
@@ -85,37 +83,38 @@ public class EstudanteController {
     }
 
     /**
-     * Coordena a lógica de consulta e pagamento de propinas.
-     * A operação de pagamento parcial pode ser cancelada durante a introdução do valor.
+     * Mostra o histórico de pagamentos e o saldo devedor.
+     * Se existir dívida, oferece as opções de pagamento total ou parcial.
      */
     private void consultarDadosFinanceiros() {
+        view.mostrarDadosFinanceiros(estudanteAtivo);
+
         double divida = estudanteAtivo.getSaldoDevedor();
-        view.mostrarSaldoDevedor(divida);
-
-        if (divida > 0) {
-            int opcao = view.pedirTipoPagamento();
-            double valorAPagar = 0.0;
-
-            if (opcao == 1) {
-                valorAPagar = divida;
-            } else if (opcao == 2) {
-                try {
-                    valorAPagar = view.pedirValorPagamentoParcial(divida);
-                } catch (CancelamentoException e) {
-                    view.mostrarOperacaoCancelada();
-                    return;
-                }
-            } else {
-                return;
-            }
-
-            if (bll.processarPagamento(estudanteAtivo, valorAPagar)) {
-                view.mostrarSucessoPagamento();
-            } else {
-                view.mostrarErroValorInvalido();
-            }
-        } else {
+        if (divida <= 0) {
             view.mostrarSemPagamentosPendentes();
+            return;
+        }
+        int opcao = view.pedirTipoPagamento(divida);
+        double valorAPagar;
+
+        switch (opcao) {
+            case 1:
+                valorAPagar = divida; // pagamento total
+                break;
+            case 2:
+                valorAPagar = view.pedirValorPagamentoParcial(divida); // pagamento parcial
+                break;
+            default:
+                return; // cancelar
+        }
+
+        if (valorAPagar <= 0) return;
+
+        boolean sucesso = pagamentoBll.processarPagamento(estudanteAtivo, valorAPagar);
+        if (sucesso) {
+            view.mostrarSucessoPagamento(valorAPagar, estudanteAtivo.getSaldoDevedor());
+        } else {
+            view.mostrarErroValorInvalido();
         }
     }
 }
