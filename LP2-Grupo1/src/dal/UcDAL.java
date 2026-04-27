@@ -182,8 +182,6 @@ public class UcDAL {
 
     /**
      * Devolve um array "SIGLA - Nome" de todas as UCs para menus de seleção.
-     * @param pastaBase Caminho da pasta de dados.
-     * @return Array de strings.
      */
     public static String[] obterListaUcs(String pastaBase) {
         String caminho = pastaBase + File.separator + NOME_FICHEIRO;
@@ -191,12 +189,11 @@ public class UcDAL {
         List<String> lista = new ArrayList<>();
 
         for (String linha : linhas) {
-            if (linha.equalsIgnoreCase(CABECALHO)) continue;
             String[] dados = linha.split(";", -1);
-            if (dados.length >= 2) {
-                String entrada = dados[0].trim() + " - " + dados[1].trim();
-                if (!lista.contains(entrada)) lista.add(entrada);
-            }
+            if (dados.length < 2 || dados[0].trim().equalsIgnoreCase("sigla")) continue;
+
+            String entrada = dados[0].trim() + " - " + dados[1].trim();
+            if (!lista.contains(entrada)) lista.add(entrada);
         }
         return lista.toArray(new String[0]);
     }

@@ -152,11 +152,11 @@ public class CursoDAL {
         List<String> listaCursos = new ArrayList<>();
 
         for (String linha : linhas) {
-            if (linha.equalsIgnoreCase(CABECALHO)) continue;
             String[] dados = linha.split(";", -1);
-            if (dados.length >= 2) {
-                listaCursos.add(dados[0].trim() + " - " + dados[1].trim());
-            }
+
+            if (dados.length < 2 || dados[0].trim().equalsIgnoreCase("sigla")) continue;
+
+            listaCursos.add(dados[0].trim() + " - " + dados[1].trim());
         }
         return listaCursos.toArray(new String[0]);
     }

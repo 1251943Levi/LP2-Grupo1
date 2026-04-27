@@ -42,14 +42,14 @@ public class GestorController {
                 int opcao = view.mostrarMenu();
                 switch (opcao) {
                     case 1: executarRegistoEstudante();                    break;
-                    case 2: menuGerirUcs();                                break;
-                    case 3: menuGerirCursos();                             break;
-                    case 4: menuEstatisticas();                            break;
-                    case 5: gestorBll.avancarAnoLetivo(repo, view);       break;
-                    case 6: listarDevedores();                             break;
-                    case 7: alterarPassword();                             break;
-                    case 8: executarRegistoDocente();                      break;
-                    case 9: executarRegistoDepartamento();                 break;
+                    case 2: executarRegistoDocente();                      break;
+                    case 3: executarRegistoDepartamento();                 break;
+                    case 4: menuGerirUcs();                                break;
+                    case 5: menuGerirCursos();                             break;
+                    case 6: menuEstatisticas();                            break;
+                    case 7: gestorBll.avancarAnoLetivo(repo, view);       break;
+                    case 8: listarDevedores();                             break;
+                    case 9: alterarPassword();                             break;
                     case 0:
                         view.mostrarDespedida();
                         repo.limparSessao();
@@ -79,8 +79,6 @@ public class GestorController {
                 nome = view.pedirNome();
                 if (!Validador.isNomeValido(nome)) view.mostrarErroNomeInvalido();
             } while (!Validador.isNomeValido(nome));
-
-            // Sigla gerada automaticamente — não é pedida ao utilizador
 
             String nif;
             boolean nifInvalido, nifDuplicado;
@@ -170,7 +168,7 @@ public class GestorController {
                 if (!Validador.isDataNascimentoValida(dataNasc)) view.mostrarErroDataInvalida();
             } while (!Validador.isDataNascimentoValida(dataNasc));
 
-            String siglaCurso = obterSiglaCursoPelaView();
+            String siglaCurso = obterSiglaCursoPelaView(true);
             if (siglaCurso == null) return;
 
             String email = gestorBll.registarEstudante(nome, nif, morada, dataNasc, siglaCurso, anoInscricao);
@@ -233,7 +231,7 @@ public class GestorController {
      */
     private void adicionarUc() {
         try {
-            String siglaCurso = obterSiglaCursoPelaView();
+            String siglaCurso = obterSiglaCursoPelaView(false);
             if (siglaCurso == null || siglaCurso.isEmpty()) return;
 
             int anoUc;
@@ -493,7 +491,7 @@ public class GestorController {
     /** Lista as UCs de um curso agrupadas por ano curricular. */
     private void listarUcsCurso() {
         try {
-            String siglaCurso = obterSiglaCursoPelaView();
+            String siglaCurso = obterSiglaCursoPelaView(false);
             if (siglaCurso == null || siglaCurso.isEmpty()) return;
             view.mostrarMensagem(gestorBll.listarUcsPorCurso(siglaCurso));
             utils.Consola.pausar();
@@ -511,7 +509,7 @@ public class GestorController {
             int escolhaUc = view.pedirOpcaoUc(ucs.length);
             if (escolhaUc == -1) return;
             String siglaUc = ucs[escolhaUc - 1].split(" - ")[0];
-            String siglaCurso = obterSiglaCursoPelaView();
+            String siglaCurso = obterSiglaCursoPelaView(false);
 
             int ano = Integer.parseInt(view.pedirAnoCurricular());
             if (ano < 1 || ano > 3) {
@@ -531,33 +529,29 @@ public class GestorController {
     }
 
     /**
-     * Mostra a lista numerada de cursos para seleção e devolve a sigla escolhida.
-     * Verifica se o curso tem UCs configuradas antes de permitir a escolha.
+     * Mostra a lista de cursos e devolve a sigla escolhida.
+     * @param apenasComUcs Se true, obriga a escolher um curso que já tenha UCs (para Estudantes).
+     * Se false, permite escolher qualquer curso (para Gestão de UCs).
      */
-    private String obterSiglaCursoPelaView() {
+    private String obterSiglaCursoPelaView(boolean apenasComUcs) {
         String[] cursos = gestorBll.obterListaCursos();
+        if (cursos.length == 0) return view.pedirSiglaCurso();
+
         bll.CursoBLL cursoBLL = new bll.CursoBLL();
+        view.mostrarListaCursos(cursos);
 
-        if (cursos.length > 0) {
-            view.mostrarListaCursos(cursos);
-            int escolha;
-            String siglaEscolhida;
+        while (true) {
+            int escolha = view.pedirOpcaoCurso(cursos.length);
+            if (escolha == -1) throw new CancelamentoException();
 
-            do {
-                escolha = view.pedirOpcaoCurso(cursos.length);
-                if (escolha == -1) throw new CancelamentoException();
+            String sigla = cursos[escolha - 1].split(" - ")[0];
 
-                siglaEscolhida = cursos[escolha - 1].split(" - ")[0];
-
-                if (!cursoBLL.verificarCursoTemUcs(siglaEscolhida)) {
-                    view.mostrarMensagem("ERRO: Este curso ainda não tem UCs configuradas para o 1º ano. Escolha outro.");
-                    siglaEscolhida = null;
-                }
-            } while (siglaEscolhida == null);
-
-            return siglaEscolhida;
+           if (apenasComUcs && !cursoBLL.verificarCursoTemUcs(sigla)) {
+                view.mostrarMensagem("ERRO: Este curso ainda não tem UCs configuradas para o 1º ano. Escolha outro.");
+                continue;
+            }
+            return sigla;
         }
-        return view.pedirSiglaCurso();
     }
 
     private void alterarPassword() {

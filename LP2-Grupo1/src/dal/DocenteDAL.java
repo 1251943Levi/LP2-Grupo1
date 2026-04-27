@@ -117,11 +117,10 @@ public class DocenteDAL {
         List<String> lista = new ArrayList<>();
 
         for (String linha : linhas) {
-            if (linha.equalsIgnoreCase(CABECALHO)) continue;
             String[] dados = linha.split(";", -1);
-            if (dados.length >= 3) {
-                lista.add(dados[0].trim() + " - " + dados[2].trim());
-            }
+            if (dados.length < 3 || dados[0].trim().equalsIgnoreCase("sigla")) continue;
+
+            lista.add(dados[0].trim() + " - " + dados[2].trim());
         }
         return lista.toArray(new String[0]);
     }

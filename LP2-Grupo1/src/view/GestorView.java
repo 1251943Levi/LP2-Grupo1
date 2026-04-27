@@ -19,14 +19,14 @@ public class GestorView {
         Consola.imprimirCabecalho("Portal Gestor — ISSMF");
         Consola.imprimirMenu(new String[]{
                 "Registar Novo Estudante",
+                "Registar Docente",
+                "Registar Departamento"
                 "Gerir Unidades Curriculares",
                 "Gerir Cursos",
                 "Ver Estatísticas",
                 "Avançar Ano Letivo",
                 "Listar Devedores de Propinas",
                 "Alterar Password",
-                "Registar Docente",
-                "Registar Departamento"
         }, "Sair / Logout");
         return Consola.lerOpcaoMenu();
     }
