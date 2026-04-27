@@ -442,6 +442,23 @@ public class GestorBLL {
         return aprovadas;
     }
 
+    /**
+     * Associa uma UC já existente no sistema a um novo curso e ano curricular.
+     * @return true se associada com sucesso; false se atingir o limite de 5 UCs.
+     */
+    public boolean associarUcExistente(String siglaUc, String siglaCurso, int ano) {
+        if (UcDAL.contarUcsPorCursoEAno(siglaCurso, ano, PASTA_BD) >= 5) return false;
+
+        UnidadeCurricular uc = UcDAL.procurarUC(siglaUc, PASTA_BD);
+        if (uc == null) return false;
+
+        UnidadeCurricular novaAssociacao = new UnidadeCurricular(
+                uc.getSigla(), uc.getNome(), ano, uc.getDocenteResponsavel(), uc.getEcts());
+
+        UcDAL.adicionarUC(novaAssociacao, siglaCurso, PASTA_BD);
+        return true;
+    }
+
     public boolean existeDocente(String sigla) {
         return DocenteDAL.existeSigla(sigla, PASTA_BD);
     }

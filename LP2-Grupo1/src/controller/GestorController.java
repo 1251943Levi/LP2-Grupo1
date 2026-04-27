@@ -359,8 +359,8 @@ public class GestorController {
                 case 1: adicionarUc();                                          break;
                 case 2: view.mostrarResultadosListagem(gestorBll.listarTodasUcs()); break;
                 case 3: editarUc();                                             break;
-                case 4: removerUc();                                            break;
-                case 0: correr = false;                                         break;
+                case 4: removerUc();break;
+                case 5: associarUcExistente(); break;                 case 0: correr = false;                                         break;
                 default: view.mostrarOpcaoInvalida();
             }
         }
@@ -501,16 +501,61 @@ public class GestorController {
     }
 
     /**
+     * Fluxo para associar uma UC existente a um curso, com listagem opcional.
+     */
+    private void associarUcExistente() {
+        try {
+            String[] ucs = ucBll.obterListaUcs();
+            if (ucs.length == 0) { view.mostrarErroNaoEncontrado("UCs"); return; }
+            view.mostrarListaUcs(ucs);
+            int escolhaUc = view.pedirOpcaoUc(ucs.length);
+            if (escolhaUc == -1) return;
+            String siglaUc = ucs[escolhaUc - 1].split(" - ")[0];
+            String siglaCurso = obterSiglaCursoPelaView();
+
+            int ano = Integer.parseInt(view.pedirAnoCurricular());
+            if (ano < 1 || ano > 3) {
+                view.mostrarMensagem("ERRO: Ano deve ser 1, 2 ou 3.");
+                return;
+            }
+
+            if (gestorBll.associarUcExistente(siglaUc, siglaCurso, ano)) {
+                view.mostrarSucessoAtualizacao("UC associada ao curso " + siglaCurso);
+            } else {
+                view.mostrarErroLimiteUcs(ano);
+            }
+
+        } catch (CancelamentoException | NumberFormatException e) {
+            view.mostrarOperacaoCancelada();
+        }
+    }
+
+    /**
      * Mostra a lista numerada de cursos para seleção e devolve a sigla escolhida.
-     * A lista é obtida via GestorBLL — o Controller NÃO acede à DAL diretamente.
+     * Verifica se o curso tem UCs configuradas antes de permitir a escolha.
      */
     private String obterSiglaCursoPelaView() {
         String[] cursos = gestorBll.obterListaCursos();
+        bll.CursoBLL cursoBLL = new bll.CursoBLL();
+
         if (cursos.length > 0) {
             view.mostrarListaCursos(cursos);
-            int escolha = view.pedirOpcaoCurso(cursos.length);
-            if (escolha == -1) throw new CancelamentoException();
-            return cursos[escolha - 1].split(" - ")[0];
+            int escolha;
+            String siglaEscolhida;
+
+            do {
+                escolha = view.pedirOpcaoCurso(cursos.length);
+                if (escolha == -1) throw new CancelamentoException();
+
+                siglaEscolhida = cursos[escolha - 1].split(" - ")[0];
+
+                if (!cursoBLL.verificarCursoTemUcs(siglaEscolhida)) {
+                    view.mostrarMensagem("ERRO: Este curso ainda não tem UCs configuradas para o 1º ano. Escolha outro.");
+                    siglaEscolhida = null;
+                }
+            } while (siglaEscolhida == null);
+
+            return siglaEscolhida;
         }
         return view.pedirSiglaCurso();
     }

@@ -48,6 +48,16 @@ public class CursoBLL {
     }
 
     /**
+     * Valida se um curso está pronto para receber matrículas,
+     * verificando se tem pelo menos 1 UC configurada no 1º ano.
+     * @param siglaCurso Sigla do curso a verificar.
+     * @return true se tiver pelo menos 1 UC no 1º ano.
+     */
+    public boolean verificarCursoTemUcs(String siglaCurso) {
+        return dal.UcDAL.contarUcsPorCursoEAno(siglaCurso, 1, PASTA_BD) > 0;
+    }
+
+    /**
      * Valida se o primeiro ano de um curso pode ser iniciado.
      * @param siglaCurso Sigla do curso a verificar.
      * @return true se tiver 5 ou mais alunos

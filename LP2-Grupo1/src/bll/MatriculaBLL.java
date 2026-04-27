@@ -34,6 +34,10 @@ public class MatriculaBLL {
      */
     public String[] realizarAutoMatricula(String nome, String nif, String morada,
                                           String dataNasc, String siglaCurso, int anoAtual) {
+
+        if (UcDAL.contarUcsPorCursoEAno(siglaCurso, 1, PASTA_BD) == 0) {
+            return null;
+        }
         int numMec = EstudanteDAL.obterProximoNumeroMecanografico(PASTA_BD, anoAtual);
         String emailInst = EmailGenerator.gerarEmailEstudante(numMec);
         String passLimpa = PasswordGenerator.gerarPasswordSegura();
