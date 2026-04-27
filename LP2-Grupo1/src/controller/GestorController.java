@@ -250,7 +250,14 @@ public class GestorController {
 
             String siglaUc = view.pedirSiglaUc();
             String nomeUc  = view.pedirNomeUc();
-            String docente = view.pedirSiglaDocente();
+
+            String docente;
+            do {
+                docente = view.pedirSiglaDocente();
+                if (!gestorBll.existeDocente(docente)) {
+                    view.mostrarMensagem("ERRO: Docente não encontrado. Introduza uma sigla de um docente existente.");
+                }
+            } while (!gestorBll.existeDocente(docente));
 
             if (gestorBll.adicionarUc(siglaCurso, anoUc, siglaUc, nomeUc, docente))
                 view.mostrarSucessoCriacao("UC");
@@ -263,28 +270,47 @@ public class GestorController {
 
     /**
      * Permite a edição de uma UC existente, substituindo os dados antigos
-     * pelos novos introduzidos pelo Gestor.
-     * A operação pode ser cancelada durante a introdução dos dados.
+     * pelos novos introduzidos pelo Gestor, garantindo docentes válidos.
      */
     private void editarUc() {
-        String[] ucs = ucBll.obterListaUcs();
-        if (ucs.length == 0) { view.mostrarErroNaoEncontrado("UCs"); return; }
+        try {
+            String[] ucs = ucBll.obterListaUcs();
+            if (ucs.length == 0) { view.mostrarErroNaoEncontrado("UCs"); return; }
 
-        view.mostrarListaUcs(ucs);
-        int escolha = view.pedirOpcaoUc(ucs.length);
-        if (escolha == -1) { view.mostrarOperacaoCancelada(); return; }
-        String siglaAntiga = ucs[escolha - 1].split(" - ")[0];
+            view.mostrarListaUcs(ucs);
+            int escolha = view.pedirOpcaoUc(ucs.length);
+            if (escolha == -1) { view.mostrarOperacaoCancelada(); return; }
+            String siglaAntiga = ucs[escolha - 1].split(" - ")[0];
 
-        view.mostrarMensagemModoEdicao();
-        boolean sucesso = gestorBll.editarUc(
-                siglaAntiga,
-                view.pedirSiglaUc(),
-                view.pedirNovoNome(),
-                view.pedirNovoAnoCurricular(),
-                view.pedirNovaSiglaDocente(),
-                view.pedirNovaSiglaCurso());
+            view.mostrarMensagemModoEdicao();
 
-        if (sucesso) view.mostrarSucessoAtualizacao("UC");
+            String novaSigla = view.pedirSiglaUc();
+            String novoNome = view.pedirNovoNome();
+            String novoAno = view.pedirNovoAnoCurricular();
+
+            String novaSiglaDocente;
+            do {
+                novaSiglaDocente = view.pedirNovaSiglaDocente();
+                if (!gestorBll.existeDocente(novaSiglaDocente)) {
+                    view.mostrarMensagem("ERRO: Docente não encontrado. Introduza uma sigla de um docente existente.");
+                }
+            } while (!gestorBll.existeDocente(novaSiglaDocente));
+
+            String novaSiglaCurso = view.pedirNovaSiglaCurso();
+
+            boolean sucesso = gestorBll.editarUc(
+                    siglaAntiga,
+                    novaSigla,
+                    novoNome,
+                    novoAno,
+                    novaSiglaDocente,
+                    novaSiglaCurso);
+
+            if (sucesso) view.mostrarSucessoAtualizacao("UC");
+
+        } catch (CancelamentoException e) {
+            view.mostrarOperacaoCancelada();
+        }
     }
 
     private void removerUc() {
@@ -344,16 +370,7 @@ public class GestorController {
         while (correr) {
             int opcao = view.mostrarMenuCRUD("Cursos");
             switch (opcao) {
-                case 1:
-                    try {
-                        gestorBll.adicionarCurso(
-                                view.pedirSiglaCurso(),
-                                view.pedirNomeCurso(),
-                                view.pedirDepartamento(),
-                                view.pedirValorDouble("Propina anual (€)"));
-                        view.mostrarSucessoCriacao("Curso");
-                    } catch (CancelamentoException e) { view.mostrarOperacaoCancelada(); }
-                    break;
+                case 1: adicionarCurso(); break;
                 case 2: view.mostrarResultadosListagem(gestorBll.listarTodosCursos()); break;
                 case 3: editarCurso();    break;
                 case 4: removerCurso();   break;
@@ -364,6 +381,46 @@ public class GestorController {
         }
     }
 
+    /**
+     * Permite a criação de um novo curso, validando o departamento
+     * e garantindo que a propina é válida (máx 2 casas decimais e positiva).
+     */
+    private void adicionarCurso() {
+        try {
+            String siglaCurso = view.pedirSiglaCurso();
+            String nomeCurso = view.pedirNomeCurso();
+
+            String siglaDep;
+            do {
+                siglaDep = view.pedirDepartamento();
+                if (!gestorBll.isDepartamentoDuplicado(siglaDep)) {
+                    view.mostrarMensagem("ERRO: Departamento não encontrado. Introduza uma sigla existente.");
+                }
+            } while (!gestorBll.isDepartamentoDuplicado(siglaDep));
+
+            double propina;
+            boolean propinaValida = false;
+            do {
+                propina = view.pedirValorDouble("Propina anual (€)");
+
+                if (propina != Math.round(propina * 100.0) / 100.0) {
+                    view.mostrarMensagem("ERRO: A propina só pode ter até 2 casas decimais (cêntimos).");
+                } else if (propina < 0) {
+                    view.mostrarMensagem("ERRO: A propina não pode ter um valor negativo.");
+                } else {
+                    propinaValida = true;
+                }
+            } while (!propinaValida);
+
+            gestorBll.adicionarCurso(siglaCurso, nomeCurso, siglaDep, propina);
+            view.mostrarSucessoCriacao("Curso");
+
+        } catch (CancelamentoException e) {
+            view.mostrarOperacaoCancelada();
+        }
+    }
+
+    /** Permite editar o nome, departamento e propina de um curso sem alocações. */
     /** Permite editar o nome, departamento e propina de um curso sem alocações. */
     private void editarCurso() {
         try {
@@ -378,11 +435,31 @@ public class GestorController {
                 view.mostrarErroCursoComAlocacoes(); return;
             }
             view.mostrarMensagemModoEdicao();
-            boolean sucesso = gestorBll.editarCurso(
-                    sigla,
-                    view.pedirNomeCurso(),
-                    view.pedirDepartamento(),
-                    view.pedirValorDouble("Nova Propina anual (€)"));
+
+            String novoNome = view.pedirNomeCurso();
+
+            String siglaDep;
+            do {
+                siglaDep = view.pedirDepartamento();
+                if (!gestorBll.isDepartamentoDuplicado(siglaDep)) {
+                    view.mostrarMensagem("ERRO: Departamento não encontrado. Introduza uma sigla existente.");
+                }
+            } while (!gestorBll.isDepartamentoDuplicado(siglaDep));
+
+            double novaPropina;
+            boolean propinaValida = false;
+            do {
+                novaPropina = view.pedirValorDouble("Nova Propina anual (€)");
+                if (novaPropina != Math.round(novaPropina * 100.0) / 100.0) {
+                    view.mostrarMensagem("ERRO: A propina só pode ter até 2 casas decimais (cêntimos).");
+                } else if (novaPropina < 0) {
+                    view.mostrarMensagem("ERRO: A propina não pode ter um valor negativo.");
+                } else {
+                    propinaValida = true;
+                }
+            } while (!propinaValida);
+
+            boolean sucesso = gestorBll.editarCurso(sigla, novoNome, siglaDep, novaPropina);
             if (sucesso) view.mostrarSucessoAtualizacao("Curso");
         } catch (CancelamentoException e) { view.mostrarOperacaoCancelada(); }
     }

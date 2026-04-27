@@ -442,4 +442,8 @@ public class GestorBLL {
         return aprovadas;
     }
 
+    public boolean existeDocente(String sigla) {
+        return DocenteDAL.existeSigla(sigla, PASTA_BD);
+    }
+
 }

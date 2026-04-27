@@ -6,7 +6,6 @@ import model.Pagamento;
 import utils.Consola;
 
 import java.util.List;
-import java.util.Scanner;
 
 /**
  * Interface de utilizador do portal do Estudante.
