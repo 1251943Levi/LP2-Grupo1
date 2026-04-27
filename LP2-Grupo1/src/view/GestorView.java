@@ -20,7 +20,7 @@ public class GestorView {
         Consola.imprimirMenu(new String[]{
                 "Registar Novo Estudante",
                 "Registar Docente",
-                "Registar Departamento"
+                "Registar Departamento",
                 "Gerir Unidades Curriculares",
                 "Gerir Cursos",
                 "Ver Estatísticas",
