@@ -1,5 +1,8 @@
 package model;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Representa um estudante matriculado no sistema.
  * Para além dos dados pessoais herdados de Utilizador, mantém
@@ -15,7 +18,7 @@ public class Estudante extends Utilizador {
     private final PercursoAcademico percurso;
     private double saldoDevedor;
     private String siglaCurso;
-    private final Pagamento[] historicoPagamentos;
+    private final List<Pagamento> historicoPagamentos;
     private int totalPagamentos;
 
 
@@ -37,7 +40,7 @@ public class Estudante extends Utilizador {
         this.anoPrimeiraInscricao = anoPrimeiraInscricao;
         this.anoCurricular = 1;
         this.percurso = new PercursoAcademico();
-        this.historicoPagamentos = new Pagamento[100];
+        this.historicoPagamentos = new ArrayList<>();
         this.totalPagamentos = 0;
     }
 
@@ -62,10 +65,10 @@ public class Estudante extends Utilizador {
     public String getSiglaCurso(){ return siglaCurso; }
 
     /** @return Array com o histórico de pagamentos de propinas. */
-    public Pagamento[] getHistoricoPagamentos(){ return historicoPagamentos; }
+    public List<Pagamento> getHistoricoPagamentos(){ return historicoPagamentos; }
 
     /** @return Número de pagamentos registados no histórico. */
-    public int getTotalPagamentos(){ return totalPagamentos; }
+    public int getTotalPagamentos(){ return historicoPagamentos.size(); }
 
 
     // ---------- SETTERS ----------
@@ -86,10 +89,7 @@ public class Estudante extends Utilizador {
      * @param pagamento Pagamento a registar.
      */
     public void adicionarPagamento(Pagamento pagamento) {
-        if (totalPagamentos < historicoPagamentos.length) {
-            historicoPagamentos[totalPagamentos] = pagamento;
-            totalPagamentos++;
-        }
+        historicoPagamentos.add(pagamento);
     }
 
     /**

@@ -5,6 +5,7 @@ import model.Estudante;
 import model.Pagamento;
 import utils.Consola;
 
+import java.util.List;
 import java.util.Scanner;
 
 /**
@@ -13,8 +14,6 @@ import java.util.Scanner;
  * Não contém lógica de negócio.
  */
 public class EstudanteView {
-
-    private final Scanner scanner;
 
     public EstudanteView() {
     }
@@ -79,13 +78,15 @@ public class EstudanteView {
         Consola.imprimirCabecalho("Dados Financeiros");
         System.out.printf("  Saldo devedor:  %.2f€%n", e.getSaldoDevedor());
         Consola.imprimirTitulo("Histórico de Pagamentos");
+
         int total = e.getTotalPagamentos();
         if (total == 0) {
             Consola.imprimirInfo("Sem pagamentos registados.");
         } else {
-            Pagamento[] hist = e.getHistoricoPagamentos();
-            for (int i = 0; i < total; i++) {
-                if (hist[i] != null) System.out.println("  " + hist[i]);
+            List<Pagamento> hist = e.getHistoricoPagamentos();
+
+            for (Pagamento p : hist) {
+                System.out.println("  " + p);
             }
         }
         Consola.imprimirLinha();

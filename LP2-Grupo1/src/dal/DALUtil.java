@@ -69,6 +69,7 @@ public class DALUtil {
 
     /**
      * Acrescenta uma linha ao final de um ficheiro CSV.
+     * Atualizado para garantir que não cola o registo na mesma linha.
      * @param caminhoCompleto Caminho para o ficheiro destino.
      * @param linha           Linha a adicionar.
      */
@@ -79,13 +80,11 @@ public class DALUtil {
             System.err.println(">> AVISO: Não foi possível criar a pasta " + pastaParente.getPath());
         }
 
-        try (FileWriter fw = new FileWriter(caminhoCompleto, true);
-             BufferedWriter bw = new BufferedWriter(fw);
-             PrintWriter out = new PrintWriter(bw)) {
-            out.println(linha);
-        } catch (IOException e) {
-            System.err.println(">> ERRO: Falha ao adicionar dados em (" + caminhoCompleto + "): " + e.getMessage());
-        }
+        List<String> linhas = lerFicheiro(caminhoCompleto);
+
+        linhas.add(linha);
+
+        reescreverFicheiro(caminhoCompleto, linhas);
     }
 
     /**
