@@ -446,4 +446,12 @@ public class GestorBLL {
         return DocenteDAL.existeSigla(sigla, PASTA_BD);
     }
 
+    public String[] obterListaDepartamentos() {
+        return DepartamentoDAL.obterListaDepartamentos(PASTA_BD);
+    }
+
+    public String[] obterListaDocentes() {
+        return DocenteDAL.obterListaDocentes(PASTA_BD);
+    }
+
 }

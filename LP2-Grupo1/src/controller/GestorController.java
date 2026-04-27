@@ -251,6 +251,10 @@ public class GestorController {
             String siglaUc = view.pedirSiglaUc();
             String nomeUc  = view.pedirNomeUc();
 
+            if (view.perguntarVerListagem("Docentes")) {
+                view.mostrarResultadosListagem(gestorBll.obterListaDocentes());
+            }
+
             String docente;
             do {
                 docente = view.pedirSiglaDocente();
@@ -389,6 +393,10 @@ public class GestorController {
         try {
             String siglaCurso = view.pedirSiglaCurso();
             String nomeCurso = view.pedirNomeCurso();
+
+            if (view.perguntarVerListagem("Departamentos")) {
+                view.mostrarResultadosListagem(gestorBll.obterListaDepartamentos());
+            }
 
             String siglaDep;
             do {

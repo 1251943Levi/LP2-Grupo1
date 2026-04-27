@@ -2,6 +2,7 @@ package dal;
 
 import model.Docente;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -107,4 +108,21 @@ public class DocenteDAL {
         return false;
     }
 
+    /**
+     * Devolve um array "SIGLA - Nome" de todos os docentes.
+     */
+    public static String[] obterListaDocentes(String pastaBase) {
+        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
+        List<String> linhas = DALUtil.lerFicheiro(caminho);
+        List<String> lista = new ArrayList<>();
+
+        for (String linha : linhas) {
+            if (linha.equalsIgnoreCase(CABECALHO)) continue;
+            String[] dados = linha.split(";", -1);
+            if (dados.length >= 3) {
+                lista.add(dados[0].trim() + " - " + dados[2].trim());
+            }
+        }
+        return lista.toArray(new String[0]);
+    }
 }

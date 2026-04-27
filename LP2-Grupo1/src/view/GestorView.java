@@ -254,6 +254,10 @@ public class GestorView {
         Consola.pausar();
     }
 
+    public boolean perguntarVerListagem(String entidade) {
+        return utils.Consola.lerSimNao("Deseja ver a listagem de " + entidade + " disponíveis?");
+    }
+
     // ---------- MENSAGENS ----------
 
     public void mostrarMensagem(String msg)           { System.out.println("  " + msg); }

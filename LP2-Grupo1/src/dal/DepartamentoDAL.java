@@ -2,6 +2,7 @@ package dal;
 
 import model.Departamento;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -47,5 +48,23 @@ public class DepartamentoDAL {
             }
         }
         return null;
+    }
+
+    /**
+     * Devolve um array "SIGLA - Nome" de todos os departamentos.
+     */
+    public static String[] obterListaDepartamentos(String pastaBase) {
+        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
+        List<String> linhas = DALUtil.lerFicheiro(caminho);
+        List<String> lista = new ArrayList<>();
+
+        for (String linha : linhas) {
+            if (linha.equalsIgnoreCase(CABECALHO)) continue;
+            String[] dados = linha.split(";", -1);
+            if (dados.length >= 2) {
+                lista.add(dados[0].trim() + " - " + dados[1].trim());
+            }
+        }
+        return lista.toArray(new String[0]);
     }
 }
