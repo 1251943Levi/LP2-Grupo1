@@ -1,9 +1,10 @@
 package model;
 
 /**
- * Representa o registo histórico e atual de um estudante.
- * Gere as inscrições ativas em Unidades Curriculares e armazena todas
- * as avaliações obtidas ao longo do tempo.
+ * Historial académico de um estudante ao longo da sua vida na instituição.
+ * Mantém as inscrições ativas em unidades curriculares e o arquivo
+ * permanente de avaliações.
+ * Contém a lógica de cálculo do aproveitamento necessário para progressão de ano.
  */
 public class PercursoAcademico {
 
@@ -16,6 +17,9 @@ public class PercursoAcademico {
 
 
     // ---------- CONSTRUTOR ----------
+
+
+    /** Cria um percurso académico vazio. */
     public PercursoAcademico() {
         this.ucsInscrito = new UnidadeCurricular[15];
         this.totalUcsInscrito = 0;
@@ -25,8 +29,9 @@ public class PercursoAcademico {
 
     // ---------- MÉTODOS DE LÓGICA E INTEGRIDADE ----------
 
-    /**
-     * Inscreve o estudante numa Unidade Curricular, garantindo que não há duplicados.
+     /**
+     * Inscreve o estudante numa unidade curricular, ignorando duplicados.
+     * @param uc UC em que o estudante passa a estar inscrito.
      */
     public void inscreverEmUc(UnidadeCurricular uc) {
         for (int i = 0; i < totalUcsInscrito; i++) {
@@ -37,8 +42,11 @@ public class PercursoAcademico {
             totalUcsInscrito++;
         }
     }
+
+
     /**
-     * Regista uma nova avaliação no histórico permanente do estudante.
+     * Adiciona uma avaliação ao historial permanente do estudante.
+     * @param avaliacao Avaliação a arquivar.
      */
     public void registarAvaliacao(Avaliacao avaliacao) {
         if (totalAvaliacoes < historicoAvaliacoes.length) {
@@ -48,13 +56,9 @@ public class PercursoAcademico {
     }
 
     /**
-     * Verifica se o estudante tem aproveitamento suficiente (> 60%) para
-     * transitar de ano letivo.
-     * Regra: para cada UC em que o estudante está inscrito, verifica se
-     * existe pelo menos uma avaliação positiva (>= 9.5) no histórico.
-     * Se a proporção de UCs aprovadas for superior a 60%, o estudante
-     * pode transitar.
-     * @return true se o aproveitamento for estritamente superior a 60%.
+     * Verifica se o estudante tem aproveitamento suficiente para transitar de ano.
+     * A transição requer que pelo menos 60% das UCs inscritas tenham nota positiva.
+     * @return true se a taxa de aprovação for igual ou superior a 60%.
      */
     public boolean temAproveitamentoSuficiente() {
         if (totalUcsInscrito == 0) return false;
@@ -77,8 +81,8 @@ public class PercursoAcademico {
     }
 
     /**
-     * Calcula a percentagem de aproveitamento atual (para apresentação ao utilizador).
-     * @return Valor entre 0.0 e 1.0.
+     * Calcula a percentagem de aproveitamento atual entre 0.0 e 1.0.
+     * @return Rácio de UCs aprovadas face ao total inscrito.
      */
     public double calcularPercentagemAproveitamento() {
         if (totalUcsInscrito == 0) return 0.0;
@@ -100,12 +104,17 @@ public class PercursoAcademico {
     }
 
     /**
-     * Limpa as inscrições do ano corrente (usado na transição de ano letivo).
+     * Remove todas as inscrições ativas, preservando o historial de avaliações.
+     * Chamado na transição de ano antes de carregar as novas inscrições.
      */
     public void limparInscricoesAtivas() {
         this.ucsInscrito      = new UnidadeCurricular[15];
         this.totalUcsInscrito = 0;
     }
 
+    /** @return Array com o historial completo de avaliações do estudante. */
     public Avaliacao[] getHistoricoAvaliacoes() { return historicoAvaliacoes; }
+
+
+    /** @return Número total de avaliações arquivadas. */
     public int         getTotalAvaliacoes()      { return totalAvaliacoes; }}

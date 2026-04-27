@@ -1,20 +1,24 @@
 package bll;
 
+import dal.EstudanteDAL;
 import model.Curso;
 import model.Departamento;
 import dal.CursoDAL;
 import dal.DepartamentoDAL;
 
 /**
- * Lógica de negócio para a gestão de Cursos.
- * Orquestra a hidratação do objeto Curso com o seu Departamento.
+ * Lógica de negócio para a entidade Curso.
+ * Responsável por construir o objeto Curso com o departamento associado,
+ * evitando que os controllers acedam diretamente à DAL.
  */
 public class CursoBLL {
 
     private static final String PASTA_BD = "bd";
 
     /**
-     * Constrói e devolve o objeto Curso completo com base na sua sigla.
+     * Constrói e devolve um objeto Curso completamente preenchido.
+     * @param sigla Sigla do curso a pesquisar.
+     * @return O Curso com departamento associado, ou null se não existir.
      */
     public Curso procurarCursoCompleto(String sigla) {
         String[] dados = CursoDAL.obterDadosBrutosCurso(sigla, PASTA_BD);
@@ -41,5 +45,15 @@ public class CursoBLL {
         }
 
         return curso;
+    }
+
+    /**
+     * Valida se o primeiro ano de um curso pode ser iniciado.
+     * @param siglaCurso Sigla do curso a verificar.
+     * @return true se tiver 5 ou mais alunos
+     */
+    public boolean verificarQuorumPrimeiroAno(String siglaCurso) {
+        int total = dal.EstudanteDAL.contarEstudantesPorCursoEAno(siglaCurso, 1, "bd");
+        return total >= 5;
     }
 }

@@ -11,14 +11,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Classe utilitária para centralizar as operações de Input/Output (I/O).
- * Nenhuma outra camada fora do package 'dal' deve importar java.io.*.
+ * Utilitário de acesso ao sistema de ficheiros CSV.
+ * Centraliza todas as operações de I/O para que nenhuma outra
+ * camada precise de importar java.io diretamente.
  */
 public class DALUtil {
     private DALUtil() {}
 
     /**
-     * Garante que a pasta e o ficheiro existem. Se não, cria-os e insere o cabeçalho.
+     * Garante que o ficheiro CSV existe com o cabeçalho correto.
+     * Se a pasta ou o ficheiro não existirem, são criados.
+     * @param caminhoCompleto Caminho para o ficheiro.
+     * @param cabecalho       Primeira linha a escrever caso o ficheiro seja criado.
      */
     public static void garantirFicheiroECabecalho(String caminhoCompleto, String cabecalho) {
         File ficheiro = new File(caminhoCompleto);
@@ -38,7 +42,9 @@ public class DALUtil {
     }
 
     /**
-     * Lê todas as linhas de um ficheiro CSV, ignorando linhas vazias.
+     * Lê todas as linhas não vazias de um ficheiro CSV.
+     * @param caminhoCompleto Caminho para o ficheiro a ler.
+     * @return Lista de linhas; lista vazia se o ficheiro não existir.
      */
     public static List<String> lerFicheiro(String caminhoCompleto) {
         List<String> linhas = new ArrayList<>();
@@ -62,7 +68,9 @@ public class DALUtil {
     }
 
     /**
-     * Adiciona uma única linha ao final de um ficheiro CSV (Append).
+     * Acrescenta uma linha ao final de um ficheiro CSV.
+     * @param caminhoCompleto Caminho para o ficheiro destino.
+     * @param linha           Linha a adicionar.
      */
     public static void adicionarLinhaCSV(String caminhoCompleto, String linha) {
         File f = new File(caminhoCompleto);
@@ -81,7 +89,10 @@ public class DALUtil {
     }
 
     /**
-     * Reescreve todo o conteúdo de um ficheiro (útil para Updates e Deletes).
+     * Reescreve completamente um ficheiro CSV com o novo conteúdo fornecido.
+     * Usado para operações de atualização e remoção de registos.
+     * @param caminhoCompleto Caminho para o ficheiro a reescrever.
+     * @param linhas          Conteúdo completo que substituirá o ficheiro atual.
      */
     public static void reescreverFicheiro(String caminhoCompleto, List<String> linhas) {
         try (PrintWriter pw = new PrintWriter(new FileWriter(caminhoCompleto, false))) {

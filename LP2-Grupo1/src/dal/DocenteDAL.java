@@ -4,10 +4,20 @@ import model.Docente;
 import java.io.File;
 import java.util.List;
 
+/**
+ * Acesso aos dados de docentes armazenados em docentes.csv.
+ * Formato das colunas: sigla; email; nome; nif; morada; dataNascimento.
+ */
 public class DocenteDAL {
     private static final String NOME_FICHEIRO = "docentes.csv";
     private static final String CABECALHO = "sigla;email;nome;nif;morada;dataNascimento";
 
+
+    /**
+     * Persiste um novo docente no ficheiro CSV.
+     * @param docente   Docente a adicionar.
+     * @param pastaBase Caminho da pasta de dados.
+     */
     public static void adicionarDocente(Docente docente, String pastaBase) {
         String caminho = pastaBase + File.separator + NOME_FICHEIRO;
         DALUtil.garantirFicheiroECabecalho(caminho, CABECALHO);
@@ -18,7 +28,11 @@ public class DocenteDAL {
     }
 
     /**
-     * Usado no Login. Carrega o perfil completo do docente, incluindo as suas UCs.
+     * Carrega o perfil de um docente a partir do seu email.
+     * @param email     Email do docente.
+     * @param hash      Hash PBKDF2 da palavra-chave.
+     * @param pastaBase Caminho da pasta de dados.
+     * @return O Docente encontrado, ou null se não existir.
      */
     public static Docente procurarPorEmail(String email, String hash, String pastaBase) {
         String caminho = pastaBase + File.separator + NOME_FICHEIRO;
@@ -34,9 +48,13 @@ public class DocenteDAL {
         return null;
     }
 
+
     /**
-     * Procura um docente pela sua sigla (Usado ao carregar uma Unidade Curricular).
-     * Nota: Não carrega as UCs novamente para evitar loops infinitos (StackOverflow).
+     * Carrega o perfil básico de um docente a partir da sua sigla.
+     * Não carrega as UCs para evitar dependência circular com UcDAL.
+     * @param sigla     Sigla do docente.
+     * @param pastaBase Caminho da pasta de dados.
+     * @return O Docente encontrado, ou null se não existir.
      */
     public static Docente procurarPorSigla(String sigla, String pastaBase) {
         String caminho = pastaBase + File.separator + NOME_FICHEIRO;
@@ -54,7 +72,9 @@ public class DocenteDAL {
 
     /**
      * Verifica se já existe um docente com a sigla indicada.
-     * Usado pela GestorBLL.gerarSiglaUnica() para garantir unicidade.
+     * @param sigla     Sigla a verificar.
+     * @param pastaBase Caminho da pasta de dados.
+     * @return true se a sigla já estiver em uso.
      */
     public static boolean existeSigla(String sigla, String pastaBase) {
         if (sigla == null || sigla.trim().isEmpty()) return false;
@@ -71,7 +91,9 @@ public class DocenteDAL {
 
     /**
      * Verifica se já existe um docente com o NIF indicado.
-     * Usado pela GestorBLL.isNifDuplicado() antes de registar um novo utilizador.
+     * @param nif       NIF a verificar.
+     * @param pastaBase Caminho da pasta de dados.
+     * @return true se o NIF já estiver registado.
      */
     public static boolean existeNif(String nif, String pastaBase) {
         if (nif == null || nif.trim().isEmpty()) return false;
@@ -84,4 +106,5 @@ public class DocenteDAL {
         }
         return false;
     }
+
 }

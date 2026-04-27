@@ -5,15 +5,19 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Responsável exclusivamente pelo acesso a dados das Credenciais de Acesso.
+ * Acesso aos dados de autenticação armazenados em credenciais.csv.
+ * Cada linha contém o email, o hash PBKDF2 e o tipo de utilizador
+ * (ESTUDANTE, DOCENTE ou GESTOR).
  */
 public class CredencialDAL {
     private static final String NOME_FICHEIRO = "credenciais.csv";
     private static final String CABECALHO = "email;password_hash;tipo";
 
     /**
-     * Retorna um array de Strings com [hashGuardado, tipoUtilizador] se o email existir.
-     * Retorna null se não encontrar.
+     * Obtém as credenciais de um utilizador pelo email.
+     * @param email     Email a pesquisar.
+     * @param pastaBase Caminho da pasta de dados.
+     * @return Array [hash, tipo] se encontrado; null caso contrário.
      */
     public static String[] obterCredenciais(String email, String pastaBase) {
         String caminho = pastaBase + File.separator + NOME_FICHEIRO;
@@ -29,7 +33,11 @@ public class CredencialDAL {
     }
 
     /**
-     * Adiciona uma nova credencial ao ficheiro.
+     * Regista uma nova credencial no ficheiro.
+     * @param email        Email institucional.
+     * @param passwordHash Hash PBKDF2 da palavra-chave.
+     * @param tipo         Tipo de utilizador (ESTUDANTE, DOCENTE ou GESTOR).
+     * @param pastaBase    Caminho da pasta de dados.
      */
     public static void adicionarCredencial(String email, String passwordHash, String tipo, String pastaBase) {
         if (email == null || passwordHash == null) return;
@@ -42,7 +50,10 @@ public class CredencialDAL {
     }
 
     /**
-     * Atualiza a password de um utilizador existente.
+     * Atualiza o hash da palavra-chave de um utilizador existente.
+     * @param email            Email do utilizador a atualizar.
+     * @param novaPasswordHash Novo hash PBKDF2.
+     * @param pastaBase        Caminho da pasta de dados.
      */
     public static void atualizarPassword(String email, String novaPasswordHash, String pastaBase) {
         if (email == null || novaPasswordHash == null) return;

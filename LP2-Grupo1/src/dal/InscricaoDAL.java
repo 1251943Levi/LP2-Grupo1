@@ -5,15 +5,21 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Responsável pelo acesso aos dados do ficheiro inscricoes.csv
+ * Acesso aos dados de inscrições em UCs armazenados em inscricoes.csv.
+ * Formato das colunas: numMec; siglaUC.
+ * Cada linha associa um estudante a uma unidade curricular ativa.
+ * As inscrições refletem as UCs do ano corrente, incluindo UCs
+ * de anos anteriores ainda não aprovadas.
  */
 public class InscricaoDAL {
     private static final String NOME_FICHEIRO = "inscricoes.csv";
     private static final String CABECALHO = "numMec;siglaUC";
 
     /**
-     * Regista a inscrição de um estudante numa Unidade Curricular.
-     * Chamado ao criar um novo estudante ou ao avançar de ano letivo.
+     * Regista a inscrição de um estudante numa unidade curricular.
+     * @param numMec    Número mecanográfico do estudante.
+     * @param siglaUC   Sigla da UC em que o estudante se inscreve.
+     * @param pastaBase Caminho da pasta de dados.
      */
     public static void adicionarInscricao(int numMec, String siglaUC, String pastaBase) {
         if (siglaUC == null || siglaUC.trim().isEmpty()) return;
@@ -23,8 +29,11 @@ public class InscricaoDAL {
     }
 
     /**
-     * Remove a inscrição de um estudante numa UC específica.
-     * Usado ao avançar de ano para limpar UCs aprovadas (não precisam de ser repetidas).
+     * Remove a inscrição de um estudante numa unidade curricular.
+     * Chamado na transição de ano para eliminar inscrições em UCs já aprovadas.
+     * @param numMec    Número mecanográfico do estudante.
+     * @param siglaUC   Sigla da UC a remover.
+     * @param pastaBase Caminho da pasta de dados.
      */
     public static void removerInscricao(int numMec, String siglaUC, String pastaBase) {
         if (siglaUC == null || siglaUC.trim().isEmpty()) return;
@@ -49,7 +58,10 @@ public class InscricaoDAL {
     }
 
     /**
-     * Lê o ficheiro e devolve uma lista apenas com as siglas das UCs do aluno.
+     * Devolve as siglas de todas as UCs em que um estudante está inscrito.
+     * @param numMec    Número mecanográfico do estudante.
+     * @param pastaBase Caminho da pasta de dados.
+     * @return Lista de siglas; vazia se não houver inscrições.
      */
     public static List<String> obterSiglasUcsPorAluno(int numMec, String pastaBase) {
         String caminho = pastaBase + File.separator + NOME_FICHEIRO;

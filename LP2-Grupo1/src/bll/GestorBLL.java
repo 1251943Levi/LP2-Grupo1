@@ -10,22 +10,25 @@ import java.util.List;
 
 
 /**
- * Camada de Lógica de Negócio (Business Logic Layer) para o perfil Gestor.
- * Esta classe centraliza as regras de decisão do sistema, cálculos estatísticos
- * e a orquestração entre os modelos e a persistência em ficheiros CSV.
+ * Lógica de negócio do perfil Gestor.
+ * Centraliza as operações de backoffice: avanço do ano letivo,
+ * registo de utilizadores, gestão de cursos e UCs,
+ * estatísticas e listagem de devedores.
  */
 public class GestorBLL {
 
     private static final String PASTA_BD = "bd";
 
 
-    // --- 1. GESTÃO DE CICLO DE VIDA (ANO LETIVO) ---
-
     /**
-     * Avança o ano letivo aplicando as regras dos enunciados:
-     *  - Quórum mínimo de 5 alunos no 1.º ano.
-     *  - Bloqueio por dívida de propina.
-     *  - Bloqueio por aproveitamento insuficiente.
+     * Avança o ano letivo para todos os estudantes do sistema.
+     * Por cada estudante: bloqueia se houver dívida de propina,
+     * bloqueia se o aproveitamento for inferior a 60%, remove inscrições
+     * em UCs aprovadas, inscreve nas UCs do novo ano e atualiza a propina.
+     * Ao concluir o 3.º ano, marca o estudante como graduado (anoCurricular = 4).
+     * Verifica também o quórum mínimo de 5 alunos no 1.º ano de cada curso.
+     * @param repo Repositório de sessão; o ano letivo é incrementado no final.
+     * @param view Vista do gestor para feedback de cada passo.
      */
     public void avancarAnoLetivo(RepositorioDados repo, GestorView view) {
         view.mostrarCabecalhoArranqueAnoLetivo();
@@ -61,7 +64,7 @@ public class GestorBLL {
 
         for (Estudante e : estudantes) {
             if (e == null) continue;
-            if (e.getAnoCurricular() > 3) continue; // já graduado — excluído do ciclo
+            if (e.getAnoCurricular() > 3) continue;
 
             if (e.getSaldoDevedor() > 0) {
                 view.mostrarBloqueioDivida(
@@ -82,22 +85,19 @@ public class GestorBLL {
                 e.setAnoCurricular(novoAno);
                 e.getPercurso().limparInscricoesAtivas();
 
-                // Remover inscrições de UCs aprovadas — só as chumbadas transitam
                 for (String siglaAprov : obterSiglasUcsAprovadas(e)) {
                     InscricaoDAL.removerInscricao(e.getNumeroMecanografico(), siglaAprov, PASTA_BD);
                 }
-                // Inscrever nas UCs do novo ano
                 for (String siglaUc : UcDAL.obterSiglasUcsPorCursoEAno(e.getSiglaCurso(), novoAno, PASTA_BD)) {
                     InscricaoDAL.adicionarInscricao(e.getNumeroMecanografico(), siglaUc, PASTA_BD);
                 }
-                // Repor propina do novo ano letivo
                 Curso cursoDoEstudante = new CursoBLL().procurarCursoCompleto(e.getSiglaCurso());
                 if (cursoDoEstudante != null) {
                     e.setSaldoDevedor(cursoDoEstudante.getValorPropinaAnual());
                 }
                 view.mostrarTransicaoSucedida(e.getNumeroMecanografico(), novoAno);
             } else {
-                e.setAnoCurricular(4); // marca como graduado — nunca mais processado neste ciclo
+                e.setAnoCurricular(4);
                 view.mostrarConclusaoCurso(e.getNumeroMecanografico());
             }
             EstudanteDAL.atualizarEstudante(e, PASTA_BD);
@@ -107,18 +107,16 @@ public class GestorBLL {
         view.mostrarSucessoAvancoAno(repo.getAnoAtual());
     }
 
-    // --- 2. GESTÃO DE REGISTOS (DOCENTES E ESTUDANTES) ---
-
     /**
      * Regista um novo docente no sistema.
-     * A sigla é gerada automaticamente a partir do nome, garantindo unicidade.
-     * Gera automaticamente o e-mail, password segura e envia as credenciais.
-     *
+     * A sigla é gerada automaticamente a partir das iniciais do nome,
+     * garantindo unicidade. O email e a password são gerados e enviados
+     * ao docente sem visualização na consola.
      * @param nome     Nome completo do docente.
-     * @param nif      Número de Identificação Fiscal.
+     * @param nif      NIF com 9 dígitos.
      * @param morada   Morada de residência.
      * @param dataNasc Data de nascimento (DD-MM-AAAA).
-     * @return String[] com [0] = e-mail institucional, [1] = sigla gerada.
+     * @return Array [email, sigla] com as credenciais atribuídas.
      */
     public String[] registarDocente(String nome, String nif, String morada, String dataNasc) {
         String sigla    = gerarSiglaUnica(nome);
@@ -132,46 +130,16 @@ public class GestorBLL {
     }
 
     /**
-     * Gera uma sigla de 3 caracteres única a partir do nome do docente.
-     * Algoritmo: iniciais das primeiras 3 palavras do nome.
-     * Em caso de colisão, substitui o último caractere por um dígito (1..99).
-     */
-    private String gerarSiglaUnica(String nome) {
-        String[] partes = nome.trim().toUpperCase().replaceAll("[^A-Z ]", "").split("\\s+");
-        StringBuilder base = new StringBuilder();
-
-        for (int i = 0; i < Math.min(3, partes.length); i++) {
-            if (!partes[i].isEmpty()) base.append(partes[i].charAt(0));
-        }
-        // preencher até 3 caracteres com letras do primeiro nome
-        int idx = 1;
-        while (base.length() < 3 && partes.length > 0 && idx < partes[0].length()) {
-            base.append(partes[0].charAt(idx++));
-        }
-        while (base.length() < 3) base.append('X');
-
-        String candidata = base.toString().substring(0, 3);
-        if (!DocenteDAL.existeSigla(candidata, PASTA_BD)) return candidata;
-
-        // colisão: substituir último char por dígito
-        for (int n = 1; n <= 99; n++) {
-            String tentativa = candidata.substring(0, 2) + n;
-            if (!DocenteDAL.existeSigla(tentativa, PASTA_BD)) return tentativa;
-        }
-        return candidata; // fallback improvável
-    }
-
-
-    /**
-     * Regista um novo estudante e associa o valor da propina anual ao seu saldo devedor.
-     * * @param numMec       Número mecanográfico gerado.
+     * Regista um novo estudante no sistema.
+     * Gera número mecanográfico, email e password; cria a propina inicial;
+     * inscreve nas UCs do 1.º ano; envia as credenciais por email.
      * @param nome         Nome completo.
-     * @param nif          NIF validado.
-     * @param morada       Morada.
-     * @param dataNasc     Data de nascimento.
-     * @param siglaCurso   Sigla do curso onde se matricula.
+     * @param nif          NIF com 9 dígitos.
+     * @param morada       Morada de residência.
+     * @param dataNasc     Data de nascimento (DD-MM-AAAA).
+     * @param siglaCurso   Sigla do curso.
      * @param anoInscricao Ano letivo da matrícula.
-     * @return O e-mail institucional gerado.
+     * @return Email institucional gerado.
      */
     public String registarEstudante(String nome, String nif, String morada,
                                     String dataNasc, String siglaCurso, int anoInscricao) {
@@ -185,36 +153,33 @@ public class GestorBLL {
         if (curso != null) novo.setSaldoDevedor(curso.getValorPropinaAnual());
         EstudanteDAL.adicionarEstudante(novo, siglaCurso, PASTA_BD);
         CredencialDAL.adicionarCredencial(email, passHash, "ESTUDANTE", PASTA_BD);
-        // Inscrever automaticamente nas UCs do 1.º ano do curso
+
         for (String siglaUc : UcDAL.obterSiglasUcsPorCursoEAno(siglaCurso, 1, PASTA_BD)) {
             InscricaoDAL.adicionarInscricao(numMec, siglaUc, PASTA_BD);
         }
         return email;
     }
 
-    // --- 3. ESTATÍSTICAS ---
-
     /**
-     * Devolve os dados brutos da média global: [0] = soma, [1] = total de notas.
-     * Delega o cálculo em Estatisticas.calcularDadosMediaGlobal().
+     * Regista um novo departamento no sistema.
+     * @param sigla Sigla do departamento.
+     * @param nome  Nome completo.
      */
-    public double[] calcularEstatisticasGlobais() {
-        return Estatisticas.calcularDadosMediaGlobal();
+    public void registarDepartamento(String sigla, String nome) {
+        Departamento dep = new Departamento(sigla.toUpperCase(), nome);
+        DepartamentoDAL.adicionarDepartamento(dep, PASTA_BD);
     }
 
-    /**
-     * Devolve o melhor aluno: [0] = Estudante, [1] = Double (média).
-     * Delega o cálculo em Estatisticas.calcularMelhorAluno().
-     */
-    public Object[] obterMelhorAluno() {
-        return Estatisticas.calcularMelhorAluno();
-    }
-
-    // --- 4. GESTÃO DE ENTIDADES (UCs E CURSOS) ---
+    // ─────────────────────────── CURSOS E UCs ──────────────────────────
 
     /**
-     * Adiciona uma nova Unidade Curricular verificando o limite de UCs por curso/ano.
-     * * @return true se a UC foi adicionada com sucesso.
+     * Adiciona uma nova UC a um curso, respeitando o limite de 5 UCs por ano.
+     * @param siglaCurso   Sigla do curso.
+     * @param anoUc        Ano curricular da UC (1, 2 ou 3).
+     * @param siglaUc      Sigla da nova UC.
+     * @param nomeUc       Nome completo.
+     * @param siglaDocente Sigla do docente responsável.
+     * @return true se a UC foi adicionada; false se o limite foi atingido.
      */
     public boolean adicionarUc(String siglaCurso, int anoUc, String siglaUc,
                                String nomeUc, String siglaDocente) {
@@ -225,7 +190,8 @@ public class GestorBLL {
     }
 
     /**
-     * Edita uma UC removendo o registo antigo e inserindo um novo.
+     * Edita uma UC existente substituindo o registo antigo pelo novo.
+     * @return true se a edição foi bem-sucedida.
      */
     public boolean editarUc(String siglaAntiga, String novaSigla, String nome,
                             String ano, String siglaDocente, String siglaCurso) {
@@ -239,9 +205,21 @@ public class GestorBLL {
     }
 
     /**
-     * Cria um novo curso no sistema com estado inicial "Inativo".
+     * Remove uma UC pela sua sigla.
+     * @return true se a UC existia e foi removida.
      */
+    public boolean removerUc(String siglaUc) {
+        return UcDAL.removerUC(siglaUc, PASTA_BD);
+    }
 
+
+    /**
+     * Cria um novo curso no estado "Inativo".
+     * @param sigla    Sigla identificadora.
+     * @param nome     Nome completo.
+     * @param siglaDep Sigla do departamento.
+     * @param propina  Valor da propina anual em euros.
+     */
     public void adicionarCurso(String sigla, String nome, String siglaDep, double propina) {
         Departamento dep = DepartamentoDAL.procurarDepartamento(siglaDep, PASTA_BD);
         Curso c = new Curso(sigla, nome, dep, propina);
@@ -249,14 +227,11 @@ public class GestorBLL {
         CursoDAL.adicionarCurso(c, PASTA_BD);
     }
 
-    public boolean removerUc(String siglaUc) {
-        return UcDAL.removerUC(siglaUc, PASTA_BD);
-    }
-
     /**
-     * Verifica se um curso pode ser alterado/removido.
-     * Um curso NÃO pode ser alterado quando tem estudantes OU docentes (UCs) alocados.
-     * Regra do enunciado v1.0, pág. 2.
+     * Verifica se um curso pode ser editado ou removido.
+     * Um curso não pode ser alterado enquanto tiver estudantes ou UCs alocadas.
+     * @param sigla Sigla do curso a verificar.
+     * @return true se o curso não tiver alocações.
      */
     public boolean isCursoAlteravel(String sigla) {
         int totalAlunos =
@@ -272,7 +247,7 @@ public class GestorBLL {
 
     /**
      * Edita o nome, departamento e propina de um curso sem alocações.
-     * @return false se o curso tem estudantes ou docentes alocados.
+     * @return false se o curso tiver alocações ou não existir.
      */
     public boolean editarCurso(String sigla, String novoNome, String siglaDep, double novaPropina) {
         if (!isCursoAlteravel(sigla)) return false;
@@ -287,24 +262,173 @@ public class GestorBLL {
 
     /**
      * Remove um curso sem alocações.
-     * @return false se o curso tem estudantes ou docentes alocados.
+     * @return false se o curso tiver alocações.
      */
     public boolean removerCurso(String sigla) {
         if (!isCursoAlteravel(sigla)) return false;
         return CursoDAL.removerCurso(sigla, PASTA_BD);
     }
 
+
     /**
-     * Devolve a listagem formatada das UCs de um curso agrupadas por ano.
-     * Mantém a camada Controller isolada da DAL (regra MVC).
+     * Devolve o plano de estudos de um curso agrupado por ano curricular.
+     * @param siglaCurso Sigla do curso.
+     * @return String formatada com as UCs por ano.
      */
     public String listarUcsPorCurso(String siglaCurso) {
         return UcDAL.listarUcsPorCurso(siglaCurso, PASTA_BD);
     }
 
+
+    // ─────────────────────────── ESTATÍSTICAS ──────────────────────────
+
     /**
-     * Helper privado: devolve as siglas das UCs em que o estudante já obteve aprovação.
-     * Usado ao avançar de ano para remover essas inscrições do CSV.
+     * Calcula a soma total de notas e o número de momentos lançados.
+     * @return Array [soma, total] para calcular a média global.
+     */
+    public double[] calcularEstatisticasGlobais() {
+        return Estatisticas.calcularDadosMediaGlobal();
+    }
+
+    /**
+     * Devolve o estudante com melhor média global.
+     * @return Array [Estudante, Double] com o melhor aluno e a sua média.
+     */
+    public Object[] obterMelhorAluno() {
+        return Estatisticas.calcularMelhorAluno();
+    }
+
+    // ─────────────────────────── LISTAGENS ─────────────────────────────
+
+
+    /** @return Array "SIGLA - Nome" de todos os cursos. */
+    public String[] obterListaCursos() {
+        return CursoDAL.obterListaCursos(PASTA_BD);
+    }
+
+    /** @return Array "SIGLA - Nome" de todas as UCs. */
+    public String[] listarTodasUcs()    { return UcDAL.obterListaUcs(PASTA_BD); }
+
+    /** @return Array "SIGLA - Nome" de todos os cursos. */
+    public String[] listarTodosCursos() { return CursoDAL.obterListaCursos(PASTA_BD); }
+
+    /**
+     * Devolve os estudantes com saldo devedor positivo.
+     * @return Lista de estudantes com dívida de propina.
+     */
+    public List<Estudante> obterListaDevedores() {
+        List<Estudante> devedores = new ArrayList<>();
+        for (Estudante e : EstudanteDAL.carregarTodos(PASTA_BD))
+            if (e != null && e.getSaldoDevedor() > 0) devedores.add(e);
+        return devedores;
+    }
+
+
+    // ─────────────────────── SEGURANÇA E VALIDAÇÃO ─────────────────────
+
+
+    /**
+     * Altera a password do gestor com hashing e persistência.
+     * @param gestor   Gestor autenticado.
+     * @param novaPass Nova password em texto limpo.
+     */
+    public void alterarPasswordGestor(Gestor gestor, String novaPass) {
+        String hash = SegurancaPasswords.gerarCredencialMista(novaPass);
+        gestor.setPassword(hash);
+        CredencialDAL.atualizarPassword(gestor.getEmail(), hash, PASTA_BD);
+    }
+
+    /**
+     * Verifica se um NIF já está registado em estudantes ou docentes.
+     * @param nif NIF a verificar.
+     * @return true se o NIF já existir.
+     */
+    public boolean isNifDuplicado(String nif) {
+        return EstudanteDAL.existeNif(nif, PASTA_BD) || DocenteDAL.existeNif(nif, PASTA_BD);
+    }
+
+    /**
+     * Verifica se já existe um departamento com a sigla fornecida.
+     * @param sigla Sigla a verificar.
+     * @return true se o departamento já existir.
+     */
+    public boolean isDepartamentoDuplicado(String sigla) {
+        return DepartamentoDAL.procurarDepartamento(sigla, PASTA_BD) != null;
+    }
+
+    /**
+     * Gera uma sigla de exatamente 3 letras única para um docente.
+     * * Passo 1: Extrai as iniciais das primeiras 3 palavras do nome (ex: Ana Sofia Gomes -> ASG).
+     * Passo 2: Em caso de colisão, mantém as duas primeiras letras e itera a 3ª letra
+     * usando as restantes letras do nome do docente (ex: ASG -> ASO -> ASF...).
+     * Passo 3: Se as letras do nome se esgotarem, tenta usar qualquer letra do alfabeto (A-Z).
+     * Passo 4: Em último recurso extremo, combina o alfabeto na 2ª e 3ª posições.
+     *
+     * @param nome O nome completo inserido pelo utilizador.
+     * @return Uma sigla única de 3 letras maiúsculas (ex: "ASG" ou "ASO").
+     */
+    private String gerarSiglaUnica(String nome) {
+        String nomeLimpo = nome.trim().toUpperCase().replaceAll("[^A-Z ]", "");
+        String[] palavras = nomeLimpo.split("\\s+");
+        StringBuilder base = new StringBuilder();
+
+        for (int i = 0; i < Math.min(3, palavras.length); i++) {
+            if (!palavras[i].isEmpty()) {
+                base.append(palavras[i].charAt(0));
+            }
+        }
+
+        int idx = 1;
+        while (base.length() < 3 && palavras.length > 0 && idx < palavras[0].length()) {
+            base.append(palavras[0].charAt(idx++));
+        }
+
+        while (base.length() < 3) {
+            base.append('X');
+        }
+
+        String candidata = base.toString().substring(0, 3);
+
+        if (!DocenteDAL.existeSigla(candidata, PASTA_BD)) {
+            return candidata;
+        }
+
+        String prefixo = candidata.substring(0, 2);
+        String todasLetrasDoNome = nomeLimpo.replace(" ", "");
+
+        for (int i = 0; i < todasLetrasDoNome.length(); i++) {
+            String tentativa = prefixo + todasLetrasDoNome.charAt(i);
+            if (!tentativa.equals(candidata) && !DocenteDAL.existeSigla(tentativa, PASTA_BD)) {
+                return tentativa;
+            }
+        }
+
+        for (char c = 'A'; c <= 'Z'; c++) {
+            String tentativa = prefixo + c;
+            if (!DocenteDAL.existeSigla(tentativa, PASTA_BD)) {
+                return tentativa;
+            }
+        }
+
+        String primeiraLetra = candidata.substring(0, 1);
+        for (char c2 = 'A'; c2 <= 'Z'; c2++) {
+            for (char c3 = 'A'; c3 <= 'Z'; c3++) {
+                String tentativa = primeiraLetra + c2 + c3;
+                if (!DocenteDAL.existeSigla(tentativa, PASTA_BD)) {
+                    return tentativa;
+                }
+            }
+        }
+
+        return candidata;
+    }
+
+
+    /**
+     * Devolve as siglas das UCs em que o estudante já obteve aprovação.
+     * Usado na transição de ano para remover essas inscrições do ficheiro.
+     * @param e Estudante com percurso académico carregado.
+     * @return Lista de siglas de UCs aprovadas.
      */
     private List<String> obterSiglasUcsAprovadas(Estudante e) {
         List<String> aprovadas = new ArrayList<>();
@@ -318,48 +442,4 @@ public class GestorBLL {
         return aprovadas;
     }
 
-    /** Devolve array "SIGLA - Nome" de todos os cursos (para menus de seleção). */
-    public String[] obterListaCursos() {
-        return CursoDAL.obterListaCursos(PASTA_BD);
-    }
-
-    public String[] listarTodasUcs()    { return UcDAL.obterListaUcs(PASTA_BD); }
-    public String[] listarTodosCursos() { return CursoDAL.obterListaCursos(PASTA_BD); }
-
-    public List<Estudante> obterListaDevedores() {
-        List<Estudante> devedores = new ArrayList<>();
-        for (Estudante e : EstudanteDAL.carregarTodos(PASTA_BD))
-            if (e != null && e.getSaldoDevedor() > 0) devedores.add(e);
-        return devedores;
-    }
-
-    /**
-     * Altera a password de um gestor, aplicando hashing e atualizando o ficheiro de credenciais.
-     */
-    public void alterarPasswordGestor(Gestor gestor, String novaPass) {
-        String hash = SegurancaPasswords.gerarCredencialMista(novaPass);
-        gestor.setPassword(hash);
-        CredencialDAL.atualizarPassword(gestor.getEmail(), hash, PASTA_BD);
-    }
-
-    public boolean isNifDuplicado(String nif) {
-        return EstudanteDAL.existeNif(nif, PASTA_BD) || DocenteDAL.existeNif(nif, PASTA_BD);
-    }
-
-    /**
-     * Verifica se já existe um departamento com a sigla fornecida.
-     */
-    public boolean isDepartamentoDuplicado(String sigla) {
-        return DepartamentoDAL.procurarDepartamento(sigla, PASTA_BD) != null;
-    }
-
-    /**
-     * Regista um novo departamento no sistema.
-     * @param sigla Sigla do departamento (ex: "DEIS").
-     * @param nome  Nome completo do departamento.
-     */
-    public void registarDepartamento(String sigla, String nome) {
-        Departamento dep = new Departamento(sigla.toUpperCase(), nome);
-        DepartamentoDAL.adicionarDepartamento(dep, PASTA_BD);
-    }
 }
