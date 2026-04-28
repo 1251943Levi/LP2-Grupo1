@@ -1,18 +1,20 @@
 package controller;
 
 import model.*;
+import utils.Consola;
 import view.DocenteView;
 import bll.DocenteBLL;
 import utils.CancelamentoException;
+
+import java.util.ArrayList;
 import java.util.List;
+import dal.InscricaoDAL;
+import dal.EstudanteDAL;
+import model.Estudante;
 
 /**
  * Controlador responsável por gerir as interações do Docente.
  * Atua como intermediário entre a interface (DocenteView) e a lógica de negócio (DocenteBLL).
- *
- * Regras MVC respeitadas:
- *   - NÃO acede a qualquer DAL diretamente.
- *   - NÃO referencia ImportadorCSV nem ExportadorCSV.
  */
 public class DocenteController {
 
@@ -34,11 +36,12 @@ public class DocenteController {
             try {
                 int opcao = view.mostrarMenu();
                 switch (opcao) {
-                    case 1: listarMeusAlunos();          break;
-                    case 2: executarLancamentoNotas();   break;
-                    case 3: alterarPassword();           break;
-                    case 4: verDadosPessoais();          break;
-                    case 5: verMinhasUcs();              break;
+                    case 1: listarMeusAlunos(); break;
+                    case 2: executarLancamentoNotas(); break;
+                    case 3: executarLancamentoNotasLote(); break;
+                    case 4: alterarPassword(); break;
+                    case 5: verDadosPessoais(); break;
+                    case 6: verMinhasUcs(); break;
                     case 0:
                         view.mostrarDespedida();
                         repo.limparSessao();
@@ -87,8 +90,8 @@ public class DocenteController {
     }
 
     /**
-     * Fluxo de recolha de notas e envio para a DocenteBLL processar o registo.
-     * Inclui validação de UC, duplicados e pertença ao docente.
+     * Fluxo de recolha de uma única nota e envio para a DocenteBLL processar o registo.
+     * Inclui validação de UC, limites de 3 avaliações e pertença ao docente.
      */
     private void executarLancamentoNotas() {
         view.mostrarCabecalhoLancamentoNotas();
@@ -96,16 +99,17 @@ public class DocenteController {
             int numMec     = view.pedirNumeroAluno();
             String siglaUc = view.pedirSiglaUc();
             int ano        = view.pedirAnoLetivo();
-            double n1      = view.pedirNotaNormal();
-            double n2      = view.pedirNotaRecurso();
-            double n3      = view.pedirNotaEspecial();
 
-            String erro = docenteBll.lancarNota(numMec, siglaUc, ano, n1, n2, n3, docente);
-            if (erro == null) {
-                view.mostrarSucessoLancamento();
+            double notaMomento = view.pedirNotaMomento();
+
+            String erro = docenteBll.lancarNota(numMec, siglaUc, ano, notaMomento, docente);
+
+            if (erro != null) {
+                System.out.println("  >> " + erro);
             } else {
-                System.out.println(">> " + erro);
+                view.mostrarSucessoLancamento();
             }
+
         } catch (CancelamentoException e) {
             view.mostrarOperacaoCancelada();
         } catch (Exception e) {
@@ -122,4 +126,49 @@ public class DocenteController {
             view.mostrarCancelamentoPassword();
         }
     }
+
+    private void executarLancamentoNotasLote() {
+        view.mostrarCabecalhoLancamentoNotasLote();
+        try {
+            String siglaUc = view.pedirSiglaUc();
+            if (!docenteBll.lecionaEstaUC(docente, siglaUc)) {
+                view.mostrarErro("Não lecciona a UC " + siglaUc);
+                return;
+            }
+            List<String> alunos = docenteBll.obterAlunosInscritosNaUc(siglaUc);
+            if (alunos.isEmpty()) {
+                view.mostrarErro("Nenhum aluno inscrito nesta UC.");
+                return;
+            }
+            view.mostrarListaAlunosParaLote(siglaUc, alunos);
+            if (!Consola.lerSimNao("Iniciar lançamento sequencial de notas para esta UC?")) {
+                view.mostrarOperacaoCancelada();
+                return;
+            }
+            int anoLetivo = view.pedirAnoLetivo();
+
+            // Função que pergunta a nota para cada aluno
+            java.util.function.Function<Integer, Double> obterNota = (numMec) -> {
+                Estudante e = EstudanteDAL.procurarPorNumMec(numMec, "bd");
+                String nome = (e != null) ? e.getNome() : "Desconhecido";
+                view.mostrarPedidoNotaParaAluno(numMec, nome);
+                try {
+                    double nota = view.pedirNotaMomento();
+                    return nota;
+                } catch (CancelamentoException ex) {
+                    return null; // indica salto
+                }
+            };
+
+            String resultado = docenteBll.lancarNotasEmLote(siglaUc, anoLetivo, docente, obterNota);
+            view.mostrarResultadoLote(resultado);
+        } catch (CancelamentoException e) {
+            view.mostrarOperacaoCancelada();
+        } catch (Exception e) {
+            e.printStackTrace();
+            view.mostrarErroLeituraOpcao();
+        }
+    }
+
+
 }

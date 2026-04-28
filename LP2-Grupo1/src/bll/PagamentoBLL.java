@@ -9,13 +9,9 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
 /**
- * Lógica de negócio financeira.
- * Valida, processa e regista pagamentos de propinas (total ou parcial).
- *
- * Enunciado v1.1:
- *  - Propina pode ser paga de forma total ou parcial.
- *  - Estudante tem acesso ao valor em débito e ao histórico de pagamentos.
- *  - Só pode transitar/concluir se a propina estiver totalmente paga.
+ * Lógica de negócio financeira do sistema.
+ * Processa pagamentos de propinas totais ou parciais e garante
+ * a consistência entre o saldo em memória e a persistência em ficheiro.
  */
 public class PagamentoBLL {
 
@@ -24,13 +20,12 @@ public class PagamentoBLL {
 
 
     /**
-     * Processa um pagamento total ou parcial de propina.
-     * Se válido: deduz o valor do saldo, regista no histórico em memória
-     * e persiste em estudantes.csv e pagamentos.csv.
-     *
-     * @param estudante O estudante que efetua o pagamento.
-     * @param valor     Valor a pagar (> 0 e <= saldo devedor).
-     * @return true se o pagamento foi processado com sucesso; false se o valor for inválido.
+     * Processa um pagamento de propina total ou parcial.
+     * Deduz o montante do saldo do estudante, regista o pagamento
+     * em memória e persiste em estudantes.csv e pagamentos.csv.
+     * @param estudante Estudante que efetua o pagamento.
+     * @param valor     Montante a pagar; deve ser positivo e não exceder o saldo.
+     * @return true se o pagamento foi processado com sucesso.
      */
     public boolean processarPagamento(Estudante estudante, double valor) {
         if (valor <= 0 || valor > estudante.getSaldoDevedor()) {

@@ -6,12 +6,22 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Responsável pelas operações de CRUD exclusivas do ficheiro estudantes.csv.
+ * Acesso aos dados de estudantes armazenados em estudantes.csv.
+ * Formato das colunas: numMec; email; nome; nif; morada; dataNascimento;
+ * anoInscricao; siglaCurso; saldoDevedor; anoCurricular.
+ * Um valor de anoCurricular superior a 3 indica que o estudante concluiu o curso.
  */
 public class EstudanteDAL {
     private static final String NOME_FICHEIRO = "estudantes.csv";
     private static final String CABECALHO = "numMec;email;nome;nif;morada;dataNascimento;anoInscricao;siglaCurso;saldoDevedor;anoCurricular";
 
+
+    /**
+     * Persiste um novo estudante no ficheiro CSV.
+     * @param estudante  Estudante a adicionar.
+     * @param siglaCurso Sigla do curso em que o estudante se matricula.
+     * @param pastaBase  Caminho da pasta de dados.
+     */
     public static void adicionarEstudante(Estudante estudante, String siglaCurso, String pastaBase) {
         String caminho = pastaBase + File.separator + NOME_FICHEIRO;
         DALUtil.garantirFicheiroECabecalho(caminho, CABECALHO);
@@ -24,6 +34,12 @@ public class EstudanteDAL {
         DALUtil.adicionarLinhaCSV(caminho, linha);
     }
 
+
+    /**
+     * Atualiza o registo de um estudante existente.
+     * @param estudante Estudante com os dados atualizados.
+     * @param pastaBase Caminho da pasta de dados.
+     */
     public static void atualizarEstudante(Estudante estudante, String pastaBase) {
         String caminho = pastaBase + File.separator + NOME_FICHEIRO;
         List<String> linhasAntigas = DALUtil.lerFicheiro(caminho);
@@ -58,7 +74,11 @@ public class EstudanteDAL {
 
 
     /**
-     * Substitui o carregarPerfilEstudante do ImportadorCSV.
+     * Carrega o perfil completo de um estudante pelo email, usado no login.
+     * @param email     Email do estudante.
+     * @param hash      Hash PBKDF2 da palavra-chave.
+     * @param pastaBase Caminho da pasta de dados.
+     * @return O Estudante encontrado, ou null se não existir.
      */
     public static Estudante carregarPerfil(String email, String hash, String pastaBase) {
         String caminho = pastaBase + File.separator + NOME_FICHEIRO;
@@ -85,6 +105,12 @@ public class EstudanteDAL {
         return null;
     }
 
+    /**
+     * Procura um estudante pelo número mecanográfico.
+     * @param numMec    Número mecanográfico a pesquisar.
+     * @param pastaBase Caminho da pasta de dados.
+     * @return O Estudante encontrado, ou null se não existir.
+     */
     public static Estudante procurarPorNumMec(int numMec, String pastaBase) {
         String caminho = pastaBase + File.separator + NOME_FICHEIRO;
         List<String> linhas = DALUtil.lerFicheiro(caminho);
@@ -113,8 +139,9 @@ public class EstudanteDAL {
     }
 
     /**
-     * Carrega todos os estudantes com os dados básicos do CSV (sem percurso académico).
-     * Usado pela GestorBLL para estatísticas, devedores e avanço de ano letivo.
+     * Carrega todos os estudantes com dados básicos.
+     * @param pastaBase Caminho da pasta de dados.
+     * @return Lista de estudantes.
      */
     public static List<Estudante> carregarTodos(String pastaBase) {
         String caminho = pastaBase + File.separator + NOME_FICHEIRO;
@@ -148,6 +175,13 @@ public class EstudanteDAL {
     }
 
 
+    /**
+     * Conta os estudantes de um curso num dado ano curricular.
+     * @param siglaCurso    Sigla do curso.
+     * @param anoCurricular Ano a contar (1, 2 ou 3).
+     * @param pastaBase     Caminho da pasta de dados.
+     * @return Número de estudantes encontrados.
+     */
     public static int contarEstudantesPorCursoEAno(String siglaCurso, int anoCurricular, String pastaBase) {
         String caminho = pastaBase + File.separator + NOME_FICHEIRO;
         List<String> linhas = DALUtil.lerFicheiro(caminho);
@@ -164,6 +198,13 @@ public class EstudanteDAL {
         return contagem;
     }
 
+    /**
+     * Calcula o próximo número mecanográfico disponível para o ano fornecido.
+     * O formato é AAAA####, onde AAAA é o ano e #### é um sufixo sequencial.
+     * @param pastaBase Caminho da pasta de dados.
+     * @param anoAtual  Ano letivo atual.
+     * @return Próximo número mecanográfico disponível.
+     */
     public static int obterProximoNumeroMecanografico(String pastaBase, int anoAtual) {
         String caminho = pastaBase + File.separator + NOME_FICHEIRO;
         List<String> linhas = DALUtil.lerFicheiro(caminho);
@@ -186,7 +227,9 @@ public class EstudanteDAL {
 
     /**
      * Verifica se já existe um estudante com o NIF indicado.
-     * Usado pela GestorBLL.isNifDuplicado() antes de registar um novo utilizador.
+     * @param nif       NIF a verificar.
+     * @param pastaBase Caminho da pasta de dados.
+     * @return true se o NIF já estiver registado.
      */
     public static boolean existeNif(String nif, String pastaBase) {
         if (nif == null || nif.trim().isEmpty()) return false;

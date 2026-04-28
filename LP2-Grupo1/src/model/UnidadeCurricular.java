@@ -1,8 +1,14 @@
 package model;
 
+
+/**
+ * Representa uma Unidade Curricular do sistema.
+ * Uma UC pode pertencer a vários cursos em simultâneo.
+ * Todas as UCs partilham o mesmo valor de ECTS definido por ECTS_PADRAO.
+ */
 public class UnidadeCurricular {
 
-    /** Valor de ECTS comum a todas as UCs do ISSMF (enunciado v1.0, pág. 2). */
+    /** Valor de créditos ECTS atribuído a todas as unidades curriculares. */
     public static final int ECTS_PADRAO = 6;
 
     // ---------- ATRIBUTOS ----------
@@ -15,7 +21,15 @@ public class UnidadeCurricular {
     private final Curso[] cursos;
     private int totalCursos;
 
-    /** Construtor completo — usado pela DAL ao carregar UCs com ECTS persistido. */
+
+    /**
+     * Cria uma UC com ECTS explícito.
+     * @param sigla              Sigla identificadora (ex.: "POO").
+     * @param nome               Nome completo da UC.
+     * @param anoCurricular      Ano do plano de estudos em que é lecionada (1, 2 ou 3).
+     * @param docenteResponsavel Docente responsável pela UC.
+     * @param ects               Número de créditos ECTS atribuídos.
+     */
     public UnidadeCurricular(String sigla, String nome, int anoCurricular,
                              Docente docenteResponsavel, int ects) {
         this.sigla              = sigla;
@@ -27,32 +41,59 @@ public class UnidadeCurricular {
         this.totalCursos        = 0;
     }
 
-    /** Construtor de conveniência — aplica o valor padrão de ECTS. */
+
+    /**
+     * Cria uma UC com o valor padrão de ECTS.
+     * @param sigla              Sigla identificadora.
+     * @param nome               Nome completo.
+     * @param anoCurricular      Ano curricular (1, 2 ou 3).
+     * @param docenteResponsavel Docente responsável.
+     */
     public UnidadeCurricular(String sigla, String nome, int anoCurricular,
                              Docente docenteResponsavel) {
         this(sigla, nome, anoCurricular, docenteResponsavel, ECTS_PADRAO);
     }
 
     // ---------- GETTERS ----------
-    public String  getSigla()              { return sigla; }
-    public String  getNome()               { return nome; }
-    public int     getAnoCurricular()      { return anoCurricular; }
-    public int     getEcts()               { return ects; }
-    public Docente getDocenteResponsavel() { return docenteResponsavel; }
-    public Curso[] getCursos()             { return cursos; }
+
+    /** @return Sigla da UC. */
+    public String getSigla(){ return sigla; }
+
+    /** @return Nome completo da UC. */
+    public String getNome(){ return nome; }
+
+    /** @return Ano curricular em que a UC é lecionada. */
+    public int getAnoCurricular(){ return anoCurricular; }
+
+    /** @return Créditos ECTS atribuídos. */
+    public int getEcts(){ return ects; }
+
+    /** @return Docente responsável pela UC. */
+    public Docente getDocenteResponsavel(){ return docenteResponsavel; }
+
+    /** @return Array dos cursos aos quais a UC está associada. */
+    public Curso[] getCursos(){ return cursos; }
 
     // ---------- SETTERS ----------
+
+    /** @param sigla Nova sigla. */
     public void setSigla(String sigla)              { this.sigla = sigla; }
+
+    /** @param nome Novo nome. */
     public void setNome(String nome)                { this.nome = nome; }
+
+    /** @param anoCurricular Novo ano curricular. */
     public void setAnoCurricular(int anoCurricular) { this.anoCurricular = anoCurricular; }
+
+    /** @param ects Novo valor de ECTS. */
     public void setEcts(int ects)                   { this.ects = ects; }
 
     // ---------- MÉTODOS DE LÓGICA E AÇÃO ----------
 
     /**
-     * Regista esta Unidade Curricular como pertencente a um dado Curso.
-     * * @param curso O Curso ao qual a UC passa a estar associada.
-     * @return true se a associação for bem sucedida, false se o limite de cursos for atingido.
+     * Associa esta UC a um curso adicional.
+     * @param curso Curso a associar.
+     * @return true se a associação foi registada; false se o limite foi atingido.
      */
     public boolean adicionarCurso(Curso curso) {
         if (totalCursos < cursos.length) {

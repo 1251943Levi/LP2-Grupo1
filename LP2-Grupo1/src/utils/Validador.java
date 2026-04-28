@@ -5,21 +5,28 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 
 /**
- * Centraliza as regras de validação de dados de entrada do sistema.
+ * Centraliza as regras de validação de dados introduzidos pelo utilizador.
+ * Todos os métodos são estáticos e devolvem apenas um booleano.
  */
 public class Validador {
 
     private Validador() {}
 
     /**
-     * @return nif válido
+     * Valida o formato de um NIF português.
+     * Aceita NIFs com 9 dígitos cujo primeiro algarismo seja 1, 2, 3, 5, 6, 7, 8 ou 9.
+     * @param nif NIF a validar.
+     * @return true se o formato for válido.
      */
     public static boolean validarNif(String nif) {
         return nif != null && nif.matches("[12356789]\\d{8}");
     }
+
     /**
-     * Verifica se um endereço de e-mail pertence a um domínio institucional
-     * reconhecido pelo sistema e tem a estrutura correta (utilizador@dominio).
+     * Verifica se um email pertence a um domínio institucional reconhecido.
+     * Domínios aceites: @issmf.ipp.pt, @isep.ipp.pt e admin@issmf.pt.
+     * @param email Endereço a verificar.
+     * @return true se o email pertencer a um domínio válido.
      */
     public static boolean isEmailInstitucionalValido(String email) {
         if (email == null || email.trim().isEmpty()) return false;
@@ -36,7 +43,10 @@ public class Validador {
     }
 
     /**
-     * Valida se o e-mail introduzido no login pertence estritamente à instituição.
+     * Valida o email introduzido no formulário de login.
+     * Requer estritamente o domínio @issmf.ipp.pt.
+     * @param email Email introduzido.
+     * @return true se o email terminar com @issmf.ipp.pt.
      */
     public static boolean validarSufixoLogin(String email) {
         if (email == null || email.trim().isEmpty()) return false;
@@ -47,8 +57,9 @@ public class Validador {
     }
 
     /**
-     * Valida se um nome contém pelo menos o primeiro e último nome (separados por espaço)
-     * e se é constituído unicamente por letras (incluindo acentuadas).
+     * Verifica se um nome é composto apenas por letras e espaços.
+     * @param nome Nome a validar.
+     * @return true se o nome contiver apenas letras e espaços.
      */
     public static boolean isNomeValido(String nome) {
         if (nome == null || nome.trim().isEmpty()) {
@@ -59,16 +70,11 @@ public class Validador {
     }
 
     /**
-     * Valida se a data de nascimento obedece ao padrão DD-MM-AAAA
-     * e se a data existe no calendário.
+     * Valida o formato e a existência calendárica de uma data de nascimento.
+     * Formato aceite: DD-MM-AAAA. A data tem de ser anterior à data atual.
+     * @param data Data a validar.
+     * @return true se a data for válida e anterior a hoje.
      */
-    /**
-     * Valida se a sigla do docente é composta por exatamente 3 letras (A-Z, case-insensitive).
-     */
-    public static boolean isSiglaDocenteValida(String sigla) {
-        return sigla != null && sigla.matches("[a-zA-Z]{3}");
-    }
-
     public static boolean isDataNascimentoValida(String data) {
         if (data == null || !data.matches("^(0[1-9]|[12][0-9]|3[01])-(0[1-9]|1[0-2])-[0-9]{4}$")) {
             return false;

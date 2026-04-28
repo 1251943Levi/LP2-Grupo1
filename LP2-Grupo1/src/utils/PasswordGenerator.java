@@ -2,6 +2,13 @@ package utils;
 
 import java.security.SecureRandom;
 
+
+/**
+ * Gera palavras-passe temporárias criptograficamente seguras.
+ * Utiliza SecureRandom para garantir entropia suficiente.
+ * As passwords geradas têm 12 caracteres e combinam letras,
+ * dígitos e símbolos.
+ */
 public class PasswordGenerator {
 
     private static final String CARACTERES_PERMITIDOS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%";
@@ -10,8 +17,8 @@ public class PasswordGenerator {
     private PasswordGenerator() {}
 
     /**
-     * Gera uma palavra-passe forte de forma criptograficamente segura.
-     * @return Uma String contendo a password gerada.
+     * Gera uma password aleatória com 12 caracteres.
+     * @return String com a password gerada.
      */
     public static String gerarPasswordSegura() {
         SecureRandom geradorSeguro = new SecureRandom();
