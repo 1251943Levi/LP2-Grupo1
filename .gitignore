@@ -43,3 +43,4 @@ bin/
 # Ficheiros do Sistema Operativo (Mac / Windows)
 .DS_Store
 Thumbs.db
+/LP2-Grupo1/iniciar.bat
