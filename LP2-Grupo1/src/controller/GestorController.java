@@ -147,18 +147,18 @@ public class GestorController {
         try {
             view.mostrarTituloRegistoEstudante();
             int anoInscricao = repo.getAnoAtual();
-            // numMec é calculado automaticamente pela BLL
+
             String nome;
             do {
                 nome = view.pedirNome();
-                if (!Validador.isNomeValido(nome)) view.mostrarErroNomeInvalido();
-            } while (!Validador.isNomeValido(nome));
+                if (!utils.Validador.isNomeValido(nome)) view.mostrarErroNomeInvalido();
+            } while (!utils.Validador.isNomeValido(nome));
 
             String nif;
             boolean nifInvalido, nifDuplicado;
             do {
                 nif          = view.pedirNif();
-                nifInvalido  = !Validador.validarNif(nif);
+                nifInvalido  = !utils.Validador.validarNif(nif);
                 nifDuplicado = !nifInvalido && gestorBll.isNifDuplicado(nif);
                 if (nifInvalido)       view.mostrarErroNifInvalido();
                 else if (nifDuplicado) view.mostrarErroNifDuplicado();
@@ -169,16 +169,46 @@ public class GestorController {
             String dataNasc;
             do {
                 dataNasc = view.pedirDataNascimento();
-                if (!Validador.isDataNascimentoValida(dataNasc)) view.mostrarErroDataInvalida();
-            } while (!Validador.isDataNascimentoValida(dataNasc));
+                if (!utils.Validador.isDataNascimentoValida(dataNasc)) view.mostrarErroDataInvalida();
+            } while (!utils.Validador.isDataNascimentoValida(dataNasc));
 
-            String siglaCurso = obterSiglaCursoPelaView(true);
-            if (siglaCurso == null) return;
+            String[] todosCursos = gestorBll.obterListaCursos();
+            java.util.List<String> cursosAptos = new java.util.ArrayList<>();
+
+            for (String cursoStr : todosCursos) {
+                String sigla = cursoStr.split(" - ")[0];
+
+                boolean temAno1 = dal.UcDAL.contarUcsPorCursoEAno(sigla, 1, "bd") > 0;
+                boolean temAno2 = dal.UcDAL.contarUcsPorCursoEAno(sigla, 2, "bd") > 0;
+                boolean temAno3 = dal.UcDAL.contarUcsPorCursoEAno(sigla, 3, "bd") > 0;
+
+                if (temAno1 && temAno2 && temAno3) {
+                    cursosAptos.add(cursoStr);
+                }
+            }
+
+            if (cursosAptos.isEmpty()) {
+                view.mostrarMensagem("Erro: Não existem cursos com UCs configuradas em todos os anos (1, 2 e 3)."); //
+                return;
+            }
+
+            String[] listaParaExibir = cursosAptos.toArray(new String[0]);
+            view.mostrarListaCursos(listaParaExibir); // Método correto da GestorView
+
+            int escolha = view.pedirOpcaoCurso(listaParaExibir.length); //
+            if (escolha == -1) { view.mostrarOperacaoCancelada(); return; }
+
+            String siglaCurso = listaParaExibir[escolha - 1].split(" - ")[0];
 
             String email = gestorBll.registarEstudante(nome, nif, morada, dataNasc, siglaCurso, anoInscricao);
-            view.mostrarResumoRegistoEstudante(email);
 
-        } catch (CancelamentoException e) {
+            if (email != null && !email.isEmpty()) {
+                view.mostrarResumoRegistoEstudante(email); //
+            } else {
+                view.mostrarMensagem("Erro ao processar o registo do estudante."); //
+            }
+
+        } catch (utils.CancelamentoException e) {
             view.mostrarOperacaoCancelada();
         }
     }
