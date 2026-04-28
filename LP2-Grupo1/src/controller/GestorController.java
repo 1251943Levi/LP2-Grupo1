@@ -91,7 +91,11 @@ public class GestorController {
             } while (nifInvalido || nifDuplicado);
 
             String morada   = view.pedirMorada();
-            String dataNasc = view.pedirDataNascimento();
+            String dataNasc;
+            do {
+                dataNasc = view.pedirDataNascimento();
+                if (!Validador.isDataNascimentoValida(dataNasc)) view.mostrarErroDataInvalida();
+            } while (!Validador.isDataNascimentoValida(dataNasc));
 
             String[] resultado = gestorBll.registarDocente(nome, nif, morada, dataNasc);
             view.mostrarResumoRegistoDocente(resultado[0], resultado[1]);
