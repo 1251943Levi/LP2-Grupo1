@@ -173,21 +173,41 @@ public class MainController {
                 if (!Validador.isDataNascimentoValida(dataNasc)) view.mostrarErroDataInvalida();
             } while (!Validador.isDataNascimentoValida(dataNasc));
 
-            String[] cursos = bll.obterListaCursos();
-            if (cursos.length == 0) {
+            String[] todosCursos = bll.obterListaCursos();
+            java.util.List<String> cursosValidos = new java.util.ArrayList<>();
+
+            for (String cursoStr : todosCursos) {
+                String sigla = cursoStr.split(" - ")[0];
+
+                boolean temAno1 = dal.UcDAL.contarUcsPorCursoEAno(sigla, 1, PASTA_BD) > 0;
+                boolean temAno2 = dal.UcDAL.contarUcsPorCursoEAno(sigla, 2, PASTA_BD) > 0;
+                boolean temAno3 = dal.UcDAL.contarUcsPorCursoEAno(sigla, 3, PASTA_BD) > 0;
+
+                if (temAno1 && temAno2 && temAno3) {
+                    cursosValidos.add(cursoStr);
+                }
+            }
+
+            if (cursosValidos.isEmpty()) {
                 view.mostrarErroSemCursos();
                 return;
             }
 
-            view.mostrarListaCursosDisponiveis(cursos);
-            int escolha = view.pedirOpcaoCurso(cursos.length);
+            String[] listaParaExibir = cursosValidos.toArray(new String[0]);
+            view.mostrarListaCursosDisponiveis(listaParaExibir);
+            int escolha = view.pedirOpcaoCurso(listaParaExibir.length);
             if (escolha == -1) { view.mostrarOperacaoCancelada(); return; }
 
-            String siglaCurso  = cursos[escolha - 1].split(" - ")[0];
-            String[] credenciais = bll.realizarAutoMatricula(
-                    nome, nif, morada, dataNasc, siglaCurso, repositorio.getAnoAtual());
+            String siglaCursoSelected = listaParaExibir[escolha - 1].split(" - ")[0];
 
-            view.mostrarSucessoAutoMatricula(credenciais[0]);
+            String[] credenciais = bll.realizarAutoMatricula(
+                    nome, nif, morada, dataNasc, siglaCursoSelected, repositorio.getAnoAtual());
+
+            if (credenciais != null && credenciais.length > 0) {
+                view.mostrarSucessoAutoMatricula(credenciais[0]);
+            } else {
+                view.mostrarErroEmailInvalido();
+            }
 
         } catch (CancelamentoException e) {
             view.mostrarOperacaoCancelada();
