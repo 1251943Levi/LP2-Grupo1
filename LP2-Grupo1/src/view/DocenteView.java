@@ -5,6 +5,8 @@ import model.Docente;
 import model.UnidadeCurricular;
 import utils.Consola;
 
+import java.util.List;
+
 /**
  * Interface de utilizador do portal do Docente.
  * Apenas mostra informação e recolhe inputs — sem lógica de negócio.
@@ -20,7 +22,8 @@ public class DocenteView {
         Consola.imprimirCabecalho("Portal Docente — ISSMF");
         Consola.imprimirMenu(new String[]{
                 "Consultar os Meus Alunos e Médias",
-                "Lançar Notas",
+                "Lançar Nota Individual",
+                "Lançar Nota em Lote (turma inteira)",
                 "Alterar Password",
                 "Ver Dados Pessoais",
                 "Ver as Minhas Unidades Curriculares"
@@ -119,5 +122,33 @@ public class DocenteView {
     }
     public void mostrarErroCarregarAlunos() { Consola.imprimirErro("Não foi possível carregar a lista de alunos.");
     }
+
+    public void mostrarCabecalhoLancamentoNotasLote() {
+        Consola.imprimirCabecalho("Lançar Nota em Lote");
+        Consola.imprimirDicaFormulario();
+    }
+    public void mostrarListaAlunosParaLote(String siglaUc, List<String> alunosFormatados) {
+        Consola.imprimirTitulo("Alunos inscritos em " + siglaUc);
+        for (String linha : alunosFormatados) {
+            System.out.println("  " + linha);
+        }
+        Consola.imprimirLinha();
+    }
+
+    public void mostrarResultadoLote(String relatorio) {
+        Consola.imprimirSucesso("Lançamento concluído");
+        System.out.println(relatorio);
+        Consola.pausar();
+    }
+
+    public void mostrarErro(String msg) {
+        Consola.imprimirErro(msg);
+    }
+
+    public void mostrarPedidoNotaParaAluno(int numMec, String nome) {
+        Consola.imprimirTitulo("Lançar nota para " + nome + " (" + numMec + ")");
+        Consola.imprimirDicaFormulario();
+    }
+
 }
 
