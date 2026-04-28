@@ -29,7 +29,8 @@ public class EstudanteView {
                 "Atualizar Morada",
                 "Alterar Password",
                 "Consultar Dados Financeiros / Pagar",
-                "Ver UCs em que estou inscrito"
+                "Ver UCs em que estou inscrito",
+                "Ver minhas notas por UC"
         }, "Sair / Logout");
         return Consola.lerOpcaoMenu();
     }
