@@ -4,6 +4,7 @@ import bll.EstudanteBLL;
 import bll.PagamentoBLL;
 import model.Estudante;
 import model.RepositorioDados;
+import utils.Consola;
 import view.EstudanteView;
 
 /**
@@ -40,6 +41,10 @@ public class EstudanteController {
                     case 3: alterarPassword();
                         break;
                     case 4: consultarDadosFinanceiros();
+                        break;
+                    case 5: verUcsInscritas();
+                        break;
+                    case 6: verNotas();
                         break;
                     case 0:
                         view.mostrarDespedida();
@@ -116,5 +121,17 @@ public class EstudanteController {
         } else {
             view.mostrarErroValorInvalido();
         }
+    }
+
+    private void verUcsInscritas() {
+        String info = estudanteBll.obterInfoInscricoes(estudanteAtivo);
+        view.mostrarInscricoes(info);
+    }
+
+    private void verNotas() {
+        String notas = estudanteBll.obterNotasDoEstudante(estudanteAtivo);
+        Consola.imprimirTitulo("Minhas Notas");
+        System.out.println(notas);
+        Consola.pausar();
     }
 }

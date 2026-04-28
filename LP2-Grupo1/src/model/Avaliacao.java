@@ -1,8 +1,9 @@
 package model;
 
 /**
- * Classe que representa o registo de avaliação de um estudante numa Unidade Curricular.
- * Armazena as notas das várias épocas (Normal, Recurso, Especial) e determina o sucesso académico.
+ * Regista as notas obtidas por um estudante numa unidade curricular.
+ * Suporta até três momentos de avaliação: época normal, recurso e especial.
+ * O estudante é considerado aprovado se obtiver pelo menos 9,5 em qualquer época.
  */
 public class Avaliacao {
 
@@ -12,9 +13,9 @@ public class Avaliacao {
     private int totalAvaliacoesLancadas;
 
     /**
-     * Construtor da Avaliação.
-     * @param uc A Unidade Curricular a que esta avaliação se refere.
-     * @param anoLetivo O ano em que a avaliação foi realizada.
+     * Cria um registo de avaliação para uma UC num dado ano letivo.
+     * @param uc        Unidade curricular avaliada.
+     * @param anoLetivo Ano em que a avaliação foi realizada.
      */
     public Avaliacao(UnidadeCurricular uc, int anoLetivo) {
         this.uc = uc;
@@ -26,9 +27,9 @@ public class Avaliacao {
     // ---------- MÉTODOS DE INTEGRIDADE E LÓGICA ----------
 
     /**
-     * Adiciona uma nova nota ao histórico desta UC.
+     * Regista uma nova nota nesta avaliação.
      * @param nota Valor da nota (0 a 20).
-     * @return true se guardou com sucesso, false se já excedeu o limite de 3 tentativas.
+     * @return true se a nota foi guardada; false se o limite de 3 momentos foi atingido.
      */
     public boolean adicionarResultado(double nota) {
         if (totalAvaliacoesLancadas < resultados.length) {
@@ -54,9 +55,8 @@ public class Avaliacao {
     }
 
     /**
-     * Verifica se o aluno obteve aprovação na disciplina.
-     * A aprovação é ditada por pelo menos um resultado igual ou superior a 9.5 (arredondado para 10).
-     * @return true se aprovado em qualquer uma das épocas.
+     * Verifica se o estudante obteve aprovação nesta UC.
+     * @return true se pelo menos uma nota for igual ou superior a 9,5.
      */
     public boolean isAprovado() {
         for (int i = 0; i < totalAvaliacoesLancadas; i++) {
@@ -68,12 +68,24 @@ public class Avaliacao {
     }
 
     // ---------- GETTERS ----------
+
+    /** @return UC a que esta avaliação se refere. */
     public UnidadeCurricular getUc() { return uc; }
+
+    /** @return Ano letivo em que a avaliação foi realizada. */
     public int getAnoLetivo() { return anoLetivo; }
+
+    /** @return Array com todas as notas lançadas. */
     public double[] getResultados() { return resultados; }
+
+    /** @return Número de momentos de avaliação lançados. */
     public int getTotalAvaliacoesLancadas() { return totalAvaliacoesLancadas; }
 
     // ---------- SETTERS ----------
+
+    /** @param uc Nova UC associada. */
     public void setUc(UnidadeCurricular uc) { this.uc = uc; }
+
+    /** @param anoLetivo Novo ano letivo. */
     public void setAnoLetivo(int anoLetivo) { this.anoLetivo = anoLetivo; }
 }

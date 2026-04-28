@@ -8,27 +8,16 @@ import java.util.List;
 
 /**
  * Motor de cálculo de estatísticas institucionais.
- *
- * Responsabilidades:
- *   - Calcular médias e identificar o melhor aluno.
- *   - Devolver DADOS BRUTOS (números e objetos) — nunca Strings formatadas.
- *   - A formatação para ecrã é sempre responsabilidade da GestorView.
- *
- * É a ÚNICA fonte de verdade para cálculos estatísticos.
- * A GestorBLL delega aqui e repassa os resultados ao Controller/View.
+ * Produz dados numéricos brutos para a GestorBLL apresentar via GestorView.
  */
 public class Estatisticas {
 
     private Estatisticas() {}
 
-    // ------------------------------------------------------------------ MÉDIA GLOBAL
-
     /**
-     * Calcula a soma de todas as notas lançadas e o total de avaliações.
-     *
-     * @return double[] onde [0] = soma das notas, [1] = total de notas.
-     *         Devolve null se não existirem estudantes.
-     *         Devolve {0, 0} se existirem estudantes mas sem notas lançadas.
+     * Calcula a soma total de notas e o número de momentos lançados.
+     * @return Array [soma, total] para calcular a média global;
+     *         null se não existirem estudantes; {0, 0} se não houver notas.
      */
     public static double[] calcularDadosMediaGlobal() {
         List<Estudante> estudantes = new EstudanteBLL().carregarTodosCompleto();
@@ -52,13 +41,10 @@ public class Estatisticas {
         return new double[]{soma, totalNotas};
     }
 
-    // ------------------------------------------------------------------ MELHOR ALUNO
-
     /**
-     * Determina o aluno com a maior média académica global.
-     *
-     * @return Object[] onde [0] = Estudante, [1] = Double (média calculada).
-     *         Devolve null se não existirem alunos avaliados.
+     * Determina o estudante com a maior média académica global.
+     * @return Array [Estudante, Double] com o melhor aluno e a sua média;
+     *         null se não houver alunos com avaliações lançadas.
      */
     public static Object[] calcularMelhorAluno() {
         List<Estudante> estudantes = new EstudanteBLL().carregarTodosCompleto();

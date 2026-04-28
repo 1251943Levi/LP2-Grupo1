@@ -21,7 +21,7 @@ public class MainView {
     // ---------- MENU ----------
 
     public int mostrarMenu() {
-        Consola.imprimirCabecalho("Sistema ISSMF — 2025/2026");
+        Consola.imprimirCabecalho("Sistema ISSMF - 2025/2026");
         Consola.imprimirMenu(new String[]{
                 "Login",
                 "Recuperar Password",

@@ -5,17 +5,25 @@ import model.Docente;
 import model.UnidadeCurricular;
 import utils.Consola;
 
+import java.util.List;
+
 /**
  * Interface de utilizador do portal do Docente.
  * Apenas mostra informação e recolhe inputs — sem lógica de negócio.
  */
 public class DocenteView {
 
+    /**
+     * Apresenta o menu principal do docente e lê a opção escolhida.
+     *
+     * @return Número da opção selecionada (0 a 3).
+     */
     public int mostrarMenu() {
         Consola.imprimirCabecalho("Portal Docente — ISSMF");
         Consola.imprimirMenu(new String[]{
                 "Consultar os Meus Alunos e Médias",
-                "Lançar Notas",
+                "Lançar Nota Individual",
+                "Lançar Nota em Lote (turma inteira)",
                 "Alterar Password",
                 "Ver Dados Pessoais",
                 "Ver as Minhas Unidades Curriculares"
@@ -59,6 +67,7 @@ public class DocenteView {
 
     // --- MÉTODOS DE LISTAGEM DE ALUNOS ---
 
+    /** Exibe o cabeçalho da lista de alunos. */
     public void mostrarCabecalhoAlunos() {
         Consola.imprimirTitulo("Alunos e Médias");
     }
@@ -68,6 +77,7 @@ public class DocenteView {
 
     // ---------- LANÇAMENTO DE NOTAS ----------
 
+    /** Exibe o cabeçalho da secção de lançamento de notas. */
     public void mostrarCabecalhoLancamentoNotas() {
         Consola.imprimirCabecalho("Lançar Avaliações");
         Consola.imprimirDicaFormulario();
@@ -75,14 +85,20 @@ public class DocenteView {
 
     public int    pedirNumeroAluno()  { return Consola.lerInt("Nº Mecanográfico do Aluno"); }
     public String pedirSiglaUc()      { return Consola.lerString("Sigla da UC"); }
-    public int    pedirAnoLetivo()    { return Consola.lerInt("Ano Letivo (ex: 2026)"); }
-    public double pedirNotaNormal()   { return Consola.lerNota("Nota Normal"); }
+    public int    pedirAnoLetivo()    { return Consola.lerInt("Ano Letivo (ex: 2026)"); }public double pedirNotaNormal()   { return Consola.lerNota("Nota Normal"); }
     public double pedirNotaRecurso()  { return Consola.lerNota("Nota Recurso"); }
     public double pedirNotaEspecial() { return Consola.lerNota("Nota Especial"); }
-
+    public double pedirNotaMomento()  { return Consola.lerNota("Nota do momento de avaliação (0 a 20)"); }
 
     // ---------- PASSWORD ----------
 
+    /**
+     * Solicita a nova password ao utilizador, com ocultação de caracteres quando a consola o permite.
+     * <p>
+     * O cancelamento é feito premindo Enter sem introduzir texto, o que retorna uma string vazia.
+     *
+     * @return A nova password introduzida, ou uma string vazia se o utilizador premir Enter.
+     */
     public String pedirNovaPassword() {
         Consola.imprimirTitulo("Alterar Password");
         Consola.imprimirDicaFormulario();
@@ -99,11 +115,40 @@ public class DocenteView {
     public void mostrarDespedida()                { Consola.imprimirInfo("Logout efetuado. Até breve!"); }
     public void mostrarOperacaoCancelada()        { Consola.imprimirInfo("Operação cancelada. A regressar ao menu..."); }
 
+
     // --- métodos adicionados para compatibilidade com DocenteController ---
     public void mostrarAlunoComMedia(int numMec, String nome, double media) {
         System.out.printf("  [%d] %-30s | Média: %.1f%n", numMec, nome, media);
     }
     public void mostrarErroCarregarAlunos() { Consola.imprimirErro("Não foi possível carregar a lista de alunos.");
     }
+
+    public void mostrarCabecalhoLancamentoNotasLote() {
+        Consola.imprimirCabecalho("Lançar Nota em Lote");
+        Consola.imprimirDicaFormulario();
+    }
+    public void mostrarListaAlunosParaLote(String siglaUc, List<String> alunosFormatados) {
+        Consola.imprimirTitulo("Alunos inscritos em " + siglaUc);
+        for (String linha : alunosFormatados) {
+            System.out.println("  " + linha);
+        }
+        Consola.imprimirLinha();
+    }
+
+    public void mostrarResultadoLote(String relatorio) {
+        Consola.imprimirSucesso("Lançamento concluído");
+        System.out.println(relatorio);
+        Consola.pausar();
+    }
+
+    public void mostrarErro(String msg) {
+        Consola.imprimirErro(msg);
+    }
+
+    public void mostrarPedidoNotaParaAluno(int numMec, String nome) {
+        Consola.imprimirTitulo("Lançar nota para " + nome + " (" + numMec + ")");
+        Consola.imprimirDicaFormulario();
+    }
+
 }
 

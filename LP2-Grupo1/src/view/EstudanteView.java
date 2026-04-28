@@ -5,7 +5,7 @@ import model.Estudante;
 import model.Pagamento;
 import utils.Consola;
 
-import java.util.Scanner;
+import java.util.List;
 
 /**
  * Interface de utilizador do portal do Estudante.
@@ -14,19 +14,23 @@ import java.util.Scanner;
  */
 public class EstudanteView {
 
-    private final Scanner scanner;
-
     public EstudanteView() {
-        this.scanner = new Scanner(System.in);
     }
 
+    /**
+     * Apresenta o menu principal do estudante e lê a opção escolhida.
+     *
+     * @return Número da opção selecionada (0 a 4).
+     */
     public int mostrarMenuPrincipal() {
         Consola.imprimirCabecalho("Portal Estudante — ISSMF");
         Consola.imprimirMenu(new String[]{
                 "Ver Dados Pessoais e Avaliações",
                 "Atualizar Morada",
                 "Alterar Password",
-                "Consultar Dados Financeiros / Pagar"
+                "Consultar Dados Financeiros / Pagar",
+                "Ver UCs em que estou inscrito",
+                "Ver minhas notas por UC"
         }, "Sair / Logout");
         return Consola.lerOpcaoMenu();
     }
@@ -75,13 +79,15 @@ public class EstudanteView {
         Consola.imprimirCabecalho("Dados Financeiros");
         System.out.printf("  Saldo devedor:  %.2f€%n", e.getSaldoDevedor());
         Consola.imprimirTitulo("Histórico de Pagamentos");
+
         int total = e.getTotalPagamentos();
         if (total == 0) {
             Consola.imprimirInfo("Sem pagamentos registados.");
         } else {
-            Pagamento[] hist = e.getHistoricoPagamentos();
-            for (int i = 0; i < total; i++) {
-                if (hist[i] != null) System.out.println("  " + hist[i]);
+            List<Pagamento> hist = e.getHistoricoPagamentos();
+
+            for (Pagamento p : hist) {
+                System.out.println("  " + p);
             }
         }
         Consola.imprimirLinha();
@@ -112,6 +118,12 @@ public class EstudanteView {
         Consola.imprimirTitulo("Alterar Password");
         Consola.imprimirDicaFormulario();
         return Consola.lerPassword("Nova Password");
+    }
+
+    public void mostrarInscricoes(String info) {
+        Consola.imprimirTitulo("Minhas Inscrições");
+        System.out.println(info);
+        Consola.pausar();
     }
 
     // ---------- MENSAGENS ----------

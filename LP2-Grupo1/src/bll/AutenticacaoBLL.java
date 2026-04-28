@@ -8,30 +8,29 @@ import java.util.List;
 
 
 /**
- * Ponto único de autenticação e arranque de sessão.
- * Valida credenciais, hidrata o perfil completo do utilizador
- * e delega a auto-matrícula à MatriculaBLL.
- *
- * NÃO referencia ImportadorCSV nem ExportadorCSV.
+ * Ponto único de autenticação no sistema.
+ * Valida as credenciais, constrói o perfil correto consoante o tipo
+ * de utilizador e inicia a sessão.
  */
 public class AutenticacaoBLL {
 
     private static final String PASTA_BD = "bd";
 
+    /**
+     * Credencial PBKDF2 pré-gerada para o administrador de backoffice.
+     * Permite acesso sem registo em ficheiro.
+     */
     private static final String CREDENCIAL_ADMIN =
             "A67KdOiGgwLZQTdjXrCPUg==:1Emuaac5kl+mA0SKMMRX1m+5bpOXaLVPqcttF1EPyG4=";
 
-
     /**
-     * Autentica um utilizador validando as credenciais e devolvendo o perfil correto.
-     * Para estudantes, hidrata completamente o percurso académico (inscrições + notas).
-     * Para docentes, associa as UCs lecionadas.
-     *
-     * @return O objeto Utilizador (Estudante/Docente/Gestor) ou null se inválido.
+     * Autentica um utilizador e devolve o seu perfil completo.
+     * @param email Email institucional introduzido.
+     * @param pass  Password em texto limpo a verificar.
+     * @return O Utilizador do tipo correto, ou null se as credenciais forem inválidas.
      */
     public Utilizador autenticar(String email, String pass) {
-        boolean isEmailAdmin = email.equals("admin@issmf.pt")
-                || email.equals("backoffice@issmf.ipp.pt");
+        boolean isEmailAdmin = email.equals("backoffice@issmf.ipp.pt");
         if (isEmailAdmin && SegurancaPasswords.verificarPassword(pass, CREDENCIAL_ADMIN)) {
             return new Gestor("backoffice@issmf.ipp.pt", CREDENCIAL_ADMIN,
                     "Admin Geral", "123456789", "Sede", "01-01-1980");
@@ -61,15 +60,28 @@ public class AutenticacaoBLL {
         }
     }
 
+    /**
+     * Recupera a password de um utilizador delegando na PasswordBLL.
+     * @param email Email do utilizador que esqueceu a password.
+     * @return true se o email existir no sistema.
+     */
     public boolean recuperarPassword(String email) {
         String[] creds = CredencialDAL.obterCredenciais(email, PASTA_BD);
         if (creds == null) return false;
         new PasswordBLL().recuperarPassword(email);
         return true;
     }
+
+
     /**
-     * Delega o processo de auto-matrícula à MatriculaBLL.
-     * @return String[] com [0] = email gerado, [1] = password em texto limpo.
+     * Executa o processo de auto-matrícula delegando na MatriculaBLL.
+     * @param nome       Nome do novo estudante.
+     * @param nif        NIF do novo estudante.
+     * @param morada     Morada de residência.
+     * @param dataNasc   Data de nascimento (DD-MM-AAAA).
+     * @param siglaCurso Sigla do curso escolhido.
+     * @param anoAtual   Ano letivo atual.
+     * @return Array [email, passwordLimpa] com as credenciais geradas.
      */
     public String[] realizarAutoMatricula(String nome, String nif, String morada,
                                           String dataNasc, String siglaCurso, int anoAtual) {
@@ -77,8 +89,21 @@ public class AutenticacaoBLL {
                 nome, nif, morada, dataNasc, siglaCurso, anoAtual);
     }
 
+    /**
+     * Verifica se um NIF já está registado no sistema.
+     * @param nif NIF a verificar.
+     * @return true se o NIF já existir.
+     */
     public boolean isNifDuplicado(String nif) {
         return EstudanteDAL.existeNif(nif, PASTA_BD)
                 || DocenteDAL.existeNif(nif, PASTA_BD);
+    }
+
+    /**
+     * Devolve a lista de cursos disponíveis para a auto-matrícula.
+     * @return Array "SIGLA - Nome" de todos os cursos.
+     */
+    public String[] obterListaCursos() {
+        return dal.CursoDAL.obterListaCursos(PASTA_BD);
     }
 }

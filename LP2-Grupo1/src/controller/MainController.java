@@ -1,6 +1,5 @@
 package controller;
 
-import dal.CursoDAL;
 import model.*;
 import view.MainView;
 import bll.AutenticacaoBLL;
@@ -174,7 +173,7 @@ public class MainController {
                 if (!Validador.isDataNascimentoValida(dataNasc)) view.mostrarErroDataInvalida();
             } while (!Validador.isDataNascimentoValida(dataNasc));
 
-            String[] cursos = CursoDAL.obterListaCursos(PASTA_BD);
+            String[] cursos = bll.obterListaCursos();
             if (cursos.length == 0) {
                 view.mostrarErroSemCursos();
                 return;

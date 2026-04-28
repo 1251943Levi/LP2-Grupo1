@@ -15,14 +15,14 @@ public class GestorView {
         Consola.imprimirCabecalho("Portal Gestor — ISSMF");
         Consola.imprimirMenu(new String[]{
                 "Registar Novo Estudante",
+                "Registar Docente",
+                "Registar Departamento",
                 "Gerir Unidades Curriculares",
                 "Gerir Cursos",
                 "Ver Estatísticas",
                 "Avançar Ano Letivo",
                 "Listar Devedores de Propinas",
                 "Alterar Password",
-                "Registar Docente",
-                "Registar Departamento"
         }, "Sair / Logout");
         return Consola.lerOpcaoMenu();
     }
@@ -126,8 +126,10 @@ public class GestorView {
         Consola.imprimirCabecalho("Registar Docente");
         Consola.imprimirDicaFormulario();
     }
-    public void mostrarResumoRegistoDocente(String email) {
-        Consola.imprimirSucesso("Docente registado! Email institucional: " + email);
+    public void mostrarResumoRegistoDocente(String email, String sigla) {
+        Consola.imprimirSucesso("Docente registado com sucesso!");
+        Consola.imprimirInfo("Email institucional: " + email);
+        Consola.imprimirInfo("Sigla atribuída:      " + sigla);
         Consola.pausar();
     }
 
@@ -239,9 +241,14 @@ public class GestorView {
         Consola.pausar();
     }
 
+    public boolean perguntarVerListagem(String entidade) {
+        return utils.Consola.lerSimNao("Deseja ver a listagem de " + entidade + " disponíveis?");
+    }
+
     // ---------- MENSAGENS ----------
 
     public void mostrarMensagem(String msg)           { System.out.println("  " + msg); }
+    public void mostrarErroCursoComAlocacoes()        { Consola.imprimirErro("Este curso tem estudantes ou docentes alocados e não pode ser alterado."); Consola.pausar(); }
     public void mostrarErroNomeInvalido()             { Consola.imprimirErro("Nome inválido (apenas letras)."); }
     public void mostrarErroNifInvalido()              { Consola.imprimirErro("NIF inválido (9 dígitos)."); }
     public void mostrarErroNifDuplicado()             { Consola.imprimirErro("Este NIF já se encontra registado no sistema."); }
