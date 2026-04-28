@@ -6,24 +6,26 @@ import utils.PasswordGenerator;
 import utils.EmailService;
 
 /**
- * Camada de Lógica de Negócio dedicada à gestão de passwords.
+ * Lógica de negócio para a gestão de palavras-passe.
+ * Gera uma nova password segura, aplica hashing PBKDF2,
+ * persiste a credencial e envia a nova password por email ao utilizador.
  */
 public class PasswordBLL {
 
     private static final String PASTA_BD = "bd";
 
     /**
-     * Processa a recuperação de password: gera uma nova, encripta e persiste via DAL.
-     * @param email E-mail do utilizador.
+     * Recupera a password de um utilizador substituindo-a por uma nova.
+     * @param email Email do utilizador que pediu a recuperação.
+     * @return true se o email existir e a operação for bem-sucedida.
      */
-    public boolean recuperarPassword(String email) {
-        String[] creds = CredencialDAL.obterCredenciais(email, PASTA_BD);
-        if (creds == null) return false;
+    public void recuperarPassword(String email) {
+        String novaPassLimpa = PasswordGenerator.gerarPasswordSegura();
+        String novaPassHash = SegurancaPasswords.gerarCredencialMista(novaPassLimpa);
 
-        String novaPassLimpa  = PasswordGenerator.gerarPasswordSegura();
-        String novaPassSegura = SegurancaPasswords.gerarCredencialMista(novaPassLimpa);
-        CredencialDAL.atualizarPassword(email, novaPassSegura, PASTA_BD);
-        EmailService.enviarRecuperacaoPassword("Utilizador", email, novaPassLimpa);
-        return true;
+        CredencialDAL.atualizarPassword(email, novaPassHash, PASTA_BD);
+
+        String nome = "Utilizador";
+        EmailService.enviarRecuperacaoPassword(nome, email, novaPassLimpa);
     }
 }

@@ -10,9 +10,10 @@ import java.util.Map;
 import java.util.TreeMap;
 
 /**
- * Responsável pelas operações de acesso a dados das Unidades Curriculares.
- * Esta classe SÓ lê/escreve texto CSV. A construção de objetos ricos
- * com dependências hidratadas é responsabilidade da UcBLL.
+ * Acesso aos dados de unidades curriculares em ucs.csv.
+ * Formato das colunas: sigla; nome; anoCurricular; siglaDocente; siglaCurso; ects.
+ * A mesma UC pode aparecer em múltiplas linhas quando pertence a vários cursos.
+ * A coluna ects é retrocompatível: registos sem essa coluna usam ECTS_PADRAO.
  */
 public class UcDAL {
     private static final String NOME_FICHEIRO = "ucs.csv";
@@ -20,7 +21,10 @@ public class UcDAL {
 
 
     /**
-     * Devolve os dados crus de uma UC (primeira ocorrência encontrada pela sigla).
+     * Devolve os campos em bruto da primeira ocorrência de uma UC pela sigla.
+     * @param sigla     Sigla da UC.
+     * @param pastaBase Caminho da pasta de dados.
+     * @return Array de campos CSV, ou null se não existir.
      */
     public static String[] obterDadosBrutosUC(String sigla, String pastaBase) {
         String caminho = pastaBase + File.separator + NOME_FICHEIRO;
@@ -37,8 +41,11 @@ public class UcDAL {
     }
 
     /**
-     * Constrói o objeto UnidadeCurricular com todas as dependências hidratadas.
-     * Pode ter várias linhas no CSV para a mesma sigla (uma por curso associado).
+     * Constrói um objeto UC com todas as dependências associadas.
+     * Agrega todas as linhas da mesma sigla para preencher os cursos associados.
+     * @param sigla     Sigla da UC a pesquisar.
+     * @param pastaBase Caminho da pasta de dados.
+     * @return A UC completa, ou null se não existir.
      */
     public static UnidadeCurricular procurarUC(String sigla, String pastaBase) {
         String caminho = pastaBase + File.separator + NOME_FICHEIRO;
@@ -67,10 +74,62 @@ public class UcDAL {
         return ucEncontrada;
     }
 
+    /**
+     * Persiste uma nova UC no ficheiro CSV.
+     * @param uc         UC a adicionar.
+     * @param siglaCurso Sigla do curso ao qual a UC pertence.
+     * @param pastaBase  Caminho da pasta de dados.
+     */
+    public static void adicionarUC(UnidadeCurricular uc, String siglaCurso, String pastaBase) {
+        if (uc == null) return;
+        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
+        DALUtil.garantirFicheiroECabecalho(caminho, CABECALHO);
+
+        String siglaDocente = (uc.getDocenteResponsavel() != null)
+                ? uc.getDocenteResponsavel().getSigla() : "N/A";
+        String cursoStr = (siglaCurso != null && !siglaCurso.isEmpty()) ? siglaCurso : "N/A";
+
+        DALUtil.adicionarLinhaCSV(caminho,
+                uc.getSigla() + ";" + uc.getNome() + ";"
+                        + uc.getAnoCurricular() + ";" + siglaDocente + ";" + cursoStr
+                        + ";" + uc.getEcts());
+    }
 
     /**
-     * Devolve as siglas de todas as UCs de um determinado curso e ano curricular.
-     * Usado ao inscrever um estudante nas UCs do seu primeiro ano.
+     * Remove todas as linhas de uma UC pela sua sigla.
+     * @param siglaUc   Sigla da UC a eliminar.
+     * @param pastaBase Caminho da pasta de dados.
+     * @return true se foi encontrada e removida.
+     */
+    public static boolean removerUC(String siglaUc, String pastaBase) {
+        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
+        List<String> linhasAntigas = DALUtil.lerFicheiro(caminho);
+        if (linhasAntigas.isEmpty()) return false;
+
+        List<String> linhasAtualizadas = new ArrayList<>();
+        boolean encontrou = false;
+
+        for (String linha : linhasAntigas) {
+            if (linha.equalsIgnoreCase(CABECALHO)) { linhasAtualizadas.add(linha); continue; }
+            String[] dados = linha.split(";", -1);
+            if (dados.length > 0 && dados[0].trim().equalsIgnoreCase(siglaUc)) {
+                encontrou = true;
+            } else {
+                linhasAtualizadas.add(linha);
+            }
+        }
+
+        if (encontrou) DALUtil.reescreverFicheiro(caminho, linhasAtualizadas);
+        return encontrou;
+    }
+
+
+    /**
+     * Devolve as siglas das UCs de um curso num determinado ano curricular.
+     * @param siglaCurso Sigla do curso.
+     * @param ano        Ano curricular (1, 2 ou 3).
+     * @param pastaBase  Caminho da pasta de dados.
+     * @return Lista de siglas sem duplicados.
      */
     public static List<String> obterSiglasUcsPorCursoEAno(String siglaCurso, int ano, String pastaBase) {
         String caminho = pastaBase + File.separator + NOME_FICHEIRO;
@@ -94,7 +153,11 @@ public class UcDAL {
     }
 
     /**
-     * Conta quantas UCs existem num determinado curso e ano.
+     * Conta o número de UCs de um curso num dado ano.
+     * @param siglaCurso Sigla do curso.
+     * @param ano        Ano curricular.
+     * @param pastaBase  Caminho da pasta de dados.
+     * @return Contagem de UCs.
      */
     public static int contarUcsPorCursoEAno(String siglaCurso, int ano, String pastaBase) {
         String caminho = pastaBase + File.separator + NOME_FICHEIRO;
@@ -118,7 +181,7 @@ public class UcDAL {
     }
 
     /**
-     * Devolve um array de strings com o formato "SIGLA - Nome" para todas as UCs.
+     * Devolve um array "SIGLA - Nome" de todas as UCs para menus de seleção.
      */
     public static String[] obterListaUcs(String pastaBase) {
         String caminho = pastaBase + File.separator + NOME_FICHEIRO;
@@ -126,18 +189,19 @@ public class UcDAL {
         List<String> lista = new ArrayList<>();
 
         for (String linha : linhas) {
-            if (linha.equalsIgnoreCase(CABECALHO)) continue;
             String[] dados = linha.split(";", -1);
-            if (dados.length >= 2) {
-                String entrada = dados[0].trim() + " - " + dados[1].trim();
-                if (!lista.contains(entrada)) lista.add(entrada);
-            }
+            if (dados.length < 2 || dados[0].trim().equalsIgnoreCase("sigla")) continue;
+
+            String entrada = dados[0].trim() + " - " + dados[1].trim();
+            if (!lista.contains(entrada)) lista.add(entrada);
         }
         return lista.toArray(new String[0]);
     }
 
     /**
-     * Devolve uma listagem formatada de todas as UCs (para exibição no ecrã).
+     * Devolve uma listagem formatada de todas as UCs para exibição em consola.
+     * @param pastaBase Caminho da pasta de dados.
+     * @return String com todas as UCs.
      */
     public static String listarTodasUcs(String pastaBase) {
         String caminho = pastaBase + File.separator + NOME_FICHEIRO;
@@ -162,7 +226,10 @@ public class UcDAL {
     }
 
     /**
-     * Devolve a listagem das UCs de um curso, agrupadas por ano curricular.
+     * Devolve o plano de estudos de um curso agrupado por ano curricular.
+     * @param siglaCurso Sigla do curso.
+     * @param pastaBase  Caminho da pasta de dados.
+     * @return Plano de estudos formatado.
      */
     public static String listarUcsPorCurso(String siglaCurso, String pastaBase) {
         String caminho = pastaBase + File.separator + NOME_FICHEIRO;
@@ -197,7 +264,10 @@ public class UcDAL {
     }
 
     /**
-     * Devolve uma lista de siglas de UCs associadas a um docente específico.
+     * Devolve as siglas das UCs associadas a um docente.
+     * @param siglaDocente Sigla do docente.
+     * @param pastaBase    Caminho da pasta de dados.
+     * @return Lista de siglas.
      */
     public static List<String> obterSiglasUcsPorDocente(String siglaDocente, String pastaBase) {
         String caminho = pastaBase + File.separator + NOME_FICHEIRO;
@@ -215,7 +285,11 @@ public class UcDAL {
     }
 
     /**
-     * Devolve uma lista de objetos UnidadeCurricular do docente (para associar no login).
+     * Constrói objetos UC para todas as UCs de um docente.
+     * Usado para carregar as UCs do docente após o login.
+     * @param docente   Docente cujas UCs se pretendem carregar.
+     * @param pastaBase Caminho da pasta de dados.
+     * @return Lista de UCs do docente.
      */
     public static List<UnidadeCurricular> obterUcsPorDocente(Docente docente, String pastaBase) {
         List<String> siglas = obterSiglasUcsPorDocente(docente.getSigla(), pastaBase);
@@ -234,41 +308,5 @@ public class UcDAL {
             } catch (NumberFormatException ignored) {}
         }
         return ucs;
-    }
-
-    public static void adicionarUC(UnidadeCurricular uc, String siglaCurso, String pastaBase) {
-        if (uc == null) return;
-        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
-        DALUtil.garantirFicheiroECabecalho(caminho, CABECALHO);
-
-        String siglaDocente = (uc.getDocenteResponsavel() != null)
-                ? uc.getDocenteResponsavel().getSigla() : "N/A";
-        String cursoStr = (siglaCurso != null && !siglaCurso.isEmpty()) ? siglaCurso : "N/A";
-
-        DALUtil.adicionarLinhaCSV(caminho,
-                uc.getSigla() + ";" + uc.getNome() + ";"
-                        + uc.getAnoCurricular() + ";" + siglaDocente + ";" + cursoStr
-                        + ";" + uc.getEcts());
-    }
-    public static boolean removerUC(String siglaUc, String pastaBase) {
-        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
-        List<String> linhasAntigas = DALUtil.lerFicheiro(caminho);
-        if (linhasAntigas.isEmpty()) return false;
-
-        List<String> linhasAtualizadas = new ArrayList<>();
-        boolean encontrou = false;
-
-        for (String linha : linhasAntigas) {
-            if (linha.equalsIgnoreCase(CABECALHO)) { linhasAtualizadas.add(linha); continue; }
-            String[] dados = linha.split(";", -1);
-            if (dados.length > 0 && dados[0].trim().equalsIgnoreCase(siglaUc)) {
-                encontrou = true;
-            } else {
-                linhasAtualizadas.add(linha);
-            }
-        }
-
-        if (encontrou) DALUtil.reescreverFicheiro(caminho, linhasAtualizadas);
-        return encontrou;
     }
 }

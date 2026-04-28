@@ -8,17 +8,18 @@ import dal.DocenteDAL;
 import dal.CursoDAL;
 
 /**
- * Camada de Lógica de Negócio para as Unidades Curriculares.
- * Orquestra a construção dos objetos e delega listagens à DAL.
- *
- * NÃO referencia ImportadorCSV nem ExportadorCSV.
+ * Lógica de negócio para a entidade UnidadeCurricular.
+ * Constrói objetos UC com docente e cursos associados
+ * e fornece listagens para os menus de seleção dos controllers.
  */
 public class UcBLL {
 
     private static final String PASTA_BD = "bd";
 
     /**
-     * Constrói o objeto UnidadeCurricular completo com as suas dependências hidratadas.
+     * Constrói e devolve uma UC com docente e cursos associados.
+     * @param sigla Sigla da UC a pesquisar.
+     * @return A UC construída, ou null se não existir.
      */
     public UnidadeCurricular procurarUCCompleta(String sigla) {
         String[] dados = UcDAL.obterDadosBrutosUC(sigla, PASTA_BD);
@@ -49,8 +50,8 @@ public class UcBLL {
     }
 
     /**
-     * Devolve um array de strings com o formato "SIGLA - Nome" para todas as UCs.
-     * Usado pelo GestorController nos menus de seleção de UC.
+     * Devolve um array "SIGLA - Nome" de todas as UCs para menus de seleção.
+     * @return Array de strings.
      */
     public String[] obterListaUcs() {
         return UcDAL.obterListaUcs(PASTA_BD);

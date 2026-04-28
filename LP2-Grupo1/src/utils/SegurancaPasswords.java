@@ -8,8 +8,10 @@ import java.security.spec.InvalidKeySpecException;
 import java.util.Base64;
 
 /**
- * Utilitário responsável pelo hashing e verificação segura de credenciais.
- * Utiliza o algoritmo PBKDF2 com HMAC-SHA256.
+ * Utilitário de hashing e verificação de palavras-passe com PBKDF2-HMAC-SHA256.
+ * Cada credencial é armazenada no formato salt:hash,
+ * onde ambos os valores são codificados em Base64.
+ * O salt é gerado aleatoriamente por utilizador.
  */
 public class SegurancaPasswords {
 
@@ -20,9 +22,8 @@ public class SegurancaPasswords {
     private SegurancaPasswords() {}
 
     /**
-     * Gera um "Salt" criptograficamente seguro e aleatório.
-     * Este valor deve ser guardado na base de dados junto ao utilizador.
-     * @return O Salt codificado em formato Base64.
+     * Gera um salt criptograficamente aleatório de 16 bytes.
+     * @return Salt codificado em Base64.
      */
     public static String gerarSalt() {
         SecureRandom random = new SecureRandom();
@@ -32,10 +33,10 @@ public class SegurancaPasswords {
     }
 
     /**
-     * Gera um hash irreversível a partir da palavra-passe em texto limpo e do respetivo Salt.
-     * @param password A palavra-passe original introduzida.
-     * @param saltBase64 O salt único previamente gerado para o utilizador.
-     * @return O hash resultante codificado em formato Base64.
+     * Deriva um hash irreversível da password com o salt fornecido.
+     * @param password   Password em texto limpo.
+     * @param saltBase64 Salt único do utilizador, codificado em Base64.
+     * @return Hash resultante codificado em Base64.
      */
     public static String gerarHash(String password, String saltBase64) {
         try {
@@ -54,8 +55,9 @@ public class SegurancaPasswords {
     }
 
     /**
-     * Cria a credencial final segura pronta a guardar no ficheiro.
-     * Junta o Salt e o Hash separados por dois pontos (:).
+     * Cria a credencial completa no formato salt:hash pronta a persistir.
+     * @param passwordLimpa Password em texto limpo.
+     * @return String no formato saltBase64:hashBase64.
      */
     public static String gerarCredencialMista(String passwordLimpa) {
         String salt = gerarSalt();
@@ -64,7 +66,10 @@ public class SegurancaPasswords {
     }
 
     /**
-     * Verifica se a password introduzida no login corresponde à guardada no sistema.
+     * Verifica se a password introduzida corresponde à credencial armazenada.
+     * @param passwordIntroduzida Password em texto limpo a verificar.
+     * @param credencialMista     Credencial no formato salt:hash.
+     * @return true se a password for válida.
      */
     public static boolean verificarPassword(String passwordIntroduzida, String credencialMista) {
         try {

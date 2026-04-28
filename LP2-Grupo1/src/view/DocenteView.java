@@ -82,11 +82,10 @@ public class DocenteView {
 
     public int    pedirNumeroAluno()  { return Consola.lerInt("Nº Mecanográfico do Aluno"); }
     public String pedirSiglaUc()      { return Consola.lerString("Sigla da UC"); }
-    public int    pedirAnoLetivo()    { return Consola.lerInt("Ano Letivo (ex: 2026)"); }
-    public double pedirNotaNormal()   { return Consola.lerNota("Nota Normal"); }
+    public int    pedirAnoLetivo()    { return Consola.lerInt("Ano Letivo (ex: 2026)"); }public double pedirNotaNormal()   { return Consola.lerNota("Nota Normal"); }
     public double pedirNotaRecurso()  { return Consola.lerNota("Nota Recurso"); }
     public double pedirNotaEspecial() { return Consola.lerNota("Nota Especial"); }
-
+    public double pedirNotaMomento()  { return Consola.lerNota("Nota do momento de avaliação (0 a 20)"); }
 
     // ---------- PASSWORD ----------
 
@@ -112,6 +111,7 @@ public class DocenteView {
     public void mostrarOpcaoInvalida()            { Consola.imprimirErro("Opção inválida."); }
     public void mostrarDespedida()                { Consola.imprimirInfo("Logout efetuado. Até breve!"); }
     public void mostrarOperacaoCancelada()        { Consola.imprimirInfo("Operação cancelada. A regressar ao menu..."); }
+
 
     // --- métodos adicionados para compatibilidade com DocenteController ---
     public void mostrarAlunoComMedia(int numMec, String nome, double media) {

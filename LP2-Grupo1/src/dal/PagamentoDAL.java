@@ -6,9 +6,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Responsável pelas operações de acesso a dados dos Pagamentos de propinas.
- * Persiste e lê do ficheiro pagamentos.csv.
- * Formato CSV:  numMec ; valorPago ; dataPagamento
+ * Acesso ao histórico de pagamentos de propinas em pagamentos.csv.
+ * Formato das colunas: numMec; valorPago; dataPagamento.
  */
 public class PagamentoDAL {
 
@@ -16,7 +15,11 @@ public class PagamentoDAL {
     private static final String CABECALHO = "numMec;valorPago;dataPagamento";
 
     /**
-     * Regista um novo pagamento no ficheiro pagamentos.csv.
+     * Regista um novo pagamento de propina no ficheiro.
+     * @param numMec        Número mecanográfico do estudante.
+     * @param valorPago     Montante pago em euros.
+     * @param dataPagamento Data do pagamento (DD-MM-AAAA).
+     * @param pastaBase     Caminho da pasta de dados.
      */
     public static void adicionarPagamento(int numMec, double valorPago,
                                           String dataPagamento, String pastaBase) {
@@ -28,11 +31,10 @@ public class PagamentoDAL {
     }
 
     /**
-     * Carrega todos os pagamentos de um estudante específico,
-     * ordenados pela ordem em que foram registados.
-     * @param numMec     Número mecanográfico do estudante.
-     * @param pastaBase  Caminho da pasta da base de dados.
-     * @return Lista de objetos Pagamento do aluno.
+     * Carrega todos os pagamentos de um estudante por ordem de registo.
+     * @param numMec    Número mecanográfico do estudante.
+     * @param pastaBase Caminho da pasta de dados.
+     * @return Lista de pagamentos do estudante.
      */
     public static List<Pagamento> carregarPagamentosPorAluno(int numMec, String pastaBase) {
         String caminho = pastaBase + File.separator + NOME_FICHEIRO;

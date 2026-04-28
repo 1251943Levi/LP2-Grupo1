@@ -9,10 +9,6 @@ import java.util.List;
 /**
  * Controlador responsável por gerir as interações do Docente.
  * Atua como intermediário entre a interface (DocenteView) e a lógica de negócio (DocenteBLL).
- *
- * Regras MVC respeitadas:
- *   - NÃO acede a qualquer DAL diretamente.
- *   - NÃO referencia ImportadorCSV nem ExportadorCSV.
  */
 public class DocenteController {
 
@@ -87,8 +83,8 @@ public class DocenteController {
     }
 
     /**
-     * Fluxo de recolha de notas e envio para a DocenteBLL processar o registo.
-     * Inclui validação de UC, duplicados e pertença ao docente.
+     * Fluxo de recolha de uma única nota e envio para a DocenteBLL processar o registo.
+     * Inclui validação de UC, limites de 3 avaliações e pertença ao docente.
      */
     private void executarLancamentoNotas() {
         view.mostrarCabecalhoLancamentoNotas();
@@ -96,16 +92,17 @@ public class DocenteController {
             int numMec     = view.pedirNumeroAluno();
             String siglaUc = view.pedirSiglaUc();
             int ano        = view.pedirAnoLetivo();
-            double n1      = view.pedirNotaNormal();
-            double n2      = view.pedirNotaRecurso();
-            double n3      = view.pedirNotaEspecial();
 
-            String erro = docenteBll.lancarNota(numMec, siglaUc, ano, n1, n2, n3, docente);
-            if (erro == null) {
-                view.mostrarSucessoLancamento();
+            double notaMomento = view.pedirNotaMomento();
+
+            String erro = docenteBll.lancarNota(numMec, siglaUc, ano, notaMomento, docente);
+
+            if (erro != null) {
+                System.out.println("  >> " + erro);
             } else {
-                System.out.println(">> " + erro);
+                view.mostrarSucessoLancamento();
             }
+
         } catch (CancelamentoException e) {
             view.mostrarOperacaoCancelada();
         } catch (Exception e) {
