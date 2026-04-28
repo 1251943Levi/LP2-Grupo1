@@ -112,9 +112,13 @@ public class PercursoAcademico {
         this.totalUcsInscrito = 0;
     }
 
+    public UnidadeCurricular[] getUcsInscrito() { return ucsInscrito; }
+    public int getTotalUcsInscrito() { return totalUcsInscrito; }
+
     /** @return Array com o historial completo de avaliações do estudante. */
     public Avaliacao[] getHistoricoAvaliacoes() { return historicoAvaliacoes; }
 
 
     /** @return Número total de avaliações arquivadas. */
     public int         getTotalAvaliacoes()      { return totalAvaliacoes; }}
+

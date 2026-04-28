@@ -41,6 +41,8 @@ public class EstudanteController {
                         break;
                     case 4: consultarDadosFinanceiros();
                         break;
+                    case 5: verUcsInscritas();
+                        break;
                     case 0:
                         view.mostrarDespedida();
                         repositorio.limparSessao();
@@ -116,5 +118,10 @@ public class EstudanteController {
         } else {
             view.mostrarErroValorInvalido();
         }
+    }
+
+    private void verUcsInscritas() {
+        String info = estudanteBll.obterInfoInscricoes(estudanteAtivo);
+        view.mostrarInscricoes(info);
     }
 }

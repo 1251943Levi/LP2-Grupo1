@@ -1,10 +1,16 @@
 package controller;
 
 import model.*;
+import utils.Consola;
 import view.DocenteView;
 import bll.DocenteBLL;
 import utils.CancelamentoException;
+
+import java.util.ArrayList;
 import java.util.List;
+import dal.InscricaoDAL;
+import dal.EstudanteDAL;
+import model.Estudante;
 
 /**
  * Controlador responsável por gerir as interações do Docente.
@@ -30,11 +36,12 @@ public class DocenteController {
             try {
                 int opcao = view.mostrarMenu();
                 switch (opcao) {
-                    case 1: listarMeusAlunos();          break;
-                    case 2: executarLancamentoNotas();   break;
-                    case 3: alterarPassword();           break;
-                    case 4: verDadosPessoais();          break;
-                    case 5: verMinhasUcs();              break;
+                    case 1: listarMeusAlunos(); break;
+                    case 2: executarLancamentoNotas(); break;
+                    case 3: executarLancamentoNotasLote(); break;
+                    case 4: alterarPassword(); break;
+                    case 5: verDadosPessoais(); break;
+                    case 6: verMinhasUcs(); break;
                     case 0:
                         view.mostrarDespedida();
                         repo.limparSessao();
@@ -117,6 +124,49 @@ public class DocenteController {
             view.mostrarSucessoAlteracaoPassword();
         } catch (CancelamentoException e) {
             view.mostrarCancelamentoPassword();
+        }
+    }
+
+    private void executarLancamentoNotasLote() {
+        view.mostrarCabecalhoLancamentoNotasLote();
+        try {
+            String siglaUc = view.pedirSiglaUc();
+            if (!docenteBll.lecionaEstaUC(docente, siglaUc)) {
+                view.mostrarErro("Não lecciona a UC " + siglaUc);
+                return;
+            }
+            List<String> alunos = docenteBll.obterAlunosInscritosNaUc(siglaUc);
+            if (alunos.isEmpty()) {
+                view.mostrarErro("Nenhum aluno inscrito nesta UC.");
+                return;
+            }
+            view.mostrarListaAlunosParaLote(siglaUc, alunos);
+            if (!Consola.lerSimNao("Iniciar lançamento sequencial de notas para esta UC?")) {
+                view.mostrarOperacaoCancelada();
+                return;
+            }
+            int anoLetivo = view.pedirAnoLetivo();
+
+            // Função que pergunta a nota para cada aluno
+            java.util.function.Function<Integer, Double> obterNota = (numMec) -> {
+                Estudante e = EstudanteDAL.procurarPorNumMec(numMec, "bd");
+                String nome = (e != null) ? e.getNome() : "Desconhecido";
+                view.mostrarPedidoNotaParaAluno(numMec, nome);
+                try {
+                    double nota = view.pedirNotaMomento();
+                    return nota;
+                } catch (CancelamentoException ex) {
+                    return null; // indica salto
+                }
+            };
+
+            String resultado = docenteBll.lancarNotasEmLote(siglaUc, anoLetivo, docente, obterNota);
+            view.mostrarResultadoLote(resultado);
+        } catch (CancelamentoException e) {
+            view.mostrarOperacaoCancelada();
+        } catch (Exception e) {
+            e.printStackTrace();
+            view.mostrarErroLeituraOpcao();
         }
     }
 }

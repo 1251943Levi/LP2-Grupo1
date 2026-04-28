@@ -28,7 +28,8 @@ public class EstudanteView {
                 "Ver Dados Pessoais e Avaliações",
                 "Atualizar Morada",
                 "Alterar Password",
-                "Consultar Dados Financeiros / Pagar"
+                "Consultar Dados Financeiros / Pagar",
+                "Ver UCs em que estou inscrito"
         }, "Sair / Logout");
         return Consola.lerOpcaoMenu();
     }
@@ -116,6 +117,12 @@ public class EstudanteView {
         Consola.imprimirTitulo("Alterar Password");
         Consola.imprimirDicaFormulario();
         return Consola.lerPassword("Nova Password");
+    }
+
+    public void mostrarInscricoes(String info) {
+        Consola.imprimirTitulo("Minhas Inscrições");
+        System.out.println(info);
+        Consola.pausar();
     }
 
     // ---------- MENSAGENS ----------

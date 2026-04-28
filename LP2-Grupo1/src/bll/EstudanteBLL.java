@@ -138,4 +138,25 @@ public class EstudanteBLL {
             e.getPercurso().registarAvaliacao(av);
         }
     }
+
+    /**
+     * Retorna uma lista formatada com o ano curricular e as UCs em que o estudante está inscrito.
+     * @param e Estudante autenticado
+     * @return String formatada para exibição
+     */
+    public String obterInfoInscricoes(Estudante e) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Ano Curricular: ").append(e.getAnoCurricular()).append("º\n");
+        sb.append("UCs inscrito:\n");
+        UnidadeCurricular[] ucs = e.getPercurso().getUcsInscrito(); // Nota: esse getter pode não existir; vamos ver abaixo.
+        int total = e.getPercurso().getTotalUcsInscrito();
+        if (total == 0) {
+            sb.append("  Nenhuma UC encontrada.\n");
+        } else {
+            for (int i = 0; i < total; i++) {
+                sb.append("  - ").append(ucs[i].getSigla()).append(": ").append(ucs[i].getNome()).append("\n");
+            }
+        }
+        return sb.toString();
+    }
 }
