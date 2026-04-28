@@ -111,12 +111,22 @@ public class DocenteView {
     public void mostrarOpcaoInvalida()            { Consola.imprimirErro("Opção inválida."); }
     public void mostrarDespedida()                { Consola.imprimirInfo("Logout efetuado. Até breve!"); }
     public void mostrarOperacaoCancelada()        { Consola.imprimirInfo("Operação cancelada. A regressar ao menu..."); }
-
-
-    // --- métodos adicionados para compatibilidade com DocenteController ---
-    public void mostrarAlunoComMedia(int numMec, String nome, double media) {
-        System.out.printf("  [%d] %-30s | Média: %.1f%n", numMec, nome, media);
+    /**
+     * Mostra o ID e Nome do aluno de forma simplificada para processos de seleção.
+     * * @param numMec Número mecanográfico do aluno.
+     * @param nome   Nome completo do aluno.
+     */
+    public void mostrarAlunoSimples(int numMec, String nome) {
+        System.out.printf("  [%d] %s%n", numMec, nome);
     }
+
+    public void mostrarAlunoComMedia(int numMec, String nome, double media, String ucs) {
+        String mediaTexto = (media == 0.0) ? "n/a" : String.format("%.1f", media);
+
+        System.out.printf("  [%d] %-25s | UCs: %-15s | Média: %s%n",
+                numMec, nome, ucs, mediaTexto);
+    }
+
     public void mostrarErroCarregarAlunos() { Consola.imprimirErro("Não foi possível carregar a lista de alunos.");
     }
 }

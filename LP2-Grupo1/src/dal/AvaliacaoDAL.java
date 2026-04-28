@@ -112,23 +112,31 @@ public class AvaliacaoDAL {
      * Procura e devolve uma avaliação específica de um aluno num determinado ano.
      */
     public static Avaliacao obterAvaliacao(int numMec, String siglaUc, int ano, String pastaBd) {
-        java.util.List<String> linhas = DALUtil.lerFicheiro(pastaBd + "/avaliacoes.csv");
+        String caminho = pastaBd + File.separator + NOME_FICHEIRO;
+        List<String> linhas = DALUtil.lerFicheiro(caminho);
+
         for (String linha : linhas) {
-            String[] dados = linha.split(";");
-            if (dados.length >= 3 && Integer.parseInt(dados[0]) == numMec
-                    && dados[1].equalsIgnoreCase(siglaUc)
-                    && Integer.parseInt(dados[2]) == ano) {
+            if (linha.equalsIgnoreCase(CABECALHO)) continue;
 
-                model.UnidadeCurricular uc = new model.UnidadeCurricular(siglaUc, "", ano, null);
-                Avaliacao av = new Avaliacao(uc, ano);
+            String[] dados = linha.split(";", -1);
+            if (dados.length >= 3) {
+                try {
+                    int mecLido = Integer.parseInt(dados[0].trim());
+                    int anoLido = Integer.parseInt(dados[2].trim());
 
-                for (int i = 3; i < dados.length; i++) {
-                    try {
-                        double nota = Double.parseDouble(dados[i].replace(",", "."));
-                        if (nota >= 0) av.adicionarResultado(nota);
-                    } catch (NumberFormatException ignored) {}
-                }
-                return av;
+                    if (mecLido == numMec && dados[1].trim().equalsIgnoreCase(siglaUc) && anoLido == ano) {
+                        UnidadeCurricular uc = UcDAL.procurarUC(siglaUc, pastaBd);
+                        Avaliacao av = new Avaliacao(uc, ano);
+
+                        for (int i = 3; i < dados.length && i < 6; i++) {
+                            if (!dados[i].trim().isEmpty()) {
+                                double nota = Double.parseDouble(dados[i].trim().replace(",", "."));
+                                av.adicionarResultado(nota);
+                            }
+                        }
+                        return av;
+                    }
+                } catch (NumberFormatException ignored) {}
             }
         }
         return null;

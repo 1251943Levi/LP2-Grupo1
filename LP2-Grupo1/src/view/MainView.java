@@ -93,7 +93,6 @@ public class MainView {
     public void mostrarOpcaoInvalida()         { Consola.imprimirErro("Opção inválida."); }
     public void mostrarTituloAutoMatricula() {
         Consola.imprimirCabecalho("Auto-Matrícula");
-        Consola.imprimirDicaFormulario();
     }
     public void mostrarErroNomeInvalido()      { Consola.imprimirErro("Nome inválido (apenas letras)."); }
     public void mostrarErroNifInvalido()       { Consola.imprimirErro("NIF inválido (9 dígitos)."); }

@@ -172,7 +172,7 @@ public final class Consola {
      */
     public static int lerInt(String prompt) {
         while (true) {
-            String input = lerString(prompt); // "0" lança exceção aqui
+            String input = lerString(prompt);
             try {
                 return Integer.parseInt(input);
             } catch (NumberFormatException e) {

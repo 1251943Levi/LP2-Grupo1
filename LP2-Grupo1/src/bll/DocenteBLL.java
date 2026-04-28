@@ -4,10 +4,7 @@ import dal.AvaliacaoDAL;
 import dal.CredencialDAL;
 import dal.EstudanteDAL;
 import dal.UcDAL;
-import model.Avaliacao;
-import model.Docente;
-import model.Estudante;
-import model.UnidadeCurricular;
+import model.*;
 import utils.SegurancaPasswords;
 
 import java.util.ArrayList;
@@ -99,26 +96,43 @@ public class DocenteBLL {
         if (todos == null) return resultado;
 
         for (Estudante e : todos) {
-            if (e == null || e.getPercurso() == null) continue;
+            if (e == null) continue;
 
+           List<String> siglasInscritas = dal.InscricaoDAL.obterSiglasUcsPorAluno(e.getNumeroMecanografico(), "bd");
+
+            StringBuilder ucsCorrespondentes = new StringBuilder();
             boolean alunoDoDocente = false;
-            double somaMedias = 0;
-            int totalAvaliacoes = 0;
 
-            for (int i = 0; i < e.getPercurso().getTotalAvaliacoes(); i++) {
-                Avaliacao av = e.getPercurso().getHistoricoAvaliacoes()[i];
-                if (av == null || av.getUc() == null) continue;
+            for (int i = 0; i < docente.getTotalUcsLecionadas(); i++) {
+                UnidadeCurricular ucDocente = docente.getUcsLecionadas()[i];
+                if (ucDocente == null) continue;
 
-                if (lecionaEstaUC(docente, av.getUc().getSigla())) {
-                    alunoDoDocente = true;
-                    somaMedias += av.calcularMedia();
-                    totalAvaliacoes++;
+                for (String siglaInscrita : siglasInscritas) {
+                    if (ucDocente.getSigla().equalsIgnoreCase(siglaInscrita)) {
+                        if (ucsCorrespondentes.length() > 0) ucsCorrespondentes.append(", ");
+                        ucsCorrespondentes.append(ucDocente.getSigla());
+                        alunoDoDocente = true;
+                        break;
+                    }
                 }
             }
 
             if (alunoDoDocente) {
+                double somaMedias = 0;
+                int totalAvaliacoes = 0;
+
+                if (e.getPercurso() != null) {
+                    for (int i = 0; i < e.getPercurso().getTotalAvaliacoes(); i++) {
+                        model.Avaliacao av = e.getPercurso().getHistoricoAvaliacoes()[i];
+                        if (av != null && lecionaEstaUC(docente, av.getUc().getSigla())) {
+                            somaMedias += av.calcularMedia();
+                            totalAvaliacoes++;
+                        }
+                    }
+                }
                 double media = totalAvaliacoes > 0 ? somaMedias / totalAvaliacoes : 0.0;
-                resultado.add(new Object[]{e, media});
+
+                resultado.add(new Object[]{e, media, ucsCorrespondentes.toString()});
             }
         }
         return resultado;

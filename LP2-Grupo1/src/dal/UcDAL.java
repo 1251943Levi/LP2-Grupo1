@@ -296,16 +296,10 @@ public class UcDAL {
         List<UnidadeCurricular> ucs = new ArrayList<>();
 
         for (String sigla : siglas) {
-            try {
-                String[] dados = obterDadosBrutosUC(sigla, pastaBase);
-                if (dados != null && dados.length >= 3) {
-                    int ano  = Integer.parseInt(dados[2].trim());
-                    int ects = (dados.length >= 6 && !dados[5].trim().isEmpty())
-                            ? Integer.parseInt(dados[5].trim())
-                            : model.UnidadeCurricular.ECTS_PADRAO;
-                    ucs.add(new UnidadeCurricular(dados[0].trim(), dados[1].trim(), ano, docente, ects));
-                }
-            } catch (NumberFormatException ignored) {}
+            UnidadeCurricular ucCompleta = procurarUC(sigla, pastaBase);
+            if (ucCompleta != null) {
+                ucs.add(ucCompleta);
+            }
         }
         return ucs;
     }

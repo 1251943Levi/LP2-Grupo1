@@ -31,13 +31,11 @@ public class Avaliacao {
      * @param nota Valor da nota (0 a 20).
      * @return true se a nota foi guardada; false se o limite de 3 momentos foi atingido.
      */
-    public boolean adicionarResultado(double nota) {
-        if (totalAvaliacoesLancadas < resultados.length) {
-            resultados[totalAvaliacoesLancadas] = nota;
-            totalAvaliacoesLancadas++;
-            return true;
+    public void adicionarResultado(double nota) {
+        if (totalAvaliacoesLancadas < 3) {
+            this.resultados[totalAvaliacoesLancadas] = nota;
+            this.totalAvaliacoesLancadas++;
         }
-        return false;
     }
 
     /**

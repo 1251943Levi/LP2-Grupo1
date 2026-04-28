@@ -53,6 +53,7 @@ public class DocenteController {
      * Lista os alunos do docente com a respetiva média académica.
      * Toda a matemática e filtragem é feita na DocenteBLL.
      */
+
     private void listarMeusAlunos() {
         view.mostrarCabecalhoAlunos();
         List<Object[]> alunos = docenteBll.obterAlunosDoDocenteComMedia(docente);
@@ -64,7 +65,9 @@ public class DocenteController {
         for (Object[] par : alunos) {
             Estudante e  = (Estudante) par[0];
             double media = (double)    par[1];
-            view.mostrarAlunoComMedia(e.getNumeroMecanografico(), e.getNome(), media);
+            String ucs   = (String)    par[2];
+
+            view.mostrarAlunoComMedia(e.getNumeroMecanografico(), e.getNome(), media, ucs);
         }
     }
 
@@ -89,13 +92,48 @@ public class DocenteController {
     private void executarLancamentoNotas() {
         view.mostrarCabecalhoLancamentoNotas();
         try {
-            int numMec     = view.pedirNumeroAluno();
+            if (utils.Consola.lerSimNao("Deseja listar as suas Unidades Curriculares disponíveis?")) {
+                verMinhasUcs();
+            }
             String siglaUc = view.pedirSiglaUc();
-            int ano        = view.pedirAnoLetivo();
 
-            double notaMomento = view.pedirNotaMomento();
+            if (!docenteBll.lecionaEstaUC(docente, siglaUc)) {
+                System.out.println("  [ERRO] Não leciona a UC '" + siglaUc + "'.");
+                return;
+            }
 
-            String erro = docenteBll.lancarNota(numMec, siglaUc, ano, notaMomento, docente);
+            if (utils.Consola.lerSimNao("Deseja listar os alunos inscritos em " + siglaUc + "?")) {
+                listarAlunosPorUC(siglaUc);
+            }
+
+            int numMec = -1;
+            boolean alunoValido = false;
+            while (!alunoValido) {
+                numMec = view.pedirNumeroAluno();
+                if (dal.EstudanteDAL.procurarPorNumMec(numMec, "bd") != null) {
+                    alunoValido = true;
+                    break;
+                } else {
+                    System.out.println("  [ERRO] Aluno com nº " + numMec + " não encontrado. Tente novamente.");
+                }
+            }
+
+            int anoAtivo = repo.getAnoAtual();
+            System.out.println("  Ano Letivo: " + anoAtivo + " (Assumido pelo sistema)");
+
+            double notaMomento = -1;
+            boolean notaValida = false;
+            while (!notaValida) {
+                notaMomento = view.pedirNotaMomento();
+                if ((notaMomento >= 0 && notaMomento <= 20) || notaMomento == -1) {
+                    notaValida = true;
+                    break;
+                } else {
+                    System.out.println("  [ERRO] Nota inválida. Insira um valor entre 0 e 20 (ou -1 para falta).");
+                }
+            }
+
+            String erro = docenteBll.lancarNota(numMec, siglaUc, anoAtivo, notaMomento, docente);
 
             if (erro != null) {
                 System.out.println("  >> " + erro);
@@ -103,11 +141,35 @@ public class DocenteController {
                 view.mostrarSucessoLancamento();
             }
 
-        } catch (CancelamentoException e) {
+        } catch (utils.CancelamentoException e) {
             view.mostrarOperacaoCancelada();
         } catch (Exception e) {
             view.mostrarErroLeituraOpcao();
         }
+    }
+
+    /**
+     * Método auxiliar para listar apenas os alunos inscritos na UC selecionada.
+     */
+    private void listarAlunosPorUC(String siglaUC) {
+        List<Object[]> todosAlunos = docenteBll.obterAlunosDoDocenteComMedia(docente);
+        boolean encontrou = false;
+
+        System.out.println("\n  --- Alunos Inscritos em " + siglaUC.toUpperCase() + " ---");
+        for (Object[] par : todosAlunos) {
+            model.Estudante e = (model.Estudante) par[0];
+            String ucsInscritas = (String) par[2];
+
+            if (ucsInscritas.toUpperCase().contains(siglaUC.toUpperCase())) {
+                view.mostrarAlunoSimples(e.getNumeroMecanografico(), e.getNome());
+                encontrou = true;
+            }
+        }
+
+        if (!encontrou) {
+            System.out.println("  Nenhum aluno encontrado inscrito nesta Unidade Curricular.");
+        }
+        System.out.println();
     }
 
     private void alterarPassword() {
