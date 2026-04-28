@@ -63,10 +63,6 @@ public class MainView {
 
     // ---------- LISTAGENS ----------
 
-    /**
-     * Apresenta uma lista numerada de cursos disponíveis.
-     * @param cursos Array de strings no formato "sigla - nome".
-     */
     public void mostrarListaCursosDisponiveis(String[] cursos) {
         Consola.imprimirTitulo("Cursos Disponíveis");
         for (int i = 0; i < cursos.length; i++)
