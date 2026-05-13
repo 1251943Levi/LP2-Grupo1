@@ -309,4 +309,102 @@ public class UcDAL {
         }
         return ucs;
     }
+    public static String listarUcsDetalhadas(String pastaBase, int anoLetivoAtual) {
+
+        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
+
+        List<String> linhas = DALUtil.lerFicheiro(caminho);
+
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("\n--- PAINEL DE UCS ---\n");
+
+        List<String> ucsProcessadas = new ArrayList<>();
+
+        for (String linha : linhas) {
+
+            if (linha.equalsIgnoreCase(CABECALHO)) continue;
+
+            String[] dados = linha.split(";", -1);
+
+            if (dados.length < 5) continue;
+
+            String siglaUc = dados[0].trim();
+
+            if (ucsProcessadas.contains(siglaUc)) continue;
+
+            ucsProcessadas.add(siglaUc);
+
+            String nomeUc = dados[1].trim();
+
+            int anoCurricular = Integer.parseInt(dados[2].trim());
+
+            String docente = dados[3].trim();
+
+            // quantidade de alunos
+            int qtdAlunos =
+                    InscricaoDAL.obterAlunosPorUc(siglaUc, pastaBase).size();
+
+            // quantidade de momentos de avaliação
+            int qtdMomentos = 0;
+
+            List<String> linhasAvaliacoes =
+                    DALUtil.lerFicheiro(pastaBase + File.separator + "avaliacoes.csv");
+
+            for (String linhaAvaliacao : linhasAvaliacoes) {
+
+                if (linhaAvaliacao.startsWith("numMec")) continue;
+
+                String[] dadosAvaliacao = linhaAvaliacao.split(";", -1);
+
+                if (dadosAvaliacao.length >= 4 &&
+                        dadosAvaliacao[1].trim().equalsIgnoreCase(siglaUc)) {
+
+                    for (int i = 3; i < dadosAvaliacao.length; i++) {
+
+                        if (!dadosAvaliacao[i].trim().isEmpty()) {
+                            qtdMomentos++;
+                        }
+                    }
+                }
+            }
+
+            // cursos associados
+            List<String> cursosAssociados = new ArrayList<>();
+
+            for (String linhaUc : linhas) {
+
+                String[] dadosUc = linhaUc.split(";", -1);
+
+                if (dadosUc.length >= 5 &&
+                        dadosUc[0].trim().equalsIgnoreCase(siglaUc)) {
+
+                    String siglaCurso = dadosUc[4].trim();
+
+                    if (!cursosAssociados.contains(siglaCurso)) {
+                        cursosAssociados.add(siglaCurso);
+                    }
+                }
+            }
+
+            sb.append(anoLetivoAtual)
+                    .append(" | ")
+                    .append(siglaUc)
+                    .append(" | ")
+                    .append(nomeUc)
+                    .append(" | ")
+                    .append(docente)
+                    .append(" | ")
+                    .append(qtdMomentos)
+                    .append(" | ")
+                    .append(qtdAlunos)
+                    .append(" | ")
+                    .append(String.join(",", cursosAssociados))
+                    .append(" | ")
+                    .append(anoCurricular)
+                    .append("º Ano\n");
+        }
+
+        return sb.toString();
+    }
 }
