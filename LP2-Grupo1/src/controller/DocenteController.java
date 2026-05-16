@@ -42,6 +42,7 @@ public class DocenteController {
                     case 4: alterarPassword(); break;
                     case 5: verDadosPessoais(); break;
                     case 6: verMinhasUcs(); break;
+                    case 7: consultarHistoricoAluno(); break;
                     case 0:
                         view.mostrarDespedida();
                         repo.limparSessao();
@@ -169,6 +170,24 @@ public class DocenteController {
             view.mostrarErroLeituraOpcao();
         }
     }
+    private void consultarHistoricoAluno() {
+        try {
+            int numMec = view.pedirNumeroAluno();
+            List<String> historico = dal.HistoricoDAL.consultarHistoricoPorAluno(numMec, "bd");
 
+            view.mostrarLinha("--- Histórico Académico do Aluno " + numMec + " ---");
+            if (historico.isEmpty()) {
+                view.mostrarLinha("Sem registos passados para este aluno.");
+            } else {
+                for (String registo : historico) {
+                    String[] p = registo.split(";");
+                    view.mostrarLinha(String.format("Ano: %-5s | UC: %-6s | Notas: %-15s | %s", p[0], p[2], p[3], p[4]));
+                }
+            }
+            utils.Consola.pausar();
+        } catch (CancelamentoException e) {
+            view.mostrarOperacaoCancelada();
+        }
+    }
 
 }

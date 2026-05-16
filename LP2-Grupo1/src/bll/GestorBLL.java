@@ -59,6 +59,31 @@ public class GestorBLL {
             CursoDAL.atualizarCurso(curso, PASTA_BD);
         }
 
+        view.mostrarMensagem("A guardar o histórico académico do ano...");
+        int anoAtual = repo.getAnoAtual();
+        List<Estudante> listaAlunos = new EstudanteBLL().carregarTodosCompleto();
+
+        for (Estudante e : listaAlunos) {
+            if (e == null) continue;
+
+            for (int i = 0; i < e.getPercurso().getTotalAvaliacoes(); i++) {
+                model.Avaliacao av = e.getPercurso().getHistoricoAvaliacoes()[i];
+
+
+                if (av != null && av.getAnoLetivo() == anoAtual) {
+
+                    String notas = "";
+                    for (int n = 0; n < av.getTotalAvaliacoesLancadas(); n++) {
+                        notas += av.getResultados()[n] + " ";
+                    }
+
+                    String estado = av.isAprovado() ? "APROVADO" : "REPROVADO";
+
+                    HistoricoDAL.guardarRegistoHistorico(anoAtual, e.getNumeroMecanografico(), av.getUc().getSigla(), notas.trim(), estado, PASTA_BD);
+                }
+            }
+        }
+
         view.mostrarProcessamentoTransicoes();
         List<Estudante> estudantes = new EstudanteBLL().carregarTodosCompleto();
 
@@ -469,6 +494,9 @@ public class GestorBLL {
 
     public String[] obterListaDocentes() {
         return DocenteDAL.obterListaDocentes(PASTA_BD);
+    }
+    public List<String> obterHistoricoPorAno(int ano) {
+        return dal.HistoricoDAL.consultarHistoricoPorAno(ano, PASTA_BD);
     }
 
 }

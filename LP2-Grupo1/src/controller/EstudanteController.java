@@ -7,6 +7,8 @@ import model.RepositorioDados;
 import utils.Consola;
 import view.EstudanteView;
 
+import java.util.List;
+
 /**
  * Controlador responsável por gerir o painel do Estudante.
  * Liga a EstudanteView às BLLs correspondentes, sem aceder a DALs
@@ -45,6 +47,8 @@ public class EstudanteController {
                     case 5: verUcsInscritas();
                         break;
                     case 6: verNotas();
+                        break;
+                    case 7: consultarHistorico();
                         break;
                     case 0:
                         view.mostrarDespedida();
@@ -132,6 +136,22 @@ public class EstudanteController {
         String notas = estudanteBll.obterNotasDoEstudante(estudanteAtivo);
         Consola.imprimirTitulo("Minhas Notas");
         System.out.println(notas);
+        Consola.pausar();
+    }
+    private void consultarHistorico() {
+        Consola.imprimirTitulo("O Meu Histórico Académico (Anos Fechados)");
+        List<String> historico = dal.HistoricoDAL.consultarHistoricoPorAluno(estudanteAtivo.getNumeroMecanografico(), "bd");
+
+        if (historico.isEmpty()) {
+            Consola.imprimirInfo("Não possui registos de anos letivos anteriores.");
+        } else {
+            for (String registo : historico) {
+                // Formato: anoLetivo;numMec;siglaUC;notas;estado
+                String[] partes = registo.split(";");
+                System.out.printf("  Ano: %-5s | UC: %-6s | Notas: %-15s | %s%n",
+                        partes[0], partes[2], partes[3], partes[4]);
+            }
+        }
         Consola.pausar();
     }
 }

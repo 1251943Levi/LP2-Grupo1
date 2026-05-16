@@ -49,7 +49,8 @@ public class GestorController {
                     case 6: menuEstatisticas();                            break;
                     case 7: gestorBll.avancarAnoLetivo(repo, view);       break;
                     case 8: listarDevedores();                             break;
-                    case 9: alterarPassword();                             break;
+                    case 9: alterarPassword();
+                    case 10: consultarHistoricoAno(); break;
                     case 0:
                         view.mostrarDespedida();
                         repo.limparSessao();
@@ -61,6 +62,30 @@ public class GestorController {
             } catch (Exception e) {
                 view.mostrarErroLeituraOpcao();
             }
+        }
+    }
+
+    private void consultarHistoricoAno() {
+        try {
+            view.mostrarMensagem("--- Consulta de Histórico ---");
+            String textoAno = view.pedirInput("Introduza o Ano Letivo a pesquisar");
+            int ano = Integer.parseInt(textoAno);
+
+
+            List<String> registos = gestorBll.obterHistoricoPorAno(ano);
+
+            if (registos.isEmpty()) {
+                view.mostrarMensagem("Nenhum registo encontrado para o ano " + ano);
+                return;
+            }
+
+            view.mostrarMensagem("Registos do Ano " + ano + " (Ano;NumMec;UC;Notas;Estado):");
+            for (String r : registos) {
+                view.mostrarMensagem("  " + r);
+            }
+            utils.Consola.pausar();
+        } catch (Exception e) {
+            view.mostrarOperacaoCancelada();
         }
     }
 
