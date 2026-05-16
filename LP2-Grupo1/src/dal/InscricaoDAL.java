@@ -82,4 +82,28 @@ public class InscricaoDAL {
         }
         return siglas;
     }
+
+    /**
+     * Devolve os números mecanográficos de todos os alunos inscritos numa determinada UC.
+     * @param siglaUC   Sigla da unidade curricular.
+     * @param pastaBase Caminho da pasta de dados.
+     * @return Lista de números mecanográficos (pode estar vazia).
+     */
+    public static List<Integer> obterAlunosPorUc(String siglaUC, String pastaBase) {
+        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
+        List<String> linhas = DALUtil.lerFicheiro(caminho);
+        List<Integer> alunos = new ArrayList<>();
+
+        for (String linha : linhas) {
+            if (linha.equalsIgnoreCase(CABECALHO)) continue;
+            String[] dados = linha.split(";", -1);
+            if (dados.length >= 2 && dados[1].trim().equalsIgnoreCase(siglaUC)) {
+                try {
+                    int numMec = Integer.parseInt(dados[0].trim());
+                    alunos.add(numMec);
+                } catch (NumberFormatException ignored) {}
+            }
+        }
+        return alunos;
+    }
 }

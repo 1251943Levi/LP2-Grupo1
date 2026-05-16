@@ -138,4 +138,69 @@ public class EstudanteBLL {
             e.getPercurso().registarAvaliacao(av);
         }
     }
+
+    /**
+     * Retorna uma lista formatada com o ano curricular e as UCs em que o estudante está inscrito.
+     * @param e Estudante autenticado
+     * @return String formatada para exibição
+     */
+    public String obterInfoInscricoes(Estudante e) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Ano Curricular: ").append(e.getAnoCurricular()).append("º\n");
+        sb.append("UCs inscrito:\n");
+        UnidadeCurricular[] ucs = e.getPercurso().getUcsInscrito(); // Nota: esse getter pode não existir; vamos ver abaixo.
+        int total = e.getPercurso().getTotalUcsInscrito();
+        if (total == 0) {
+            sb.append("  Nenhuma UC encontrada.\n");
+        } else {
+            for (int i = 0; i < total; i++) {
+                sb.append("  - ").append(ucs[i].getSigla()).append(": ").append(ucs[i].getNome()).append("\n");
+            }
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Devolve uma string formatada com as notas do estudante por UC.
+     * @param e Estudante autenticado
+     * @return String com as notas (UC, notas lançadas, média, estado)
+     */
+    public String obterNotasDoEstudante(Estudante e) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(String.format("Notas do aluno: %s (%d)\n", e.getNome(), e.getNumeroMecanografico()));
+        sb.append("------------------------------------------------------------\n");
+
+        int totalAvaliacoes = e.getPercurso().getTotalAvaliacoes();
+        if (totalAvaliacoes == 0) {
+            sb.append("Nenhuma avaliação registada.\n");
+            return sb.toString();
+        }
+
+        Avaliacao[] historico = e.getPercurso().getHistoricoAvaliacoes();
+        for (int i = 0; i < totalAvaliacoes; i++) {
+            Avaliacao av = historico[i];
+            if (av == null || av.getUc() == null) continue;
+
+            String sigla = av.getUc().getSigla();
+            String nomeUC = av.getUc().getNome();
+            int ano = av.getAnoLetivo();
+            double[] notas = av.getResultados();
+            int totalNotas = av.getTotalAvaliacoesLancadas();
+
+            sb.append(String.format("UC: %s - %s (Ano %d)\n", sigla, nomeUC, ano));
+            if (totalNotas == 0) {
+                sb.append("  Sem notas lançadas.\n");
+            } else {
+                sb.append("  Notas: ");
+                for (int j = 0; j < totalNotas; j++) {
+                    sb.append(String.format("%.1f", notas[j]));
+                    if (j < totalNotas - 1) sb.append(", ");
+                }
+                double media = av.calcularMedia();
+                sb.append(String.format(" | Média: %.1f | %s\n", media, av.isAprovado() ? "APROVADO" : "REPROVADO"));
+            }
+            sb.append("\n");
+        }
+        return sb.toString();
+    }
 }
