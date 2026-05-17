@@ -11,6 +11,7 @@ import model.Avaliacao;
 import model.EstadoAnoLetivo;
 import model.Estudante;
 import model.RepositorioDados;
+import utils.Config;
 import view.GestorView;
 
 import java.util.ArrayList;
@@ -132,7 +133,7 @@ public class AnoLetivoBLL {
      * Delega a transição de alunos para a lógica existente da Sprint 4 (GestorBLL.avancarAnoLetivo).
      */
     public void avancar(RepositorioDados repo, GestorView view) {
-        AnoLetivo atual = AnoLetivoDAL.obterAnoAtivo(PASTA_BD);
+        AnoLetivo atual = AnoLetivoDAL.obterAnoAtivo(Config.PASTA_BD);
         if (atual == null) {
             throw new EstadoInvalidoException("Não existe ano letivo registado no sistema.");
         }
@@ -141,16 +142,12 @@ public class AnoLetivoBLL {
                     "Só anos FECHADOS podem avançar. Estado atual: " + atual.getEstado() + ".");
         }
 
-        // Delega transição de alunos para a lógica existente
         new GestorBLL().avancarAnoLetivo(repo, view);
 
-        // Cria o próximo ano em PLANEAMENTO
         int proximo = atual.getAno() + 1;
-        if (AnoLetivoDAL.procurarPorAno(proximo, PASTA_BD) == null) {
-            AnoLetivoDAL.adicionar(new AnoLetivo(proximo), PASTA_BD);
+        if (AnoLetivoDAL.procurarPorAno(proximo, Config.PASTA_BD) == null) {
+            AnoLetivoDAL.adicionar(new AnoLetivo(proximo), Config.PASTA_BD);
         }
-
-        // TODO HOOK [Card Histórico]: arquivar inscrições/avaliações de "atual" aqui.
     }
 
     // ============================================================
