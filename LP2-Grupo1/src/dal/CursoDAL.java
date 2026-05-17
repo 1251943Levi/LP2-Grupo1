@@ -2,6 +2,8 @@ package dal;
 
 import model.Curso;
 import model.Departamento;
+import utils.Consola;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -174,7 +176,7 @@ public class CursoDAL {
 
         StringBuilder sb = new StringBuilder();
 
-        sb.append("\n--- PAINEL DE CURSOS ---\n");
+        Consola.imprimirTitulo("PAINEL DE CURSOS");
 
         for (String linha : linhas) {
 

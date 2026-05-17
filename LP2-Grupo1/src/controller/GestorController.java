@@ -377,7 +377,7 @@ public class GestorController {
             int opcao = view.mostrarMenuCRUD("Cursos");
             switch (opcao) {
                 case 1: adicionarCurso(); break;
-                case 2: view.mostrarResultadosListagem(new String[] { gestorBll.obterPainelCursos() });
+                case 2: view.mostrarResultadosListagem(new String[] { gestorBll.obterPainelCursos() }); break;
                 case 3: editarCurso();    break;
                 case 4: removerCurso();   break;
                 case 5: listarUcsCurso(); break;
