@@ -21,6 +21,7 @@ public class GestorView {
                 "Gerir Cursos",
                 "Ver Estatísticas",
                 "Avançar Ano Letivo",
+                "Consultar Histórico de Anos Anteriores",
                 "Listar Devedores de Propinas",
                 "Alterar Password",
         }, "Sair / Logout");
@@ -59,6 +60,10 @@ public class GestorView {
                 "Melhor Aluno"
         });
         return Consola.lerOpcaoMenu();
+    }
+
+    public int pedirAnoHistorico() {
+        return utils.Consola.lerInt("Introduza o Ano Letivo a consultar (ex: 2025)");
     }
 
     // ---------- INPUTS GENÉRICOS ----------

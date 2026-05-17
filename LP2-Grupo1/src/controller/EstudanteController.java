@@ -7,6 +7,8 @@ import model.RepositorioDados;
 import utils.Consola;
 import view.EstudanteView;
 
+import java.util.List;
+
 /**
  * Controlador responsável por gerir o painel do Estudante.
  * Liga a EstudanteView às BLLs correspondentes, sem aceder a DALs
@@ -45,6 +47,8 @@ public class EstudanteController {
                     case 5: verUcsInscritas();
                         break;
                     case 6: verNotas();
+                        break;
+                    case 7: consultarHistorico();
                         break;
                     case 0:
                         view.mostrarDespedida();
@@ -133,5 +137,32 @@ public class EstudanteController {
         Consola.imprimirTitulo("Minhas Notas");
         System.out.println(notas);
         Consola.pausar();
+    }
+    private void consultarHistorico() {
+        try {
+            Consola.imprimirTitulo("O Meu Histórico Académico");
+
+
+            int ano = utils.Consola.lerInt("Introduza o Ano Letivo que deseja consultar");
+
+            java.util.List<String> historico = dal.HistoricoDAL.consultarHistoricoPorAluno(estudanteAtivo.getNumeroMecanografico(), "bd");
+
+            boolean encontrou = false;
+            for (String registo : historico) {
+                String[] p = registo.split(";");
+                // Só mostra se o ano do ficheiro for igual ao ano digitado!
+                if (p.length >= 5 && Integer.parseInt(p[0].trim()) == ano) {
+                    System.out.printf("  Ano: %-5s | UC: %-6s | Notas: %-15s | %s%n", p[0], p[2], p[3], p[4]);
+                    encontrou = true;
+                }
+            }
+
+            if (!encontrou) {
+                System.out.println("  Não foram encontrados registos para o ano " + ano);
+            }
+            Consola.pausar();
+        } catch (utils.CancelamentoException e) {
+            view.mostrarOperacaoCancelada();
+        }
     }
 }
