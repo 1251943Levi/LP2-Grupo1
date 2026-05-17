@@ -42,6 +42,7 @@ public class DocenteController {
                     case 4: alterarPassword(); break;
                     case 5: verDadosPessoais(); break;
                     case 6: verMinhasUcs(); break;
+                    case 7: consultarHistoricoAluno(); break;
                     case 0:
                         view.mostrarDespedida();
                         repo.limparSessao();
@@ -231,6 +232,32 @@ public class DocenteController {
             view.mostrarErroLeituraOpcao();
         }
     }
+    private void consultarHistoricoAluno() {
+        try {
+            int numMec = view.pedirNumeroAluno();
 
+            // Pede também o ano ao Docente
+            int ano = utils.Consola.lerInt("Introduza o Ano Letivo que deseja consultar");
 
+            java.util.List<String> historico = dal.HistoricoDAL.consultarHistoricoPorAluno(numMec, "bd");
+
+            view.mostrarLinha("--- Histórico do Aluno " + numMec + " no Ano " + ano + " ---");
+            boolean encontrou = false;
+            for (String registo : historico) {
+                String[] p = registo.split(";");
+                // Filtra pelo ano escolhido
+                if (p.length >= 5 && Integer.parseInt(p[0].trim()) == ano) {
+                    view.mostrarLinha(String.format("UC: %-6s | Notas: %-15s | %s", p[2], p[3], p[4]));
+                    encontrou = true;
+                }
+            }
+
+            if (!encontrou) {
+                view.mostrarLinha("Não foram encontrados registos para este ano.");
+            }
+            utils.Consola.pausar();
+        } catch (utils.CancelamentoException e) {
+            view.mostrarOperacaoCancelada();
+        }
+    }
 }

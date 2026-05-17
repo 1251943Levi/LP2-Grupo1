@@ -30,7 +30,8 @@ public class EstudanteView {
                 "Alterar Password",
                 "Consultar Dados Financeiros / Pagar",
                 "Ver UCs em que estou inscrito",
-                "Ver minhas notas por UC"
+                "Ver minhas notas por UC",
+                "Consultar Histórico Académico"
         }, "Sair / Logout");
         return Consola.lerOpcaoMenu();
     }

@@ -18,7 +18,7 @@ import java.util.List;
 public class GestorBLL {
 
     private static final String PASTA_BD = "bd";
-
+    private int anoLetivoAtual = 2026;
 
     /**
      * Avança o ano letivo para todos os estudantes do sistema.
@@ -57,6 +57,31 @@ public class GestorBLL {
                 curso.setEstado("Inativo");
             }
             CursoDAL.atualizarCurso(curso, PASTA_BD);
+        }
+
+        view.mostrarMensagem("A guardar o histórico académico do ano...");
+        int anoAtual = repo.getAnoAtual();
+        List<Estudante> listaAlunos = new EstudanteBLL().carregarTodosCompleto();
+
+        for (Estudante e : listaAlunos) {
+            if (e == null) continue;
+
+            for (int i = 0; i < e.getPercurso().getTotalAvaliacoes(); i++) {
+                model.Avaliacao av = e.getPercurso().getHistoricoAvaliacoes()[i];
+
+
+                if (av != null && av.getAnoLetivo() == anoAtual) {
+
+                    String notas = "";
+                    for (int n = 0; n < av.getTotalAvaliacoesLancadas(); n++) {
+                        notas += av.getResultados()[n] + " ";
+                    }
+
+                    String estado = av.isAprovado() ? "APROVADO" : "REPROVADO";
+
+                    HistoricoDAL.guardarRegistoHistorico(anoAtual, e.getNumeroMecanografico(), av.getUc().getSigla(), notas.trim(), estado, PASTA_BD);
+                }
+            }
         }
 
         view.mostrarProcessamentoTransicoes();
@@ -269,17 +294,6 @@ public class GestorBLL {
         return CursoDAL.removerCurso(sigla, PASTA_BD);
     }
 
-
-    /**
-     * Devolve o plano de estudos de um curso agrupado por ano curricular.
-     * @param siglaCurso Sigla do curso.
-     * @return String formatada com as UCs por ano.
-     */
-    public String listarUcsPorCurso(String siglaCurso) {
-        return UcDAL.listarUcsPorCurso(siglaCurso, PASTA_BD);
-    }
-
-
     // ─────────────────────────── ESTATÍSTICAS ──────────────────────────
 
     /**
@@ -307,10 +321,26 @@ public class GestorBLL {
     }
 
     /** @return Array "SIGLA - Nome" de todas as UCs. */
-    public String[] listarTodasUcs()    { return UcDAL.obterListaUcs(PASTA_BD); }
+    public String[] listarTodosCursos() {
+        return CursoDAL.obterListaCursos(PASTA_BD);
+    }
 
     /** @return Array "SIGLA - Nome" de todos os cursos. */
-    public String[] listarTodosCursos() { return CursoDAL.obterListaCursos(PASTA_BD); }
+    public String[] listarTodasUcs() {
+        return UcDAL.obterListaUcs(PASTA_BD);
+    }
+
+    public String obterPainelCursos() {
+        return CursoDAL.listarCursosDetalhados(PASTA_BD, anoLetivoAtual);
+    }
+
+    public String obterPainelUcs() {
+        return UcDAL.listarUcsDetalhadas(PASTA_BD, anoLetivoAtual);
+    }
+
+    public String listarUcsPorCurso(String siglaCurso) {
+        return UcDAL.listarUcsPorCurso(siglaCurso, PASTA_BD);
+    }
 
     /**
      * Devolve os estudantes com saldo devedor positivo.
@@ -469,6 +499,9 @@ public class GestorBLL {
 
     public String[] obterListaDocentes() {
         return DocenteDAL.obterListaDocentes(PASTA_BD);
+    }
+    public List<String> obterHistoricoPorAno(int ano) {
+        return dal.HistoricoDAL.consultarHistoricoPorAno(ano, PASTA_BD);
     }
 
 }

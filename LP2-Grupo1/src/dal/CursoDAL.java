@@ -2,6 +2,8 @@ package dal;
 
 import model.Curso;
 import model.Departamento;
+import utils.Consola;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -166,22 +168,73 @@ public class CursoDAL {
      * @param pastaBase Caminho da pasta de dados.
      * @return String com todos os cursos.
      */
-    public static String listarTodosCursos(String pastaBase) {
+    public static String listarCursosDetalhados(String pastaBase, int anoLetivoAtual) {
+
         String caminho = pastaBase + File.separator + NOME_FICHEIRO;
+
         List<String> linhas = DALUtil.lerFicheiro(caminho);
-        StringBuilder sb = new StringBuilder("\n--- LISTA DE CURSOS ---\n");
+
+        StringBuilder sb = new StringBuilder();
+
+        Consola.imprimirTitulo("PAINEL DE CURSOS");
 
         for (String linha : linhas) {
+
             if (linha.equalsIgnoreCase(CABECALHO)) continue;
+
             String[] dados = linha.split(";", -1);
-            if (dados.length >= 3) {
-                sb.append("Sigla: ").append(dados[0].trim())
-                        .append(" | Nome: ").append(dados[1].trim())
-                        .append(" | Departamento: ").append(dados[2].trim());
-                if (dados.length >= 5) sb.append(" | Estado: ").append(dados[4].trim());
-                sb.append("\n");
+
+            if (dados.length < 3) continue;
+
+            String siglaCurso = dados[0].trim();
+            String nomeCurso = dados[1].trim();
+            String departamento = dados[2].trim();
+
+            for (int ano = 1; ano <= 3; ano++) {
+
+                // quantidade de UCs do ano
+                int qtdUcs = UcDAL.contarUcsPorCursoEAno(siglaCurso, ano, pastaBase);
+
+                // alunos inscritos nas UCs desse ano
+                int qtdAlunos = 0;
+
+                List<String> siglasUcs =
+                        UcDAL.obterSiglasUcsPorCursoEAno(siglaCurso, ano, pastaBase);
+
+                List<Integer> alunosUnicos = new ArrayList<>();
+
+                for (String siglaUc : siglasUcs) {
+
+                    List<Integer> alunosUc =
+                            InscricaoDAL.obterAlunosPorUc(siglaUc, pastaBase);
+
+                    for (Integer num : alunosUc) {
+
+                        if (!alunosUnicos.contains(num)) {
+                            alunosUnicos.add(num);
+                        }
+                    }
+                }
+
+                qtdAlunos = alunosUnicos.size();
+
+                sb.append(anoLetivoAtual)
+                        .append(" | ")
+                        .append(siglaCurso)
+                        .append(" | ")
+                        .append(nomeCurso)
+                        .append(" | ")
+                        .append(departamento)
+                        .append(" | ")
+                        .append(qtdAlunos)
+                        .append(" | ")
+                        .append(qtdUcs)
+                        .append(" | ")
+                        .append(ano)
+                        .append("º Ano\n");
             }
         }
+
         return sb.toString();
     }
 }

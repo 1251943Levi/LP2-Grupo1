@@ -42,14 +42,16 @@ public class GestorController {
             try {
                 int opcao = view.mostrarMenu();
                 switch (opcao) {
-                    case 1: executarRegistoEstudante(); break;
-                    case 2: executarRegistoDocente(); break;
-                    case 3: executarRegistoDepartamento(); break;
-                    case 4: menuGerirUcs(); break;
-                    case 5: menuGerirCursos(); break;
-                    case 6: menuEstatisticas(); break;
+                    case 1: executarRegistoEstudante();                    break;
+                    case 2: executarRegistoDocente();                      break;
+                    case 3: executarRegistoDepartamento();                 break;
+                    case 4: menuGerirUcs();                                break;
+                    case 5: menuGerirCursos();                             break;
+                    case 6: menuEstatisticas();                            break;
                     case 7: menuAnoLetivo(); break;                    case 8: listarDevedores(); break;
-                    case 9: alterarPassword(); break;
+                    case 8: listarDevedores();                             break;
+                    case 9: alterarPassword();
+                    case 10: consultarHistoricoAno(); break;
                     case 0:
                         view.mostrarDespedida();
                         repo.limparSessao();
@@ -61,6 +63,28 @@ public class GestorController {
             } catch (Exception e) {
                 view.mostrarErroLeituraOpcao();
             }
+        }
+    }
+
+    private void consultarHistoricoAno() {
+        try {
+            view.mostrarMensagem("--- Consulta de Histórico ---");
+            int ano = utils.Consola.lerInt("Introduza o Ano Letivo a pesquisar");
+
+            java.util.List<String> registos = gestorBll.obterHistoricoPorAno(ano);
+
+            if (registos.isEmpty()) {
+                view.mostrarMensagem("Nenhum registo encontrado para o ano " + ano);
+                return;
+            }
+
+            view.mostrarMensagem("Registos do Ano " + ano + " (Ano;NumMec;UC;Notas;Estado):");
+            for (String r : registos) {
+                view.mostrarMensagem("  " + r);
+            }
+            utils.Consola.pausar();
+        } catch (Exception e) {
+            view.mostrarOperacaoCancelada();
         }
     }
 
@@ -407,7 +431,7 @@ public class GestorController {
             int opcao = view.mostrarMenuCRUD("Cursos");
             switch (opcao) {
                 case 1: adicionarCurso(); break;
-                case 2: view.mostrarResultadosListagem(gestorBll.listarTodosCursos()); break;
+                case 2: view.mostrarResultadosListagem(new String[] { gestorBll.obterPainelCursos() }); break;
                 case 3: editarCurso();    break;
                 case 4: removerCurso();   break;
                 case 5: listarUcsCurso(); break;

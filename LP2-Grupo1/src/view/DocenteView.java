@@ -26,7 +26,8 @@ public class DocenteView {
                 "Lançar Nota em Lote (turma inteira)",
                 "Alterar Password",
                 "Ver Dados Pessoais",
-                "Ver as Minhas Unidades Curriculares"
+                "Ver as Minhas Unidades Curriculares",
+                "Consultar Histórico de um Aluno"
         }, "Sair / Logout");
         return Consola.lerOpcaoMenu();
     }
