@@ -139,19 +139,30 @@ public class EstudanteController {
         Consola.pausar();
     }
     private void consultarHistorico() {
-        Consola.imprimirTitulo("O Meu Histórico Académico (Anos Fechados)");
-        List<String> historico = dal.HistoricoDAL.consultarHistoricoPorAluno(estudanteAtivo.getNumeroMecanografico(), "bd");
+        try {
+            Consola.imprimirTitulo("O Meu Histórico Académico");
 
-        if (historico.isEmpty()) {
-            Consola.imprimirInfo("Não possui registos de anos letivos anteriores.");
-        } else {
+
+            int ano = utils.Consola.lerInt("Introduza o Ano Letivo que deseja consultar");
+
+            java.util.List<String> historico = dal.HistoricoDAL.consultarHistoricoPorAluno(estudanteAtivo.getNumeroMecanografico(), "bd");
+
+            boolean encontrou = false;
             for (String registo : historico) {
-                // Formato: anoLetivo;numMec;siglaUC;notas;estado
-                String[] partes = registo.split(";");
-                System.out.printf("  Ano: %-5s | UC: %-6s | Notas: %-15s | %s%n",
-                        partes[0], partes[2], partes[3], partes[4]);
+                String[] p = registo.split(";");
+                // Só mostra se o ano do ficheiro for igual ao ano digitado!
+                if (p.length >= 5 && Integer.parseInt(p[0].trim()) == ano) {
+                    System.out.printf("  Ano: %-5s | UC: %-6s | Notas: %-15s | %s%n", p[0], p[2], p[3], p[4]);
+                    encontrou = true;
+                }
             }
+
+            if (!encontrou) {
+                System.out.println("  Não foram encontrados registos para o ano " + ano);
+            }
+            Consola.pausar();
+        } catch (utils.CancelamentoException e) {
+            view.mostrarOperacaoCancelada();
         }
-        Consola.pausar();
     }
 }

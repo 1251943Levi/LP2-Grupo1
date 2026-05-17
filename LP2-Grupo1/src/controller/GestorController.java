@@ -68,11 +68,9 @@ public class GestorController {
     private void consultarHistoricoAno() {
         try {
             view.mostrarMensagem("--- Consulta de Histórico ---");
-            String textoAno = view.pedirInput("Introduza o Ano Letivo a pesquisar");
-            int ano = Integer.parseInt(textoAno);
+            int ano = utils.Consola.lerInt("Introduza o Ano Letivo a pesquisar");
 
-
-            List<String> registos = gestorBll.obterHistoricoPorAno(ano);
+            java.util.List<String> registos = gestorBll.obterHistoricoPorAno(ano);
 
             if (registos.isEmpty()) {
                 view.mostrarMensagem("Nenhum registo encontrado para o ano " + ano);
