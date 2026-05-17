@@ -2,6 +2,7 @@ package controller;
 
 import model.*;
 import view.GestorView;
+import controller.AnoLetivoController;
 import bll.GestorBLL;
 import bll.EstudanteBLL;
 import bll.UcBLL;
@@ -41,15 +42,14 @@ public class GestorController {
             try {
                 int opcao = view.mostrarMenu();
                 switch (opcao) {
-                    case 1: executarRegistoEstudante();                    break;
-                    case 2: executarRegistoDocente();                      break;
-                    case 3: executarRegistoDepartamento();                 break;
-                    case 4: menuGerirUcs();                                break;
-                    case 5: menuGerirCursos();                             break;
-                    case 6: menuEstatisticas();                            break;
-                    case 7: gestorBll.avancarAnoLetivo(repo, view);       break;
-                    case 8: listarDevedores();                             break;
-                    case 9: alterarPassword();                             break;
+                    case 1: executarRegistoEstudante(); break;
+                    case 2: executarRegistoDocente(); break;
+                    case 3: executarRegistoDepartamento(); break;
+                    case 4: menuGerirUcs(); break;
+                    case 5: menuGerirCursos(); break;
+                    case 6: menuEstatisticas(); break;
+                    case 7: menuAnoLetivo(); break;                    case 8: listarDevedores(); break;
+                    case 9: alterarPassword(); break;
                     case 0:
                         view.mostrarDespedida();
                         repo.limparSessao();
@@ -586,6 +586,10 @@ public class GestorController {
             }
             return sigla;
         }
+    }
+
+    private void menuAnoLetivo() {
+        new AnoLetivoController(repo).iniciar(view);
     }
 
     private void alterarPassword() {
