@@ -18,7 +18,7 @@ import java.util.List;
 public class GestorBLL {
 
     private static final String PASTA_BD = "bd";
-
+    private int anoLetivoAtual = 2026;
 
     /**
      * Avança o ano letivo para todos os estudantes do sistema.
@@ -294,17 +294,6 @@ public class GestorBLL {
         return CursoDAL.removerCurso(sigla, PASTA_BD);
     }
 
-
-    /**
-     * Devolve o plano de estudos de um curso agrupado por ano curricular.
-     * @param siglaCurso Sigla do curso.
-     * @return String formatada com as UCs por ano.
-     */
-    public String listarUcsPorCurso(String siglaCurso) {
-        return UcDAL.listarUcsPorCurso(siglaCurso, PASTA_BD);
-    }
-
-
     // ─────────────────────────── ESTATÍSTICAS ──────────────────────────
 
     /**
@@ -332,10 +321,26 @@ public class GestorBLL {
     }
 
     /** @return Array "SIGLA - Nome" de todas as UCs. */
-    public String[] listarTodasUcs()    { return UcDAL.obterListaUcs(PASTA_BD); }
+    public String[] listarTodosCursos() {
+        return CursoDAL.obterListaCursos(PASTA_BD);
+    }
 
     /** @return Array "SIGLA - Nome" de todos os cursos. */
-    public String[] listarTodosCursos() { return CursoDAL.obterListaCursos(PASTA_BD); }
+    public String[] listarTodasUcs() {
+        return UcDAL.obterListaUcs(PASTA_BD);
+    }
+
+    public String obterPainelCursos() {
+        return CursoDAL.listarCursosDetalhados(PASTA_BD, anoLetivoAtual);
+    }
+
+    public String obterPainelUcs() {
+        return UcDAL.listarUcsDetalhadas(PASTA_BD, anoLetivoAtual);
+    }
+
+    public String listarUcsPorCurso(String siglaCurso) {
+        return UcDAL.listarUcsPorCurso(siglaCurso, PASTA_BD);
+    }
 
     /**
      * Devolve os estudantes com saldo devedor positivo.
