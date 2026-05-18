@@ -152,4 +152,27 @@ public class InscricaoDAL {
         }
         return alunos;
     }
+
+    public static void removerInscricoesPorAluno(int numMec, String pastaBase) {
+        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
+        List<String> linhas = DALUtil.lerFicheiro(caminho);
+        List<String> novas = new ArrayList<>();
+
+        for (String linha : linhas) {
+            if (linha.equalsIgnoreCase(CABECALHO)) {
+                novas.add(linha);
+                continue;
+            }
+            String[] dados = linha.split(";", -1);
+            if (dados.length >= 1) {
+                try {
+                    if (Integer.parseInt(dados[0].trim()) == numMec) {
+                        continue; // ignora, ou seja, remove
+                    }
+                } catch (NumberFormatException ignored) {}
+            }
+            novas.add(linha);
+        }
+        DALUtil.reescreverFicheiro(caminho, novas);
+    }
 }

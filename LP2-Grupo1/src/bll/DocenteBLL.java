@@ -13,6 +13,7 @@ import utils.SegurancaPasswords;
 import utils.Config;
 import java.util.ArrayList;
 import java.util.List;
+import dal.DocenteDAL;
 
 
 /**
@@ -211,4 +212,48 @@ public class DocenteBLL {
         }
         return alunosFormatados;
     }
+
+    /**
+     * Lista todos os docentes (dados básicos, sem UCs carregadas).
+     */
+    public List<Docente> listarTodos() {
+        return DocenteDAL.carregarTodos(PASTA_BD);
+    }
+
+    /**
+     * Obtém um docente pela sua sigla (com dados básicos).
+     */
+    public Docente obterPorSigla(String sigla) {
+        return DocenteDAL.procurarPorSigla(sigla, PASTA_BD);
+    }
+
+    /**
+     * Actualiza os dados de um docente (nome, morada, dataNascimento, NIF).
+     * @return true se a actualização foi bem-sucedida.
+     */
+    public boolean atualizarDocente(Docente docente) {
+        if (docente == null) return false;
+        DocenteDAL.atualizarDocente(docente, PASTA_BD);
+        return true;
+    }
+
+    /**
+     * Verifica se um docente tem UCs atribuídas.
+     */
+    public boolean temUcAtribuida(String sigla) {
+        return DocenteDAL.temUcAtribuida(sigla, PASTA_BD);
+    }
+
+    /**
+     * Remove um docente (apenas se não tiver UCs atribuídas).
+     * @return true se removido.
+     */
+    public boolean removerDocente(String sigla) {
+        if (temUcAtribuida(sigla)) {
+            return false; // não remove porque tem UCs
+        }
+        return DocenteDAL.removerDocente(sigla, PASTA_BD);
+    }
+
+
 }

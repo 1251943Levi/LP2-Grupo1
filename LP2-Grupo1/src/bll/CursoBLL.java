@@ -5,6 +5,10 @@ import model.Curso;
 import model.Departamento;
 import dal.CursoDAL;
 import dal.DepartamentoDAL;
+import dal.EstudanteDAL;
+import dal.UcDAL;
+
+import java.util.List;
 
 /**
  * Lógica de negócio para a entidade Curso.
@@ -65,5 +69,100 @@ public class CursoBLL {
     public boolean verificarQuorumPrimeiroAno(String siglaCurso) {
         int total = dal.EstudanteDAL.contarEstudantesPorCursoEAno(siglaCurso, 1, "bd");
         return total >= 5;
+    }
+
+    /**
+     * Lista todos os cursos (dados básicos).
+     */
+    public List<Curso> listarTodos() {
+        return CursoDAL.carregarTodos(PASTA_BD);
+    }
+
+    /**
+     * Obtém um curso pela sigla (completo).
+     */
+    public Curso obterPorSigla(String sigla) {
+        return procurarCursoCompleto(sigla);
+    }
+
+    /**
+     * Cria um novo curso. O departamento deve existir e não pode ser nulo.
+     * @param sigla Sigla do curso.
+     * @param nome Nome do curso.
+     * @param siglaDepartamento Sigla do departamento a que pertence.
+     * @param propina Valor da propina anual.
+     * @return true se criado com sucesso, false se o departamento não existir ou curso já existir.
+     */
+    public boolean adicionarCurso(String sigla, String nome, String siglaDepartamento, double propina) {
+        if (sigla == null || nome == null || siglaDepartamento == null) return false;
+        // Verificar se já existe curso com essa sigla
+        if (procurarCursoCompleto(sigla) != null) return false;
+
+        Departamento dep = DepartamentoDAL.procurarDepartamento(siglaDepartamento, PASTA_BD);
+        if (dep == null) return false; // departamento obrigatório
+
+        Curso curso = new Curso(sigla, nome, dep, propina);
+        curso.setEstado("Inativo"); // estado inicial
+        CursoDAL.adicionarCurso(curso, PASTA_BD);
+        return true;
+    }
+
+    /**
+     * Actualiza os dados de um curso (nome, departamento e propina).
+     * A sigla permanece inalterada.
+     * @param sigla Sigla do curso a actualizar.
+     * @param novoNome Novo nome (pode ser null para manter).
+     * @param novaSiglaDep Nova sigla do departamento (pode ser null para manter).
+     * @param novaPropina Nova propina (valores negativos ou null mantêm a actual).
+     * @return true se a actualização foi bem-sucedida.
+     */
+    public boolean atualizarCurso(String sigla, String novoNome, String novaSiglaDep, Double novaPropina) {
+        Curso existente = procurarCursoCompleto(sigla);
+        if (existente == null) return false;
+
+        String nomeFinal = (novoNome != null && !novoNome.isEmpty()) ? novoNome : existente.getNome();
+
+        Departamento depFinal = existente.getDepartamento();
+        if (novaSiglaDep != null && !novaSiglaDep.isEmpty()) {
+            Departamento novoDep = DepartamentoDAL.procurarDepartamento(novaSiglaDep, PASTA_BD);
+            if (novoDep != null) depFinal = novoDep;
+        }
+
+        double propinaFinal = existente.getValorPropinaAnual();
+        if (novaPropina != null && novaPropina >= 0) {
+            propinaFinal = novaPropina;
+        }
+
+        // Criar novo curso com os dados actualizados
+        Curso cursoAtualizado = new Curso(sigla, nomeFinal, depFinal, propinaFinal);
+        cursoAtualizado.setEstado(existente.getEstado());
+
+        CursoDAL.atualizarCurso(cursoAtualizado, PASTA_BD);
+        return true;
+    }
+
+    /**
+     * Remove um curso apenas se não tiver alocações (estudantes ou UCs).
+     * @param sigla Sigla do curso.
+     * @return true se removido.
+     */
+    public boolean removerCurso(String sigla) {
+        if (!isAlteravel(sigla)) return false;
+        return CursoDAL.removerCurso(sigla, PASTA_BD);
+    }
+
+    /**
+     * Verifica se um curso pode ser editado ou removido (sem estudantes nem UCs).
+     * @param sigla Sigla do curso.
+     * @return true se não tiver alocações.
+     */
+    public boolean isAlteravel(String sigla) {
+        int totalAlunos = EstudanteDAL.contarEstudantesPorCursoEAno(sigla, 1, PASTA_BD)
+                + EstudanteDAL.contarEstudantesPorCursoEAno(sigla, 2, PASTA_BD)
+                + EstudanteDAL.contarEstudantesPorCursoEAno(sigla, 3, PASTA_BD);
+        int totalUcs = UcDAL.contarUcsPorCursoEAno(sigla, 1, PASTA_BD)
+                + UcDAL.contarUcsPorCursoEAno(sigla, 2, PASTA_BD)
+                + UcDAL.contarUcsPorCursoEAno(sigla, 3, PASTA_BD);
+        return totalAlunos == 0 && totalUcs == 0;
     }
 }

@@ -86,4 +86,33 @@ public class CredencialDAL {
             DALUtil.reescreverFicheiro(caminho, linhasAtualizadas);
         }
     }
+
+    /**
+     * Remove a credencial de um utilizador pelo seu email.
+     * @param email Email do utilizador.
+     * @param pastaBase Caminho da pasta de dados.
+     */
+    public static void removerCredencial(String email, String pastaBase) {
+        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
+        List<String> linhas = DALUtil.lerFicheiro(caminho);
+        List<String> novas = new ArrayList<>();
+        boolean encontrou = false;
+
+        for (String linha : linhas) {
+            if (linha.equalsIgnoreCase(CABECALHO)) {
+                novas.add(linha);
+                continue;
+            }
+            String[] dados = linha.split(";", -1);
+            if (dados.length >= 1 && dados[0].trim().equalsIgnoreCase(email)) {
+                encontrou = true;
+                continue; // salta esta linha (remove)
+            }
+            novas.add(linha);
+        }
+
+        if (encontrou) {
+            DALUtil.reescreverFicheiro(caminho, novas);
+        }
+    }
 }
