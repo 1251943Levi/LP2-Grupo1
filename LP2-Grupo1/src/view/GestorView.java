@@ -302,13 +302,23 @@ public class GestorView {
         boolean ehUC    = entidade.equalsIgnoreCase("Unidades Curriculares");
         boolean ehCurso = entidade.equalsIgnoreCase("Cursos");
         String[] opcoes;
-        if (ehUC || ehCurso) {
+
+        if (ehUC) {
             opcoes = new String[]{
                     "Adicionar " + entidade,
                     "Listar " + entidade,
                     "Editar " + entidade,
                     "Remover " + entidade,
-                    ehUC ? "Associar UC Existente a um Curso" : "Listar UCs do Curso por Ano"
+                    "Associar UC Existente a um Curso",
+                    "Remover UC de um Curso"
+            };
+        } else if (ehCurso) {
+            opcoes = new String[]{
+                    "Adicionar " + entidade,
+                    "Listar " + entidade,
+                    "Editar " + entidade,
+                    "Remover " + entidade,
+                    "Listar UCs do Curso por Ano"
             };
         } else {
             opcoes = new String[]{
@@ -318,9 +328,22 @@ public class GestorView {
                     "Remover " + entidade
             };
         }
+
         Consola.imprimirCabecalho("Gerir " + entidade);
         Consola.imprimirMenu(opcoes);
         return Consola.lerOpcaoMenu();
+    }
+
+    public void mostrarOpcaoNaoAssociarCurso() {
+        System.out.println("  [0] Não associar a nenhum curso");
+    }
+
+    public void mostrarSucessoAssociacaoRemovida() {
+        Consola.imprimirSucesso("Associação removida com sucesso.");
+    }
+
+    public void mostrarErroAssociacaoRemovida() {
+        Consola.imprimirErro("Erro ao remover associação.");
     }
 
     public int mostrarMenuEstatisticas() {

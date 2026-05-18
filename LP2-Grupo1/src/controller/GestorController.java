@@ -3,7 +3,7 @@ package controller;
 import model.*;
 import utils.*;
 import view.GestorView;
-import controller.AnoLetivoController;
+import dal.UcDAL;
 import bll.GestorBLL;
 import bll.EstudanteBLL;
 import bll.UcBLL;
@@ -809,8 +809,33 @@ public class GestorController {
      */
     private void adicionarUc() {
         try {
-            String siglaCurso = obterSiglaCursoPelaView(false);
-            if (siglaCurso == null || siglaCurso.isEmpty()) return;
+            String[] cursos = gestorBll.obterListaCursos();
+            String siglaCurso = null;
+
+            if (cursos.length == 0) {
+                view.mostrarMensagem("Aviso: Não existem cursos registados. A UC será criada sem associação a curso.");
+            } else {
+                view.mostrarListaCursos(cursos);
+                view.mostrarOpcaoNaoAssociarCurso();
+
+                int escolha = -1;
+                while (escolha < 0 || escolha > cursos.length) {
+                    try {
+                        escolha = Consola.lerInt("Número do Curso (0-" + cursos.length + ")");
+                        if (escolha < 0 || escolha > cursos.length) {
+                            Consola.imprimirErro("Opção inválida. Escolha entre 0 e " + cursos.length + ".");
+                        }
+                    } catch (CancelamentoException e) {
+                        throw e;
+                    } catch (Exception e) {
+                        Consola.imprimirErro("Número inválido.");
+                    }
+                }
+
+                if (escolha != 0) {
+                    siglaCurso = cursos[escolha - 1].split(" - ")[0];
+                }
+            }
 
             int anoUc;
             try {
@@ -908,6 +933,44 @@ public class GestorController {
         }
     }
 
+    private void removerAssociacaoUcCurso() {
+        try {
+            String[] ucs = ucBll.obterListaUcs();
+            if (ucs.length == 0) {
+                view.mostrarErroNaoEncontrado("UCs");
+                return;
+            }
+            view.mostrarListaUcs(ucs);
+            int escolhaUc = view.pedirOpcaoUc(ucs.length);
+            if (escolhaUc == -1) return;
+            String siglaUc = ucs[escolhaUc - 1].split(" - ")[0];
+
+            // Obter cursos associados a esta UC
+            List<String> cursosAssociados = UcDAL.obterCursosPorUc(siglaUc, "bd");
+            if (cursosAssociados.isEmpty()) {
+                view.mostrarMensagem("Esta UC não está associada a nenhum curso.");
+                return;
+            }
+
+            view.mostrarMensagem("Cursos associados a " + siglaUc + ":");
+            for (int i = 0; i < cursosAssociados.size(); i++) {
+                view.mostrarMensagem("  [" + (i+1) + "] " + cursosAssociados.get(i));
+            }
+            view.mostrarMensagem("  [0] Cancelar");
+            int escolhaCurso = view.pedirOpcaoCurso(cursosAssociados.size());
+            if (escolhaCurso == -1 || escolhaCurso == 0) return;
+            String siglaCurso = cursosAssociados.get(escolhaCurso - 1);
+
+            if (UcDAL.removerAssociacaoUcCurso(siglaUc, siglaCurso, "bd")) {
+                view.mostrarSucessoAssociacaoRemovida();
+            } else {
+                view.mostrarErroAssociacaoRemovida();
+            }
+        } catch (CancelamentoException e) {
+            view.mostrarOperacaoCancelada();
+        }
+    }
+
     /**
      * Gere o sub-menu dedicado a consultas estatísticas.
      */
@@ -936,7 +999,9 @@ public class GestorController {
                 case 2: view.mostrarResultadosListagem(gestorBll.listarTodasUcs()); break;
                 case 3: editarUc();                                             break;
                 case 4: removerUc();break;
-                case 5: associarUcExistente(); break;                 case 0: correr = false;                                         break;
+                case 5: associarUcExistente(); break;
+                case 6: removerAssociacaoUcCurso(); break;
+                case 0: correr = false;                                         break;
                 default: view.mostrarOpcaoInvalida();
             }
         }
