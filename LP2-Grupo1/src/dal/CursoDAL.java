@@ -205,9 +205,7 @@ public class CursoDAL {
 
                 for (String siglaUc : siglasUcs) {
 
-                    List<Integer> alunosUc =
-                            InscricaoDAL.obterAlunosPorUc(siglaUc, pastaBase);
-
+                    List<Integer> alunosUc = InscricaoDAL.obterAlunosPorUc(siglaUc, anoLetivoAtual, pastaBase);
                     for (Integer num : alunosUc) {
 
                         if (!alunosUnicos.contains(num)) {

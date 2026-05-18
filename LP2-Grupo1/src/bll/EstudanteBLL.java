@@ -13,6 +13,8 @@ import model.UnidadeCurricular;
 import utils.SegurancaPasswords;
 import java.util.ArrayList;
 import java.util.List;
+import utils.Config;
+
 
 /**
  * Lógica de negócio para o perfil Estudante.
@@ -118,8 +120,9 @@ public class EstudanteBLL {
      * @param e Estudante cujas inscrições se pretendem carregar.
      */
     private void carregarInscricoes(Estudante e) {
+        int anoAtual = Config.getAnoAtual();
         List<String> siglas = InscricaoDAL.obterSiglasUcsPorAluno(
-                e.getNumeroMecanografico(), PASTA_BD);
+                e.getNumeroMecanografico(), anoAtual, PASTA_BD);
         for (String sigla : siglas) {
             UnidadeCurricular uc = new UcBLL().procurarUCCompleta(sigla);
             if (uc != null) e.getPercurso().inscreverEmUc(uc);

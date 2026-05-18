@@ -2,6 +2,7 @@ package controller;
 
 import model.*;
 import view.GestorView;
+import controller.AnoLetivoController;
 import bll.GestorBLL;
 import bll.EstudanteBLL;
 import bll.UcBLL;
@@ -41,15 +42,15 @@ public class GestorController {
             try {
                 int opcao = view.mostrarMenu();
                 switch (opcao) {
-                    case 1: executarRegistoEstudante();                    break;
-                    case 2: executarRegistoDocente();                      break;
-                    case 3: executarRegistoDepartamento();                 break;
-                    case 4: menuGerirUcs();                                break;
-                    case 5: menuGerirCursos();                             break;
-                    case 6: menuEstatisticas();                            break;
-                    case 7: gestorBll.avancarAnoLetivo(repo, view);       break;
-                    case 8: listarDevedores();                             break;
-                    case 9: alterarPassword();
+                    case 1: executarRegistoEstudante(); break;
+                    case 2: executarRegistoDocente(); break;
+                    case 3: executarRegistoDepartamento(); break;
+                    case 4: menuGerirUcs(); break;
+                    case 5: menuGerirCursos(); break;
+                    case 6: menuEstatisticas(); break;
+                    case 7: menuAnoLetivo(); break;
+                    case 8: listarDevedores(); break;
+                    case 9: alterarPassword(); break;
                     case 10: consultarHistoricoAno(); break;
                     case 0:
                         view.mostrarDespedida();
@@ -216,7 +217,7 @@ public class GestorController {
             }
 
             String[] listaParaExibir = cursosAptos.toArray(new String[0]);
-            view.mostrarListaCursos(listaParaExibir); // Método correto da GestorView
+            view.mostrarListaCursos(listaParaExibir); 
 
             int escolha = view.pedirOpcaoCurso(listaParaExibir.length); //
             if (escolha == -1) { view.mostrarOperacaoCancelada(); return; }
@@ -226,9 +227,9 @@ public class GestorController {
             String email = gestorBll.registarEstudante(nome, nif, morada, dataNasc, siglaCurso, anoInscricao);
 
             if (email != null && !email.isEmpty()) {
-                view.mostrarResumoRegistoEstudante(email); //
+                view.mostrarResumoRegistoEstudante(email);
             } else {
-                view.mostrarMensagem("Erro ao processar o registo do estudante."); //
+                view.mostrarMensagem("Erro ao processar o registo do estudante.");
             }
 
         } catch (utils.CancelamentoException e) {
@@ -609,6 +610,10 @@ public class GestorController {
             }
             return sigla;
         }
+    }
+
+    private void menuAnoLetivo() {
+        new AnoLetivoController(repo).iniciar(view);
     }
 
     private void alterarPassword() {

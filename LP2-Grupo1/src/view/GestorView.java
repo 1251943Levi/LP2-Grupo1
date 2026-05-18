@@ -20,7 +20,7 @@ public class GestorView {
                 "Gerir Unidades Curriculares",
                 "Gerir Cursos",
                 "Ver Estatísticas",
-                "Avançar Ano Letivo",
+                "Ano Letivo",
                 "Consultar Histórico de Anos Anteriores",
                 "Listar Devedores de Propinas",
                 "Alterar Password",
