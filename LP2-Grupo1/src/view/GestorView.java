@@ -2,6 +2,7 @@ package view;
 
 import model.Docente;
 import model.Estudante;
+import utils.CancelamentoException;
 import utils.Consola;
 import model.Departamento;
 import model.Curso;
@@ -109,21 +110,21 @@ public class GestorView {
     }
 
     public String pedirNovoNomeEstudante() {
-        return Consola.lerString("Novo Nome (Enter mantém o actual)");
+        return lerStringOpcional("Novo Nome (Enter mantém o actual)");
     }
 
     public String pedirNovoNifEstudante() {
-        return Consola.lerString("Novo NIF (Enter mantém o actual)");
+        return lerStringOpcional("Novo NIF (Enter mantém o actual)");
     }
 
     public String pedirNovaDataNascimentoEstudante() {
-        return Consola.lerString("Nova Data Nascimento (DD-MM-AAAA) (Enter mantém a actual)");
+        return lerStringOpcional("Nova Data Nascimento (DD-MM-AAAA) (Enter mantém a actual)");
     }
 
     // ---------- MÉTODOS PARA DOCENTES ----------
 
     public String pedirSiglaDocenteParaGestao() {
-        return Consola.lerString("Sigla do Docente (ex: JMS)");
+        return lerStringOpcional("Sigla do Docente (ex: JMS)");
     }
 
     public void mostrarDocente(Docente d) {
@@ -140,19 +141,19 @@ public class GestorView {
     }
 
     public String pedirNovoNomeDocente() {
-        return Consola.lerString("Novo Nome (Enter mantém o actual)");
+        return lerStringOpcional("Novo Nome (Enter mantém o actual)");
     }
 
     public String pedirNovoNifDocente() {
-        return Consola.lerString("Novo NIF (Enter mantém o actual)");
+        return lerStringOpcional("Novo NIF (Enter mantém o actual)");
     }
 
     public String pedirNovaMoradaDocente() {
-        return Consola.lerString("Nova Morada (Enter mantém a actual)");
+        return lerStringOpcional("Nova Morada (Enter mantém a actual)");
     }
 
     public String pedirNovaDataNascimentoDocente() {
-        return Consola.lerString("Nova Data Nascimento (DD-MM-AAAA) (Enter mantém a actual)");
+        return lerStringOpcional("Nova Data Nascimento (DD-MM-AAAA) (Enter mantém a actual)");
     }
 
     public void mostrarErroDocenteComUcs() {
@@ -175,11 +176,11 @@ public class GestorView {
     }
 
     public String pedirNovoSiglaDepartamento() {
-        return Consola.lerString("Nova Sigla (Enter mantém a actual)");
+        return lerStringOpcional("Nova Sigla (Enter mantém a actual)");
     }
 
     public String pedirNovoNomeDepartamento() {
-        return Consola.lerString("Novo Nome (Enter mantém o actual)");
+        return lerStringOpcional("Novo Nome (Enter mantém o actual)");
     }
 
     // ---------- MÉTODOS PARA CURSOS ----------
@@ -203,11 +204,11 @@ public class GestorView {
     }
 
     public String pedirNovoNomeCurso() {
-        return Consola.lerString("Novo Nome (Enter mantém o actual)");
+        return lerStringOpcional("Novo Nome (Enter mantém o actual)");
     }
 
     public String pedirNovoSiglaDepartamentoCurso() {
-        return Consola.lerString("Nova Sigla do Departamento (Enter mantém a actual)");
+        return lerStringOpcional("Nova Sigla do Departamento (Enter mantém a actual)");
     }
 
     public Double pedirNovaPropinaCurso() {
@@ -248,9 +249,6 @@ public class GestorView {
         Consola.imprimirErro("Propina deve ter no máximo 2 casas decimais. Mantido o valor anterior.");
     }
 
-    public void mostrarErroPropinaInvalida() {
-        Consola.imprimirErro("Valor de propina inválido. Mantido o valor anterior.");
-    }
 
     public void mostrarErroAtualizacaoCurso() {
         Consola.imprimirErro("Erro ao actualizar curso.");
@@ -288,6 +286,17 @@ public class GestorView {
         Consola.imprimirErro("Idade deve estar entre 16 e 120 anos.");
     }
 
+    /**
+     * Lê uma string opcional – o utilizador pode premir Enter para manter o valor actual.
+     * @param prompt Texto a exibir.
+     * @return String introduzida (pode ser vazia) ou null se cancelado com "sair".
+     */
+    public String lerStringOpcional(String prompt) {
+        System.out.print("  " + prompt + ": ");
+        String input = new java.util.Scanner(System.in).nextLine().trim();
+        if (input.equalsIgnoreCase("sair")) throw new CancelamentoException();
+        return input; // pode ser vazia
+    }
 
     public int mostrarMenuCRUD(String entidade) {
         boolean ehUC    = entidade.equalsIgnoreCase("Unidades Curriculares");

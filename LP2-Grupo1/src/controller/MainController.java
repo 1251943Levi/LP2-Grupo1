@@ -168,10 +168,25 @@ public class MainController {
             String morada = view.pedirInputString("Morada");
 
             String dataNasc;
+            boolean dataValida = false;
             do {
                 dataNasc = view.pedirInputString("Data de Nascimento (DD-MM-AAAA)");
-                if (!Validador.isDataNascimentoValida(dataNasc)) view.mostrarErroDataInvalida();
-            } while (!Validador.isDataNascimentoValida(dataNasc));
+                int resultado = Validador.validarDataNascimentoDetalhado(dataNasc);
+                switch (resultado) {
+                    case 0:
+                        dataValida = true;
+                        break;
+                    case 1:
+                        view.mostrarErroDataInexistente();
+                        break;
+                    case 2:
+                        view.mostrarErroDataFutura();
+                        break;
+                    case 3:
+                        view.mostrarErroIdadeForaLimites();
+                        break;
+                }
+            } while (!dataValida);
 
             String[] todosCursos = bll.obterListaCursos();
             java.util.List<String> cursosValidos = new java.util.ArrayList<>();

@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.time.format.ResolverStyle;
 
 /**
  * Centraliza as regras de validação de dados introduzidos pelo utilizador.
@@ -99,34 +100,35 @@ public class Validador {
      *         2 se data futura, 3 se idade fora do intervalo (16-120 anos).
      */
     public static int validarDataNascimentoDetalhado(String dataNascimento) {
-        // 1. Verificar formato básico com regex
-        if (dataNascimento == null || !dataNascimento.matches("^(0[1-9]|[12][0-9]|3[01])-(0[1-9]|1[0-2])-[0-9]{4}$")) {
-            return 1;
+        if (!isDataReal(dataNascimento)) {
+            return 1; // formato inválido ou data inexistente
         }
-
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
-        LocalDate nascimento;
-        try {
-            nascimento = LocalDate.parse(dataNascimento, formatter);
-        } catch (DateTimeParseException e) {
-            return 1; // data inexistente (ex: 31-06-2005)
-        }
-
+        LocalDate nascimento = LocalDate.parse(dataNascimento, formatter);
         LocalDate hoje = LocalDate.now();
 
-        // 2. Data futura?
         if (nascimento.isAfter(hoje)) {
-            return 2;
+            return 2; // data futura
         }
 
-        // 3. Idade fora dos limites?
         int idade = Period.between(nascimento, hoje).getYears();
         if (idade < 16 || idade > 120) {
-            return 3;
+            return 3; // idade fora dos limites
         }
-
-        return 0;
+        return 0; // válida
     }
 
-// Eliminar os métodos isDataNascimentoValida e isIdadeValida.
+    private static final DateTimeFormatter DATE_FORMATTER_STRICT =
+            DateTimeFormatter.ofPattern("dd-MM-uuuu").withResolverStyle(ResolverStyle.STRICT);
+
+    public static boolean isDataReal(String data) {
+        if (data == null) return false;
+        try {
+            LocalDate.parse(data, DATE_FORMATTER_STRICT);
+            return true;
+        } catch (DateTimeParseException e) {
+            return false;
+        }
+    }
+
 }
