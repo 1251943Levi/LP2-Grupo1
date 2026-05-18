@@ -399,4 +399,48 @@ public class UcDAL {
 
         return sb.toString();
     }
+
+    /**
+     * Devolve a lista de siglas de cursos associados a uma UC.
+     */
+    public static List<String> obterCursosPorUc(String siglaUc, String pastaBase) {
+        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
+        List<String> linhas = DALUtil.lerFicheiro(caminho);
+        List<String> cursos = new ArrayList<>();
+        for (String linha : linhas) {
+            if (linha.startsWith(CABECALHO)) continue;
+            String[] dados = linha.split(";");
+            if (dados.length >= 5 && dados[0].trim().equalsIgnoreCase(siglaUc)) {
+                String curso = dados[4].trim();
+                if (!curso.equals("N/A") && !cursos.contains(curso)) {
+                    cursos.add(curso);
+                }
+            }
+        }
+        return cursos;
+    }
+
+    /**
+     * Remove a associação entre uma UC e um curso (apaga a linha correspondente).
+     */
+    public static boolean removerAssociacaoUcCurso(String siglaUc, String siglaCurso, String pastaBase) {
+        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
+        List<String> linhas = DALUtil.lerFicheiro(caminho);
+        List<String> novasLinhas = new ArrayList<>();
+        boolean encontrou = false;
+
+        for (String linha : linhas) {
+            String[] dados = linha.split(";");
+            if (dados.length >= 5 && dados[0].trim().equalsIgnoreCase(siglaUc) && dados[4].trim().equalsIgnoreCase(siglaCurso)) {
+                encontrou = true;
+                continue; // remove esta linha
+            }
+            novasLinhas.add(linha);
+        }
+
+        if (encontrou) {
+            DALUtil.reescreverFicheiro(caminho, novasLinhas);
+        }
+        return encontrou;
+    }
 }

@@ -206,4 +206,36 @@ public class EstudanteBLL {
         }
         return sb.toString();
     }
+
+    /**
+     * Lista todos os estudantes (dados básicos, sem percurso carregado).
+     */
+    public List<Estudante> listarTodos() {
+        return EstudanteDAL.carregarTodos(PASTA_BD);
+    }
+
+    /**
+     * Obtém um estudante pelo número mecanográfico.
+     */
+    public Estudante obterPorNumMec(int numMec) {
+        return EstudanteDAL.procurarPorNumMec(numMec, PASTA_BD);
+    }
+
+    /**
+     * Actualiza os dados de um estudante (morada, ano curricular, etc.) e persiste.
+     * @return true se a actualização foi bem-sucedida.
+     */
+    public boolean atualizarEstudante(Estudante estudante) {
+        if (estudante == null) return false;
+        EstudanteDAL.atualizarEstudante(estudante, PASTA_BD);
+        return true;
+    }
+
+    /**
+     * Remove um estudante e todos os seus dados associados.
+     * @return true se removido.
+     */
+    public boolean removerEstudante(int numMec) {
+        return EstudanteDAL.removerEstudanteCompleto(numMec, PASTA_BD);
+    }
 }

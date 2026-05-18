@@ -104,4 +104,16 @@ public class MainView {
     }
 
     public void mostrarOperacaoCancelada() { Consola.imprimirInfo("Operação cancelada. A regressar ao menu..."); }
+
+    public void mostrarErroDataInexistente() {
+        Consola.imprimirErro("Data de nascimento inválida (ex: 31-06-2005). Formato correcto: DD-MM-AAAA.");
+    }
+
+    public void mostrarErroDataFutura() {
+        Consola.imprimirErro("Data de nascimento não pode ser futura.");
+    }
+
+    public void mostrarErroIdadeForaLimites() {
+        Consola.imprimirErro("Idade deve estar entre 16 e 120 anos.");
+    }
 }
