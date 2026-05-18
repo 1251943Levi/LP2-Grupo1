@@ -336,9 +336,7 @@ public class UcDAL {
             String docente = dados[3].trim();
 
             // quantidade de alunos
-            int qtdAlunos =
-                    InscricaoDAL.obterAlunosPorUc(siglaUc, pastaBase).size();
-
+            int qtdAlunos = InscricaoDAL.obterAlunosPorUc(siglaUc, anoLetivoAtual, pastaBase).size();
             // quantidade de momentos de avaliação
             int qtdMomentos = 0;
 

@@ -4,7 +4,7 @@ import dal.*;
 import model.*;
 import utils.*;
 import view.GestorView;
-
+import utils.Config;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,7 +18,6 @@ import java.util.List;
 public class GestorBLL {
 
     private static final String PASTA_BD = "bd";
-    private int anoLetivoAtual = 2026;
 
     /**
      * Avança o ano letivo para todos os estudantes do sistema.
@@ -32,6 +31,9 @@ public class GestorBLL {
      */
     public void avancarAnoLetivo(RepositorioDados repo, GestorView view) {
         view.mostrarCabecalhoArranqueAnoLetivo();
+
+        int anoLetivoCorrente = repo.getAnoAtual();
+        int proximoAnoLetivo  = anoLetivoCorrente + 1;
 
         String[] cursos = CursoDAL.obterListaCursos(PASTA_BD);
         if (cursos.length == 0) { view.mostrarErroCarregarDados("Cursos"); return; }
@@ -60,26 +62,20 @@ public class GestorBLL {
         }
 
         view.mostrarMensagem("A guardar o histórico académico do ano...");
-        int anoAtual = repo.getAnoAtual();
         List<Estudante> listaAlunos = new EstudanteBLL().carregarTodosCompleto();
-
         for (Estudante e : listaAlunos) {
             if (e == null) continue;
-
             for (int i = 0; i < e.getPercurso().getTotalAvaliacoes(); i++) {
                 model.Avaliacao av = e.getPercurso().getHistoricoAvaliacoes()[i];
-
-
-                if (av != null && av.getAnoLetivo() == anoAtual) {
-
+                if (av != null && av.getAnoLetivo() == anoLetivoCorrente) {
                     String notas = "";
                     for (int n = 0; n < av.getTotalAvaliacoesLancadas(); n++) {
                         notas += av.getResultados()[n] + " ";
                     }
-
                     String estado = av.isAprovado() ? "APROVADO" : "REPROVADO";
-
-                    HistoricoDAL.guardarRegistoHistorico(anoAtual, e.getNumeroMecanografico(), av.getUc().getSigla(), notas.trim(), estado, PASTA_BD);
+                    HistoricoDAL.guardarRegistoHistorico(
+                            anoLetivoCorrente, e.getNumeroMecanografico(),
+                            av.getUc().getSigla(), notas.trim(), estado, PASTA_BD);
                 }
             }
         }
@@ -105,22 +101,42 @@ public class GestorBLL {
                         e.getAnoCurricular(), pct);
                 continue;
             }
+
             if (e.getAnoCurricular() < 3) {
-                int novoAno = e.getAnoCurricular() + 1;
-                e.setAnoCurricular(novoAno);
+                int novoAnoCurricular = e.getAnoCurricular() + 1;
+                e.setAnoCurricular(novoAnoCurricular);
                 e.getPercurso().limparInscricoesAtivas();
 
-                for (String siglaAprov : obterSiglasUcsAprovadas(e)) {
-                    InscricaoDAL.removerInscricao(e.getNumeroMecanografico(), siglaAprov, PASTA_BD);
+                // UCs aprovadas em qualquer ano — para excluir das que precisam ser retomadas
+                List<String> aprovadas = obterSiglasUcsAprovadas(e);
+
+                // UCs do ano que terminou que NÃO foram aprovadas — vão ser retomadas no novo ano
+                List<String> ucsParaRetomar = new ArrayList<>();
+                for (String siglaAnt : InscricaoDAL.obterSiglasUcsPorAluno(
+                        e.getNumeroMecanografico(), anoLetivoCorrente, PASTA_BD)) {
+                    if (!aprovadas.contains(siglaAnt)) {
+                        ucsParaRetomar.add(siglaAnt);
+                    }
                 }
-                for (String siglaUc : UcDAL.obterSiglasUcsPorCursoEAno(e.getSiglaCurso(), novoAno, PASTA_BD)) {
-                    InscricaoDAL.adicionarInscricao(e.getNumeroMecanografico(), siglaUc, PASTA_BD);
+
+                // Inscrições para o novo ano letivo: novas UCs do ano curricular...
+                for (String siglaUc : UcDAL.obterSiglasUcsPorCursoEAno(
+                        e.getSiglaCurso(), novoAnoCurricular, PASTA_BD)) {
+                    InscricaoDAL.adicionarInscricao(
+                            e.getNumeroMecanografico(), siglaUc, proximoAnoLetivo, PASTA_BD);
                 }
+                // ...e UCs por retomar do ano anterior
+                for (String siglaUc : ucsParaRetomar) {
+                    InscricaoDAL.adicionarInscricao(
+                            e.getNumeroMecanografico(), siglaUc, proximoAnoLetivo, PASTA_BD);
+                }
+
                 Curso cursoDoEstudante = new CursoBLL().procurarCursoCompleto(e.getSiglaCurso());
                 if (cursoDoEstudante != null) {
                     e.setSaldoDevedor(cursoDoEstudante.getValorPropinaAnual());
                 }
-                view.mostrarTransicaoSucedida(e.getNumeroMecanografico(), novoAno);
+                view.mostrarTransicaoSucedida(e.getNumeroMecanografico(), novoAnoCurricular);
+
             } else {
                 e.setAnoCurricular(4);
                 view.mostrarConclusaoCurso(e.getNumeroMecanografico());
@@ -128,8 +144,8 @@ public class GestorBLL {
             EstudanteDAL.atualizarEstudante(e, PASTA_BD);
         }
 
-        repo.setAnoAtual(repo.getAnoAtual() + 1);
-        view.mostrarSucessoAvancoAno(repo.getAnoAtual());
+        repo.setAnoAtual(proximoAnoLetivo);
+        view.mostrarSucessoAvancoAno(proximoAnoLetivo);
     }
 
     /**
@@ -180,7 +196,7 @@ public class GestorBLL {
         CredencialDAL.adicionarCredencial(email, passHash, "ESTUDANTE", PASTA_BD);
 
         for (String siglaUc : UcDAL.obterSiglasUcsPorCursoEAno(siglaCurso, 1, PASTA_BD)) {
-            InscricaoDAL.adicionarInscricao(numMec, siglaUc, PASTA_BD);
+            InscricaoDAL.adicionarInscricao(numMec, siglaUc, anoInscricao, PASTA_BD);
         }
         return email;
     }
@@ -331,13 +347,12 @@ public class GestorBLL {
     }
 
     public String obterPainelCursos() {
-        return CursoDAL.listarCursosDetalhados(PASTA_BD, anoLetivoAtual);
+        return CursoDAL.listarCursosDetalhados(PASTA_BD, Config.getAnoAtual());
     }
 
     public String obterPainelUcs() {
-        return UcDAL.listarUcsDetalhadas(PASTA_BD, anoLetivoAtual);
+        return UcDAL.listarUcsDetalhadas(PASTA_BD, Config.getAnoAtual());
     }
-
     public String listarUcsPorCurso(String siglaCurso) {
         return UcDAL.listarUcsPorCurso(siglaCurso, PASTA_BD);
     }

@@ -124,7 +124,36 @@ public class AnoLetivoBLL {
         alvo.setEstado(EstadoAnoLetivo.FECHADO);
         AnoLetivoDAL.atualizar(alvo, PASTA_BD);
 
-        // TODO HOOK [Card Histórico]: chamar HistoricoBLL.arquivar(ano) aqui quando estiver disponível.
+        System.out.println("A calcular o aproveitamento e a guardar o histórico académico do ano " + ano + "...");
+
+        List<Estudante> listaAlunos = new EstudanteBLL().carregarTodosCompleto();
+
+        for (Estudante e : listaAlunos) {
+            if (e == null) continue;
+
+            for (int i = 0; i < e.getPercurso().getTotalAvaliacoes(); i++) {
+                model.Avaliacao av = e.getPercurso().getHistoricoAvaliacoes()[i];
+
+                if (av != null && av.getAnoLetivo() == ano) {
+                    String notas = "";
+                    for (int n = 0; n < av.getTotalAvaliacoesLancadas(); n++) {
+                        notas += av.getResultados()[n] + " ";
+                    }
+
+                    String estado = av.isAprovado() ? "APROVADO" : "REPROVADO";
+
+                    dal.HistoricoDAL.guardarRegistoHistorico(
+                            ano,
+                            e.getNumeroMecanografico(),
+                            av.getUc().getSigla(),
+                            notas.trim(),
+                            estado,
+                            PASTA_BD
+                    );
+                }
+            }
+        }
+        System.out.println("Histórico académico fechado com sucesso!");
     }
 
     /**
@@ -245,8 +274,8 @@ public class AnoLetivoBLL {
             if (e == null || e.getAnoCurricular() > 3) continue;
 
             List<String> siglasInscritas =
-                    InscricaoDAL.obterSiglasUcsPorAluno(e.getNumeroMecanografico(), PASTA_BD);
-
+                    InscricaoDAL.obterSiglasUcsPorAluno(
+                            e.getNumeroMecanografico(), anoLetivo, PASTA_BD);
             for (String siglaUc : siglasInscritas) {
                 Avaliacao av = AvaliacaoDAL.obterAvaliacao(
                         e.getNumeroMecanografico(), siglaUc, anoLetivo, PASTA_BD);

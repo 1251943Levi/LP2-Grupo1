@@ -118,7 +118,7 @@ public class AnoLetivoDAL {
                         EstadoAnoLetivo estado = EstadoAnoLetivo.valueOf(dados[1].trim());
                         return new AnoLetivo(anoLido, estado);
                     }
-                } catch (NumberFormatException | IllegalArgumentException ignored) {}
+                } catch (IllegalArgumentException ignored) {}
             }
         }
         return null;
@@ -142,7 +142,7 @@ public class AnoLetivoDAL {
                     int ano = Integer.parseInt(dados[0].trim());
                     EstadoAnoLetivo estado = EstadoAnoLetivo.valueOf(dados[1].trim());
                     anos.add(new AnoLetivo(ano, estado));
-                } catch (NumberFormatException | IllegalArgumentException ignored) {}
+                } catch (IllegalArgumentException ignored) {}
             }
         }
         return anos;

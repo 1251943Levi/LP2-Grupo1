@@ -10,7 +10,7 @@ import model.Docente;
 import model.Estudante;
 import model.UnidadeCurricular;
 import utils.SegurancaPasswords;
-
+import utils.Config;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -104,9 +104,7 @@ public class DocenteBLL {
             UnidadeCurricular uc = docente.getUcsLecionadas()[i];
             if (uc == null) continue;
 
-            // obter todos os alunos inscritos nesta UC
-            List<Integer> numsMec = InscricaoDAL.obterAlunosPorUc(uc.getSigla(), PASTA_BD);
-
+            List<Integer> numsMec = InscricaoDAL.obterAlunosPorUc(uc.getSigla(), Config.getAnoAtual(), PASTA_BD);
             for (int numMec : numsMec) {
                 if (contemAluno(alunosAdicionados, numMec)) continue;
 
@@ -174,8 +172,7 @@ public class DocenteBLL {
         UnidadeCurricular uc = new UcBLL().procurarUCCompleta(siglaUc);
         if (uc == null) return "ERRO: UC não encontrada.";
 
-        List<Integer> alunosInscritos = InscricaoDAL.obterAlunosPorUc(siglaUc, PASTA_BD);
-        StringBuilder relatorio = new StringBuilder();
+        List<Integer> alunosInscritos = InscricaoDAL.obterAlunosPorUc(siglaUc, anoLetivo, PASTA_BD);        StringBuilder relatorio = new StringBuilder();
         int sucessos = 0, erros = 0;
 
         for (int numMec : alunosInscritos) {
@@ -206,8 +203,7 @@ public class DocenteBLL {
      * Retorna uma lista de strings "numMec - nome" para os alunos inscritos numa UC.
      */
     public List<String> obterAlunosInscritosNaUc(String siglaUc) {
-        List<Integer> nums = InscricaoDAL.obterAlunosPorUc(siglaUc, PASTA_BD);
-        List<String> alunosFormatados = new ArrayList<>();
+        List<Integer> nums = InscricaoDAL.obterAlunosPorUc(siglaUc, Config.getAnoAtual(), PASTA_BD);        List<String> alunosFormatados = new ArrayList<>();
         for (int num : nums) {
             Estudante e = EstudanteDAL.procurarPorNumMec(num, PASTA_BD);
             String nome = (e != null) ? e.getNome() : "Desconhecido";
