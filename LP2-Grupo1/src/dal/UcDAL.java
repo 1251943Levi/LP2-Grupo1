@@ -203,7 +203,7 @@ public class UcDAL {
      * @param pastaBase Caminho da pasta de dados.
      * @return String com todas as UCs.
      */
-    public static String listarTodasUcs(String pastaBase) {
+    public static String listarTodasUc(String pastaBase) {
         String caminho = pastaBase + File.separator + NOME_FICHEIRO;
         List<String> linhas = DALUtil.lerFicheiro(caminho);
         StringBuilder sb = new StringBuilder("\n--- LISTA DE UNIDADES CURRICULARES ---\n");
@@ -429,11 +429,33 @@ public class UcDAL {
         List<String> novasLinhas = new ArrayList<>();
         boolean encontrou = false;
 
+
+        int totalLinhasUC = 0;
         for (String linha : linhas) {
+            String[] dados = linha.split(";");
+            if (dados.length >= 1 && dados[0].trim().equalsIgnoreCase(siglaUc)) {
+                totalLinhasUC++;
+            }
+        }
+
+        for (String linha : linhas) {
+            if (linha.startsWith(CABECALHO)) {
+                novasLinhas.add(linha);
+                continue;
+            }
             String[] dados = linha.split(";");
             if (dados.length >= 5 && dados[0].trim().equalsIgnoreCase(siglaUc) && dados[4].trim().equalsIgnoreCase(siglaCurso)) {
                 encontrou = true;
-                continue; // remove esta linha
+
+                if (totalLinhasUC == 1) {
+                    dados[4] = "";
+                    String novaLinha = String.join(";", dados);
+
+                    while (novaLinha.split(";").length < 6) novaLinha += ";";
+                    novasLinhas.add(novaLinha);
+                }
+
+                continue;
             }
             novasLinhas.add(linha);
         }

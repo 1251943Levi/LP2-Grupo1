@@ -347,8 +347,8 @@ public class GestorBLL {
     }
 
     /** @return Array "SIGLA - Nome" de todos os cursos. */
-    public String[] listarTodasUcs() {
-        return UcDAL.obterListaUcs(PASTA_BD);
+    public String listarTodasUcs() { // Removed the []
+        return UcDAL.listarTodasUc(PASTA_BD);
     }
 
     public String obterPainelCursos() {

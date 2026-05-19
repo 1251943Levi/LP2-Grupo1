@@ -50,13 +50,13 @@ public class GestorController {
                     case 1: menuGerirEstudante(); break;
                     case 2: menuGerirDocente(); break;
                     case 3: menuGerirDepartamento(); break;
-                    case 4: menuGerirCurso(); break;
-                    case 5: menuGerirUcs(); break;
+                    case 4: menuGerirUcs(); break;
+                    case 5: menuGerirCurso(); break;
                     case 6: menuEstatisticas(); break;
-                    case 7: gestorBll.avancarAnoLetivo(repo, view); break;
-                    case 8: consultarHistoricoAno(); break;
-                    case 9: listarDevedores(); break;
-                    case 10: alterarPassword(); break;
+                    case 7: menuAnoLetivo(); break;
+                    case 8: listarDevedores(); break;
+                    case 9: alterarPassword(); break;
+                    case 10: consultarHistoricoAno(); break;
                     case 0:
                         view.mostrarDespedida();
                         repo.limparSessao();
@@ -520,7 +520,7 @@ public class GestorController {
 
     private final CursoBLL cursoBll = new CursoBLL();
 
-    private void menuGerirCurso() {
+    private void menuGerirCursos() {
         boolean voltar = false;
         while (!voltar) {
             int opcao = view.mostrarSubMenuCurso();
@@ -1003,7 +1003,7 @@ public class GestorController {
             int opcao = view.mostrarMenuCRUD("Unidades Curriculares");
             switch (opcao) {
                 case 1: adicionarUc();                                          break;
-                case 2: view.mostrarResultadosListagem(gestorBll.listarTodasUcs()); break;
+                case 2: view.mostrarResultadosListagem(new String[] { gestorBll.listarTodasUcs() });break;
                 case 3: editarUc();                                             break;
                 case 4: removerUc();break;
                 case 5: associarUcExistente(); break;
@@ -1017,15 +1017,15 @@ public class GestorController {
     /**
      * Gere o sub-menu para operações CRUD em Cursos.
      */
-    private void menuGerirCursos() {
+    private void menuGerirCurso() {
         boolean correr = true;
         while (correr) {
             int opcao = view.mostrarMenuCRUD("Cursos");
             switch (opcao) {
-                case 1: adicionarCurso(); break;
+                case 1: executarCriarCurso(); break;
                 case 2: view.mostrarResultadosListagem(new String[] { gestorBll.obterPainelCursos() }); break;
-                case 3: editarCurso();    break;
-                case 4: removerCurso();   break;
+                case 3: executarEditarCurso(); break;
+                case 4: executarApagarCurso(); break;
                 case 5: listarUcsCurso(); break;
                 case 0: correr = false;   break;
                 default: view.mostrarOpcaoInvalida();

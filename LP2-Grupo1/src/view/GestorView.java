@@ -26,13 +26,13 @@ public class GestorView {
                 "Gerir Estudante",
                 "Gerir Docente",
                 "Gerir Departamento",
-                "Gerir Curso",
                 "Gerir Unidades Curriculares",
+                "Gerir Cursos",
                 "Ver Estatísticas",
-                "Avançar Ano Letivo",
+                "Ano Letivo",
                 "Consultar Histórico de Anos Anteriores",
                 "Listar Devedores de Propinas",
-                "Alterar Password"
+                "Alterar Password",
         }, "Sair / Logout");
         return Consola.lerOpcaoMenu();
     }
