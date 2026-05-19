@@ -1,6 +1,14 @@
 package view;
 
+import model.Docente;
+import model.Estudante;
+import utils.CancelamentoException;
 import utils.Consola;
+import model.Departamento;
+import model.Curso;
+import java.util.List;
+
+
 
 /**
  * View do Gestor. Usa Consola para toda a apresentação e leitura.
@@ -11,34 +19,306 @@ public class GestorView {
 
     // ---------- MENUS ----------
 
+    // Na classe GestorView
     public int mostrarMenu() {
         Consola.imprimirCabecalho("Portal Gestor — ISSMF");
         Consola.imprimirMenu(new String[]{
-                "Registar Novo Estudante",
-                "Registar Docente",
-                "Registar Departamento",
+                "Gerir Estudante",
+                "Gerir Docente",
+                "Gerir Departamento",
+                "Gerir Curso",
                 "Gerir Unidades Curriculares",
-                "Gerir Cursos",
                 "Ver Estatísticas",
                 "Avançar Ano Letivo",
                 "Consultar Histórico de Anos Anteriores",
                 "Listar Devedores de Propinas",
-                "Alterar Password",
+                "Alterar Password"
         }, "Sair / Logout");
         return Consola.lerOpcaoMenu();
+    }
+
+    // ---------- SUBMENUS ----------
+    public int mostrarSubMenuEstudante() {
+        Consola.imprimirCabecalho("Gerir Estudantes");
+        Consola.imprimirMenu(new String[]{
+                "Criar Estudante",
+                "Listar Estudantes",
+                "Editar Estudante",
+                "Apagar Estudante"
+        }, "Voltar");
+        return Consola.lerOpcaoMenu();
+    }
+
+    public int mostrarSubMenuDocente() {
+        Consola.imprimirCabecalho("Gerir Docentes");
+        Consola.imprimirMenu(new String[]{
+                "Criar Docente",
+                "Listar Docentes",
+                "Editar Docente",
+                "Apagar Docente"
+        }, "Voltar");
+        return Consola.lerOpcaoMenu();
+    }
+
+    public int mostrarSubMenuDepartamento() {
+        Consola.imprimirCabecalho("Gerir Departamentos");
+        Consola.imprimirMenu(new String[]{
+                "Criar Departamento",
+                "Listar Departamentos",
+                "Editar Departamento",
+                "Apagar Departamento"
+        }, "Voltar");
+        return Consola.lerOpcaoMenu();
+    }
+
+    public int mostrarSubMenuCurso() {
+        Consola.imprimirCabecalho("Gerir Cursos");
+        Consola.imprimirMenu(new String[]{
+                "Criar Curso",
+                "Listar Cursos",
+                "Editar Curso",
+                "Apagar Curso"
+        }, "Voltar");
+        return Consola.lerOpcaoMenu();
+    }
+
+    // ---------- MÉTODOS AUXILIARES DE APRESENTAÇÃO ----------
+
+    public void mostrarTitulo(String titulo) {
+        Consola.imprimirTitulo(titulo);
+    }
+
+
+    // ---------- MÉTODOS PARA ESTUDANTES ----------
+
+    public int pedirNumeroEstudante() {
+        return Consola.lerInt("Número Mecanográfico do Estudante");
+    }
+
+    public void mostrarEstudante(Estudante e) {
+        System.out.printf("  %d - %s | %s | Ano: %d | Saldo: %.2f€%n",
+                e.getNumeroMecanografico(), e.getNome(), e.getSiglaCurso(),
+                e.getAnoCurricular(), e.getSaldoDevedor());
+    }
+
+    public void mostrarListaEstudantes(List<Estudante> estudantes) {
+        Consola.imprimirTitulo("Lista de Estudantes");
+        for (Estudante e : estudantes) {
+            mostrarEstudante(e);
+        }
+        Consola.imprimirLinha();
+    }
+
+    public String pedirNovoNomeEstudante() {
+        return lerStringOpcional("Novo Nome (Enter mantém o actual)");
+    }
+
+    public String pedirNovoNifEstudante() {
+        return lerStringOpcional("Novo NIF (Enter mantém o actual)");
+    }
+
+    public String pedirNovaDataNascimentoEstudante() {
+        return lerStringOpcional("Nova Data Nascimento (DD-MM-AAAA) (Enter mantém a actual)");
+    }
+
+    // ---------- MÉTODOS PARA DOCENTES ----------
+
+    public String pedirSiglaDocenteParaGestao() {
+        return lerStringOpcional("Sigla do Docente (ex: JMS)");
+    }
+
+    public void mostrarDocente(Docente d) {
+        System.out.printf("  %s - %s | NIF: %s | %s%n",
+                d.getSigla(), d.getNome(), d.getNif(), d.getEmail());
+    }
+
+    public void mostrarListaDocentes(List<Docente> docentes) {
+        Consola.imprimirTitulo("Lista de Docentes");
+        for (Docente d : docentes) {
+            mostrarDocente(d);
+        }
+        Consola.imprimirLinha();
+    }
+
+    public String pedirNovoNomeDocente() {
+        return lerStringOpcional("Novo Nome (Enter mantém o actual)");
+    }
+
+    public String pedirNovoNifDocente() {
+        return lerStringOpcional("Novo NIF (Enter mantém o actual)");
+    }
+
+    public String pedirNovaMoradaDocente() {
+        return lerStringOpcional("Nova Morada (Enter mantém a actual)");
+    }
+
+    public String pedirNovaDataNascimentoDocente() {
+        return lerStringOpcional("Nova Data Nascimento (DD-MM-AAAA) (Enter mantém a actual)");
+    }
+
+    public void mostrarErroDocenteComUcs() {
+        Consola.imprimirErro("Não é possível remover o docente pois lecciona uma ou mais UCs.");
+    }
+
+    // ---------- MÉTODOS PARA DEPARTAMENTOS ----------
+
+
+    public void mostrarDepartamento(Departamento d) {
+        System.out.printf("  %s - %s%n", d.getSigla(), d.getNome());
+    }
+
+    public void mostrarListaDepartamentos(List<Departamento> departamentos) {
+        Consola.imprimirTitulo("Lista de Departamentos");
+        for (Departamento d : departamentos) {
+            mostrarDepartamento(d);
+        }
+        Consola.imprimirLinha();
+    }
+
+    public String pedirNovoSiglaDepartamento() {
+        return lerStringOpcional("Nova Sigla (Enter mantém a actual)");
+    }
+
+    public String pedirNovoNomeDepartamento() {
+        return lerStringOpcional("Novo Nome (Enter mantém o actual)");
+    }
+
+    // ---------- MÉTODOS PARA CURSOS ----------
+
+    public double pedirPropinaCurso() {
+        return Consola.lerDouble("Propina anual (€)");
+    }
+
+    public void mostrarCurso(Curso c) {
+        String dep = (c.getDepartamento() != null) ? c.getDepartamento().getSigla() : "N/A";
+        System.out.printf("  %s - %s | Dep: %s | Propina: %.2f€ | Estado: %s%n",
+                c.getSigla(), c.getNome(), dep, c.getValorPropinaAnual(), c.getEstado());
+    }
+
+    public void mostrarListaCursos(List<Curso> cursos) {
+        Consola.imprimirTitulo("Lista de Cursos");
+        for (Curso c : cursos) {
+            mostrarCurso(c);
+        }
+        Consola.imprimirLinha();
+    }
+
+    public String pedirNovoNomeCurso() {
+        return lerStringOpcional("Novo Nome (Enter mantém o actual)");
+    }
+
+    public String pedirNovoSiglaDepartamentoCurso() {
+        return lerStringOpcional("Nova Sigla do Departamento (Enter mantém a actual)");
+    }
+
+    public Double pedirNovaPropinaCurso() {
+        String input = Consola.lerString("Nova Propina (€) (Enter mantém a actual)");
+        if (input.isEmpty()) return null;
+        try {
+            return Double.parseDouble(input.replace(",", "."));
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    public void mostrarErroCursoExistente() {
+        Consola.imprimirErro("Já existe um curso com esta sigla.");
+    }
+
+    public void mostrarErroSemDepartamentos() {
+        Consola.imprimirErro("Não existem departamentos registados. Crie um departamento primeiro.");
+    }
+
+    public void mostrarErroDepartamentoNaoEncontrado() {
+        Consola.imprimirErro("Departamento não encontrado. Introduza uma sigla existente.");
+    }
+
+    public void mostrarErroPropinaNegativa() {
+        Consola.imprimirErro("Propina não pode ser negativa.");
+    }
+
+    public void mostrarErroCriacaoCurso() {
+        Consola.imprimirErro("Erro ao criar curso (departamento inválido ou curso já existe).");
+    }
+
+    public void mostrarErroPropinaNegativaMantida() {
+        Consola.imprimirErro("Propina não pode ser negativa. Mantido o valor anterior.");
+    }
+
+    public void mostrarErroPropinaDuasCasas() {
+        Consola.imprimirErro("Propina deve ter no máximo 2 casas decimais. Mantido o valor anterior.");
+    }
+
+
+    public void mostrarErroAtualizacaoCurso() {
+        Consola.imprimirErro("Erro ao actualizar curso.");
+    }
+
+    // ---------- MÉTODOS PARA DEPARTAMENTO ----------
+
+    public void mostrarErroCriarDepartamento() {
+        Consola.imprimirErro("Erro ao criar departamento.");
+    }
+
+    public void mostrarErroAtualizarDepartamento() {
+        Consola.imprimirErro("Não foi possível actualizar (sigla já existe ou departamento não encontrado).");
+    }
+
+    public void mostrarErroRemoverDepartamentoComCursos() {
+        Consola.imprimirErro("Não é possível remover o departamento pois existem cursos associados.");
+    }
+
+    // ---------- MENSAGENS DE ERRO ----------
+
+    public void mostrarErroNifInvalidoOuDuplicado() {
+        Consola.imprimirErro("NIF inválido ou já existente. Campo mantido.");
+    }
+
+    public void mostrarErroDataInexistente() {
+        Consola.imprimirErro("Data de nascimento inválida (ex: 31-06-2005). Formato correcto: DD-MM-AAAA.");
+    }
+
+    public void mostrarErroDataFutura() {
+        Consola.imprimirErro("Data de nascimento não pode ser futura.");
+    }
+
+    public void mostrarErroIdadeForaLimites() {
+        Consola.imprimirErro("Idade deve estar entre 16 e 120 anos.");
+    }
+
+    /**
+     * Lê uma string opcional – o utilizador pode premir Enter para manter o valor actual.
+     * @param prompt Texto a exibir.
+     * @return String introduzida (pode ser vazia) ou null se cancelado com "sair".
+     */
+    public String lerStringOpcional(String prompt) {
+        System.out.print("  " + prompt + ": ");
+        String input = new java.util.Scanner(System.in).nextLine().trim();
+        if (input.equalsIgnoreCase("sair")) throw new CancelamentoException();
+        return input; // pode ser vazia
     }
 
     public int mostrarMenuCRUD(String entidade) {
         boolean ehUC    = entidade.equalsIgnoreCase("Unidades Curriculares");
         boolean ehCurso = entidade.equalsIgnoreCase("Cursos");
         String[] opcoes;
-        if (ehUC || ehCurso) {
+
+        if (ehUC) {
             opcoes = new String[]{
                     "Adicionar " + entidade,
                     "Listar " + entidade,
                     "Editar " + entidade,
                     "Remover " + entidade,
-                    ehUC ? "Associar UC Existente a um Curso" : "Listar UCs do Curso por Ano"
+                    "Associar UC Existente a um Curso",
+                    "Remover UC de um Curso"
+            };
+        } else if (ehCurso) {
+            opcoes = new String[]{
+                    "Adicionar " + entidade,
+                    "Listar " + entidade,
+                    "Editar " + entidade,
+                    "Remover " + entidade,
+                    "Listar UCs do Curso por Ano"
             };
         } else {
             opcoes = new String[]{
@@ -48,9 +328,22 @@ public class GestorView {
                     "Remover " + entidade
             };
         }
+
         Consola.imprimirCabecalho("Gerir " + entidade);
         Consola.imprimirMenu(opcoes);
         return Consola.lerOpcaoMenu();
+    }
+
+    public void mostrarOpcaoNaoAssociarCurso() {
+        System.out.println("  [0] Não associar a nenhum curso");
+    }
+
+    public void mostrarSucessoAssociacaoRemovida() {
+        Consola.imprimirSucesso("Associação removida com sucesso.");
+    }
+
+    public void mostrarErroAssociacaoRemovida() {
+        Consola.imprimirErro("Erro ao remover associação.");
     }
 
     public int mostrarMenuEstatisticas() {

@@ -124,4 +124,118 @@ public class DocenteDAL {
         }
         return lista.toArray(new String[0]);
     }
+
+    /**
+     * Carrega todos os docentes (dados básicos, sem UCs).
+     * @param pastaBase Caminho da pasta de dados.
+     * @return Lista de docentes.
+     */
+    public static List<Docente> carregarTodos(String pastaBase) {
+        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
+        List<String> linhas = DALUtil.lerFicheiro(caminho);
+        List<Docente> lista = new ArrayList<>();
+
+        for (String linha : linhas) {
+            if (linha.equalsIgnoreCase(CABECALHO)) continue;
+            String[] dados = linha.split(";", -1);
+            if (dados.length >= 6) {
+                Docente d = new Docente(
+                        dados[0].trim(), // sigla
+                        dados[1].trim(), // email
+                        "",               // password (não carregada aqui)
+                        dados[2].trim(), // nome
+                        dados[3].trim(), // nif
+                        dados[4].trim(), // morada
+                        dados[5].trim()  // dataNascimento
+                );
+                lista.add(d);
+            }
+        }
+        return lista;
+    }
+
+    /**
+     * Actualiza os dados de um docente (nome, morada, dataNascimento, nif).
+     * @param docente Docente com os dados actualizados.
+     * @param pastaBase Caminho da pasta de dados.
+     */
+    public static void atualizarDocente(Docente docente, String pastaBase) {
+        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
+        List<String> linhasAntigas = DALUtil.lerFicheiro(caminho);
+        if (linhasAntigas.isEmpty()) return;
+
+        List<String> linhasAtualizadas = new ArrayList<>();
+        for (String linha : linhasAntigas) {
+            if (linha.equalsIgnoreCase(CABECALHO)) {
+                linhasAtualizadas.add(linha);
+                continue;
+            }
+            String[] dados = linha.split(";", -1);
+            if (dados.length >= 6 && dados[0].trim().equalsIgnoreCase(docente.getSigla())) {
+                // Substitui pela linha actualizada
+                linhasAtualizadas.add(
+                        docente.getSigla() + ";" +
+                                docente.getEmail() + ";" +
+                                docente.getNome() + ";" +
+                                docente.getNif() + ";" +
+                                docente.getMorada() + ";" +
+                                docente.getDataNascimento()
+                );
+            } else {
+                linhasAtualizadas.add(linha);
+            }
+        }
+        DALUtil.reescreverFicheiro(caminho, linhasAtualizadas);
+    }
+
+    /**
+     * Verifica se um docente tem unidades curriculares associadas.
+     * @param sigla Sigla do docente.
+     * @param pastaBase Caminho da pasta de dados.
+     * @return true se tiver pelo menos uma UC.
+     */
+    public static boolean temUcAtribuida(String sigla, String pastaBase) {
+        List<String> siglasUcs = UcDAL.obterSiglasUcsPorDocente(sigla, pastaBase);
+        return !siglasUcs.isEmpty();
+    }
+
+    /**
+     * Remove um docente e a sua credencial de acesso.
+     * @param sigla Sigla do docente.
+     * @param pastaBase Caminho da pasta de dados.
+     * @return true se removido com sucesso.
+     */
+    public static boolean removerDocente(String sigla, String pastaBase) {
+        // 1. Obter o docente para saber o email
+        Docente d = procurarPorSigla(sigla, pastaBase);
+        if (d == null) return false;
+
+        // 2. Remover credencial
+        CredencialDAL.removerCredencial(d.getEmail(), pastaBase);
+
+        // 3. Remover o docente do ficheiro docentes.csv
+        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
+        List<String> linhas = DALUtil.lerFicheiro(caminho);
+        List<String> novas = new ArrayList<>();
+        boolean encontrou = false;
+
+        for (String linha : linhas) {
+            if (linha.equalsIgnoreCase(CABECALHO)) {
+                novas.add(linha);
+                continue;
+            }
+            String[] dados = linha.split(";", -1);
+            if (dados.length > 0 && dados[0].trim().equalsIgnoreCase(sigla)) {
+                encontrou = true;
+                continue;
+            }
+            novas.add(linha);
+        }
+
+        if (encontrou) {
+            DALUtil.reescreverFicheiro(caminho, novas);
+        }
+        return encontrou;
+    }
+
 }

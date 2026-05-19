@@ -54,9 +54,8 @@ public class MatriculaBLL {
         EstudanteDAL.adicionarEstudante(novo, siglaCurso, PASTA_BD);
         CredencialDAL.adicionarCredencial(emailInst, passHash, "ESTUDANTE", PASTA_BD);
         for (String siglaUc : UcDAL.obterSiglasUcsPorCursoEAno(siglaCurso, 1, PASTA_BD)) {
-            InscricaoDAL.adicionarInscricao(numMec, siglaUc, PASTA_BD);
+            InscricaoDAL.adicionarInscricao(numMec, siglaUc, anoAtual, PASTA_BD);
         }
-
         EmailService.enviarCredenciaisTodos(nome, emailInst, passLimpa);
 
         return new String[]{emailInst, passLimpa};

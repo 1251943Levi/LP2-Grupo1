@@ -242,4 +242,71 @@ public class EstudanteDAL {
         }
         return false;
     }
+
+    /**
+     * Carrega todos os estudantes com dados básicos (sem percurso carregado).
+     * @param pastaBase Caminho da base de dados.
+     * @return Lista de estudantes.
+     */
+    public static List<Estudante> carregarTodosBasico(String pastaBase) {
+        return carregarTodos(pastaBase); // Já existe na DAL
+    }
+
+    /**
+     * Remove um estudante e todos os seus dados associados (inscrições, avaliações, pagamentos, credenciais).
+     * @param numMec Número mecanográfico do estudante.
+     * @param pastaBase Caminho da base de dados.
+     * @return true se o estudante foi removido.
+     */
+    public static boolean removerEstudanteCompleto(int numMec, String pastaBase) {
+        Estudante e = procurarPorNumMec(numMec, pastaBase);
+        if (e == null) return false;
+
+        // Remove apenas inscrições activas (para não ficarem órfãs)
+        InscricaoDAL.removerInscricoesPorAluno(numMec, pastaBase);
+
+        // Remove a credencial de login
+        CredencialDAL.removerCredencial(e.getEmail(), pastaBase);
+
+        // Remove o estudante do ficheiro estudantes.csv
+        return removerEstudante(numMec, pastaBase);
+    }
+
+    /**
+     * Remove apenas a linha do estudante no ficheiro estudantes.csv.
+     */
+    private static boolean removerEstudante(int numMec, String pastaBase) {
+        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
+        List<String> linhas = DALUtil.lerFicheiro(caminho);
+        if (linhas.isEmpty()) return false;
+
+        List<String> novasLinhas = new ArrayList<>();
+        boolean encontrou = false;
+
+        for (String linha : linhas) {
+            if (linha.equalsIgnoreCase(CABECALHO)) {
+                novasLinhas.add(linha);
+                continue;
+            }
+            String[] dados = linha.split(";", -1);
+            if (dados.length > 0) {
+                try {
+                    int num = Integer.parseInt(dados[0].trim());
+                    if (num == numMec) {
+                        encontrou = true;
+                        continue;
+                    }
+                } catch (NumberFormatException ignored) {}
+            }
+            novasLinhas.add(linha);
+        }
+
+        if (encontrou) {
+            DALUtil.reescreverFicheiro(caminho, novasLinhas);
+        }
+        return encontrou;
+    }
+
+
+
 }

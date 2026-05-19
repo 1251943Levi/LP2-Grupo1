@@ -67,4 +67,83 @@ public class DepartamentoDAL {
         }
         return lista.toArray(new String[0]);
     }
+
+    /**
+     * Carrega todos os departamentos do ficheiro.
+     * @param pastaBase Caminho da pasta de dados.
+     * @return Lista de departamentos.
+     */
+    public static List<Departamento> carregarTodos(String pastaBase) {
+        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
+        List<String> linhas = DALUtil.lerFicheiro(caminho);
+        List<Departamento> lista = new ArrayList<>();
+
+        for (String linha : linhas) {
+            if (linha.equalsIgnoreCase(CABECALHO)) continue;
+            String[] dados = linha.split(";", -1);
+            if (dados.length >= 2) {
+                lista.add(new Departamento(dados[0].trim(), dados[1].trim()));
+            }
+        }
+        return lista;
+    }
+
+    /**
+     * Actualiza os dados de um departamento existente.
+     * @param dept Departamento com os dados actualizados.
+     * @param pastaBase Caminho da pasta de dados.
+     */
+    public static void atualizarDepartamento(Departamento dept, String pastaBase) {
+        if (dept == null) return;
+        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
+        List<String> linhas = DALUtil.lerFicheiro(caminho);
+        List<String> novasLinhas = new ArrayList<>();
+
+        for (String linha : linhas) {
+            if (linha.equalsIgnoreCase(CABECALHO)) {
+                novasLinhas.add(linha);
+                continue;
+            }
+            String[] dados = linha.split(";", -1);
+            if (dados.length >= 2 && dados[0].trim().equalsIgnoreCase(dept.getSigla())) {
+                // Substitui pela linha actualizada
+                novasLinhas.add(dept.getSigla() + ";" + dept.getNome());
+            } else {
+                novasLinhas.add(linha);
+            }
+        }
+        DALUtil.reescreverFicheiro(caminho, novasLinhas);
+    }
+
+    /**
+     * Remove um departamento pela sua sigla.
+     * @param sigla Sigla do departamento a remover.
+     * @param pastaBase Caminho da pasta de dados.
+     * @return true se encontrado e removido.
+     */
+    public static boolean removerDepartamento(String sigla, String pastaBase) {
+        if (sigla == null) return false;
+        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
+        List<String> linhas = DALUtil.lerFicheiro(caminho);
+        List<String> novasLinhas = new ArrayList<>();
+        boolean encontrou = false;
+
+        for (String linha : linhas) {
+            if (linha.equalsIgnoreCase(CABECALHO)) {
+                novasLinhas.add(linha);
+                continue;
+            }
+            String[] dados = linha.split(";", -1);
+            if (dados.length >= 1 && dados[0].trim().equalsIgnoreCase(sigla)) {
+                encontrou = true;
+                continue; // não adiciona esta linha
+            }
+            novasLinhas.add(linha);
+        }
+
+        if (encontrou) {
+            DALUtil.reescreverFicheiro(caminho, novasLinhas);
+        }
+        return encontrou;
+    }
 }

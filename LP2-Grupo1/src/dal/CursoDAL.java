@@ -205,9 +205,7 @@ public class CursoDAL {
 
                 for (String siglaUc : siglasUcs) {
 
-                    List<Integer> alunosUc =
-                            InscricaoDAL.obterAlunosPorUc(siglaUc, pastaBase);
-
+                    List<Integer> alunosUc = InscricaoDAL.obterAlunosPorUc(siglaUc, anoLetivoAtual, pastaBase);
                     for (Integer num : alunosUc) {
 
                         if (!alunosUnicos.contains(num)) {
@@ -236,5 +234,34 @@ public class CursoDAL {
         }
 
         return sb.toString();
+    }
+
+    /**
+     * Carrega todos os cursos (dados básicos) a partir do ficheiro CSV.
+     * @param pastaBase Caminho da pasta de dados.
+     * @return Lista de objetos Curso.
+     */
+    public static List<Curso> carregarTodos(String pastaBase) {
+        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
+        List<String> linhas = DALUtil.lerFicheiro(caminho);
+        List<Curso> cursos = new ArrayList<>();
+
+        for (String linha : linhas) {
+            if (linha.equalsIgnoreCase(CABECALHO)) continue;
+            String[] dados = linha.split(";", -1);
+            if (dados.length >= 3) {
+                double propina = 0.0;
+                if (dados.length >= 4) {
+                    try { propina = Double.parseDouble(dados[3].trim()); }
+                    catch (NumberFormatException ignored) {}
+                }
+                Departamento dep = DepartamentoDAL.procurarDepartamento(dados[2].trim(), pastaBase);
+                Curso c = new Curso(dados[0].trim(), dados[1].trim(), dep, propina);
+                if (dados.length >= 5 && !dados[4].trim().isEmpty())
+                    c.setEstado(dados[4].trim());
+                cursos.add(c);
+            }
+        }
+        return cursos;
     }
 }

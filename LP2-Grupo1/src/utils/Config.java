@@ -1,0 +1,36 @@
+package utils;
+
+import dal.AnoLetivoDAL;
+import model.AnoLetivo;
+
+import java.util.List;
+
+/**
+ * Configuração centralizada do projeto.
+ */
+public final class Config {
+
+    private Config() {}
+
+    /** Pasta onde estão guardados todos os ficheiros CSV da aplicação. */
+    public static final String PASTA_BD = "bd";
+
+    /**
+     * Devolve o ano letivo ativo segundo AnoLetivoDAL.
+     * Útil para BLLs que precisam do ano atual sem terem acesso a RepositorioDados.
+     *
+     * @return Ano ativo (PLANEAMENTO ou INICIADO); se todos estiverem FECHADO,
+     *         devolve o mais recente registado; em último caso 2026.
+     */
+    public static int getAnoAtual() {
+        AnoLetivo ativo = AnoLetivoDAL.obterAnoAtivo(PASTA_BD);
+        if (ativo != null) return ativo.getAno();
+
+        List<AnoLetivo> todos = AnoLetivoDAL.listarTodos(PASTA_BD);
+        int max = 0;
+        for (AnoLetivo a : todos) {
+            if (a.getAno() > max) max = a.getAno();
+        }
+        return max > 0 ? max : 2026;
+    }
+}

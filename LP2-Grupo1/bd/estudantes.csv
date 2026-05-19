@@ -10,3 +10,6 @@ numMec;email;nome;nif;morada;dataNascimento;anoInscricao;siglaCurso;saldoDevedor
 20260009;20260009@issmf.ipp.pt;sara londreira;123589647;sfg;22-10-2000;2026;LEI;0.0;1
 20260010;20260010@issmf.ipp.pt;Rita gomes;234567876;Oliveira;22-10-2000;2026;LEI;0.0;1
 20260011;20260011@issmf.ipp.pt;sa;234533222;ria;22-10-2000;2026;CPSI;1000.0;1
+20260012;20260012@issmf.ipp.pt;EstudanteA;219251622;Rua do estudante A;19-10-2000;2026;EEC;877.78;1
+20260013;20260013@issmf.ipp.pt;EstudanteB;293355630;Rua estudante b;19-10-2000;2026;EEC;0.0;1
+20260014;20260014@issmf.ipp.pt;Estudante C;223844730;Raua estudante C;19-10-2000;2026;EEC;1200.0;1

@@ -1,10 +1,15 @@
 package controller;
 
 import model.*;
+import utils.*;
 import view.GestorView;
+import dal.UcDAL;
 import bll.GestorBLL;
 import bll.EstudanteBLL;
 import bll.UcBLL;
+import bll.DocenteBLL;
+import bll.DepartamentoBLL;
+import bll.CursoBLL;
 import utils.CancelamentoException;
 import utils.Validador;
 import java.util.List;
@@ -21,6 +26,7 @@ public class GestorController {
     private final GestorBLL gestorBll;
     private final EstudanteBLL estudanteBll;
     private final UcBLL ucBll;
+    private final DocenteBLL docenteBll = new DocenteBLL();
 
     public GestorController(RepositorioDados repo, Gestor gestor) {
         this.repo = repo;
@@ -41,16 +47,16 @@ public class GestorController {
             try {
                 int opcao = view.mostrarMenu();
                 switch (opcao) {
-                    case 1: executarRegistoEstudante();                    break;
-                    case 2: executarRegistoDocente();                      break;
-                    case 3: executarRegistoDepartamento();                 break;
-                    case 4: menuGerirUcs();                                break;
-                    case 5: menuGerirCursos();                             break;
-                    case 6: menuEstatisticas();                            break;
-                    case 7: gestorBll.avancarAnoLetivo(repo, view);       break;
-                    case 8: listarDevedores();                             break;
-                    case 9: alterarPassword();
-                    case 10: consultarHistoricoAno(); break;
+                    case 1: menuGerirEstudante(); break;
+                    case 2: menuGerirDocente(); break;
+                    case 3: menuGerirDepartamento(); break;
+                    case 4: menuGerirCurso(); break;
+                    case 5: menuGerirUcs(); break;
+                    case 6: menuEstatisticas(); break;
+                    case 7: gestorBll.avancarAnoLetivo(repo, view); break;
+                    case 8: consultarHistoricoAno(); break;
+                    case 9: listarDevedores(); break;
+                    case 10: alterarPassword(); break;
                     case 0:
                         view.mostrarDespedida();
                         repo.limparSessao();
@@ -62,6 +68,119 @@ public class GestorController {
             } catch (Exception e) {
                 view.mostrarErroLeituraOpcao();
             }
+        }
+    }
+
+    private void menuGerirEstudante() {
+        boolean voltar = false;
+        while (!voltar) {
+            int opcao = view.mostrarSubMenuEstudante();
+            switch (opcao) {
+                case 1: executarCriarEstudante(); break;
+                case 2: executarListarEstudantes(); break;
+                case 3: executarEditarEstudante(); break;
+                case 4: executarApagarEstudante(); break;
+                case 0: voltar = true; break;
+                default: view.mostrarOpcaoInvalida();
+            }
+        }
+    }
+
+    private void executarCriarEstudante() {
+        executarRegistoEstudante();  // reutiliza o método existente
+    }
+
+    private void executarListarEstudantes() {
+        List<Estudante> estudantes = estudanteBll.listarTodos();
+        if (estudantes.isEmpty()) {
+            view.mostrarErroNaoEncontrado("Estudantes");
+            return;
+        }
+        view.mostrarTitulo("Lista de Estudantes");
+        for (Estudante e : estudantes) {
+            view.mostrarEstudante(e);
+        }
+        Consola.pausar();
+    }
+
+    private void executarEditarEstudante() {
+        try {
+            int numMec = view.pedirNumeroEstudante();
+            Estudante e = estudanteBll.obterPorNumMec(numMec);
+            if (e == null) {
+                view.mostrarErroNaoEncontrado("Estudante");
+                return;
+            }
+
+            view.mostrarEstudante(e);
+            view.mostrarMensagemModoEdicao();
+
+            // Editar Nome
+            String novoNome = view.pedirNovoNomeEstudante();
+            if (!novoNome.isEmpty()) {
+                if (Validador.isNomeValido(novoNome)) {
+                    e.setNome(novoNome);
+                } else {
+                    view.mostrarErroNomeInvalido();
+                }
+            }
+
+            // Editar NIF
+            String novoNif = view.pedirNovoNifEstudante();
+            if (!novoNif.isEmpty()) {
+                if (Validador.validarNif(novoNif) && !gestorBll.isNifDuplicado(novoNif)) {
+                    e.setNif(novoNif);
+                } else {
+                    view.mostrarErroNifInvalidoOuDuplicado();
+                }
+            }
+
+            // Editar Data de Nascimento
+            String novaData = view.pedirNovaDataNascimentoEstudante();
+            if (!novaData.isEmpty()) {
+                int resultado = Validador.validarDataNascimentoDetalhado(novaData);
+                switch (resultado) {
+                    case 0:
+                        e.setDataNascimento(novaData);
+                        break;
+                    case 1:
+                        view.mostrarErroDataInexistente();
+                        break;
+                    case 2:
+                        view.mostrarErroDataFutura();
+                        break;
+                    case 3:
+                        view.mostrarErroIdadeForaLimites();
+                        break;
+                }
+            }
+
+            estudanteBll.atualizarEstudante(e);
+            view.mostrarSucessoAtualizacao("Estudante");
+
+        } catch (CancelamentoException ex) {
+            view.mostrarOperacaoCancelada();
+        }
+    }
+
+    private void executarApagarEstudante() {
+        try {
+            int numMec = view.pedirNumeroEstudante();
+            Estudante e = estudanteBll.obterPorNumMec(numMec);
+            if (e == null) {
+                view.mostrarErroNaoEncontrado("Estudante");
+                return;
+            }
+            view.mostrarEstudante(e);
+            if (view.confirmarRemocaoBoolean("estudante " + e.getNome())) {
+                if (estudanteBll.removerEstudante(numMec)) {
+                    view.mostrarSucessoRemocao("Estudante");
+                } else {
+                    view.mostrarErroRemocao("Estudante");
+                }
+            }
+        } catch (CancelamentoException ex) {
+            view.mostrarOperacaoCancelada();
         }
     }
 
@@ -83,6 +202,135 @@ public class GestorController {
             }
             utils.Consola.pausar();
         } catch (Exception e) {
+            view.mostrarOperacaoCancelada();
+        }
+    }
+
+
+
+    // ------------------------------------------------------------
+    // MENU GERIR DOCENTE
+    // ------------------------------------------------------------
+    private void menuGerirDocente() {
+        boolean voltar = false;
+        while (!voltar) {
+            int opcao = view.mostrarSubMenuDocente();
+            switch (opcao) {
+                case 1: executarCriarDocente(); break;
+                case 2: executarListarDocentes(); break;
+                case 3: executarEditarDocente(); break;
+                case 4: executarApagarDocente(); break;
+                case 0: voltar = true; break;
+                default: view.mostrarOpcaoInvalida();
+            }
+        }
+    }
+
+    private void executarCriarDocente() {
+        // Reutiliza o método de registo existente (executarRegistoDocente)
+        executarRegistoDocente();
+    }
+
+    private void executarListarDocentes() {
+        List<Docente> docentes = docenteBll.listarTodos();
+        if (docentes.isEmpty()) {
+            view.mostrarErroNaoEncontrado("Docentes");
+            return;
+        }
+        view.mostrarListaDocentes(docentes);
+        Consola.pausar();
+    }
+
+    private void executarEditarDocente() {
+        try {
+            String sigla = view.pedirSiglaDocenteParaGestao();
+            Docente d = docenteBll.obterPorSigla(sigla);
+            if (d == null) {
+                view.mostrarErroNaoEncontrado("Docente");
+                return;
+            }
+
+            view.mostrarDocente(d);
+            view.mostrarMensagemModoEdicao();
+
+            // Editar Nome
+            String novoNome = view.pedirNovoNomeDocente();
+            if (!novoNome.isEmpty()) {
+                if (Validador.isNomeValido(novoNome)) {
+                    d.setNome(novoNome);
+                } else {
+                    view.mostrarErroNomeInvalido();
+                }
+            }
+
+            // Editar NIF
+            String novoNif = view.pedirNovoNifDocente();
+            if (!novoNif.isEmpty()) {
+                if (Validador.validarNif(novoNif) && !gestorBll.isNifDuplicado(novoNif)) {
+                    d.setNif(novoNif);
+                } else {
+                    view.mostrarErroNifInvalidoOuDuplicado();
+                }
+            }
+
+            // Editar Morada
+            String novaMorada = view.pedirNovaMoradaDocente();
+            if (!novaMorada.isEmpty()) {
+                d.setMorada(novaMorada);
+            }
+
+            // Editar Data Nascimento
+            String novaData = view.pedirNovaDataNascimentoDocente();
+            if (!novaData.isEmpty()) {
+                int resultado = Validador.validarDataNascimentoDetalhado(novaData);
+                switch (resultado) {
+                    case 0:
+                        d.setDataNascimento(novaData);
+                        break;
+                    case 1:
+                        view.mostrarErroDataInexistente();
+                        break;
+                    case 2:
+                        view.mostrarErroDataFutura();
+                        break;
+                    case 3:
+                        view.mostrarErroIdadeForaLimites();
+                        break;
+                }
+            }
+
+            docenteBll.atualizarDocente(d);
+            view.mostrarSucessoAtualizacao("Docente");
+
+        } catch (CancelamentoException e) {
+            view.mostrarOperacaoCancelada();
+        }
+    }
+
+    private void executarApagarDocente() {
+        try {
+            String sigla = view.pedirSiglaDocenteParaGestao();
+            Docente d = docenteBll.obterPorSigla(sigla);
+            if (d == null) {
+                view.mostrarErroNaoEncontrado("Docente");
+                return;
+            }
+            view.mostrarDocente(d);
+            if (!view.confirmarRemocaoBoolean("docente " + d.getNome())) {
+                return;
+            }
+
+            if (docenteBll.temUcAtribuida(sigla)) {
+                view.mostrarErroDocenteComUcs();
+                return;
+            }
+
+            if (docenteBll.removerDocente(sigla)) {
+                view.mostrarSucessoRemocao("Docente");
+            } else {
+                view.mostrarErroRemocao("Docente");
+            }
+        } catch (CancelamentoException e) {
             view.mostrarOperacaoCancelada();
         }
     }
@@ -115,10 +363,25 @@ public class GestorController {
 
             String morada   = view.pedirMorada();
             String dataNasc;
+            boolean dataValida = false;
             do {
                 dataNasc = view.pedirDataNascimento();
-                if (!Validador.isDataNascimentoValida(dataNasc)) view.mostrarErroDataInvalida();
-            } while (!Validador.isDataNascimentoValida(dataNasc));
+                int resultado = Validador.validarDataNascimentoDetalhado(dataNasc);
+                switch (resultado) {
+                    case 0:
+                        dataValida = true;
+                        break;
+                    case 1:
+                        view.mostrarErroDataInexistente();
+                        break;
+                    case 2:
+                        view.mostrarErroDataFutura();
+                        break;
+                    case 3:
+                        view.mostrarErroIdadeForaLimites();
+                        break;
+                }
+            } while (!dataValida);
 
             String[] resultado = gestorBll.registarDocente(nome, nif, morada, dataNasc);
             view.mostrarResumoRegistoDocente(resultado[0], resultado[1]);
@@ -190,10 +453,25 @@ public class GestorController {
             String morada = view.pedirMorada();
 
             String dataNasc;
+            boolean dataValida = false;
             do {
                 dataNasc = view.pedirDataNascimento();
-                if (!utils.Validador.isDataNascimentoValida(dataNasc)) view.mostrarErroDataInvalida();
-            } while (!utils.Validador.isDataNascimentoValida(dataNasc));
+                int resultado = Validador.validarDataNascimentoDetalhado(dataNasc);
+                switch (resultado) {
+                    case 0:
+                        dataValida = true;
+                        break;
+                    case 1:
+                        view.mostrarErroDataInexistente();
+                        break;
+                    case 2:
+                        view.mostrarErroDataFutura();
+                        break;
+                    case 3:
+                        view.mostrarErroIdadeForaLimites();
+                        break;
+                }
+            } while (!dataValida);
 
             String[] todosCursos = gestorBll.obterListaCursos();
             java.util.List<String> cursosAptos = new java.util.ArrayList<>();
@@ -216,7 +494,7 @@ public class GestorController {
             }
 
             String[] listaParaExibir = cursosAptos.toArray(new String[0]);
-            view.mostrarListaCursos(listaParaExibir); // Método correto da GestorView
+            view.mostrarListaCursos(listaParaExibir); 
 
             int escolha = view.pedirOpcaoCurso(listaParaExibir.length); //
             if (escolha == -1) { view.mostrarOperacaoCancelada(); return; }
@@ -226,9 +504,9 @@ public class GestorController {
             String email = gestorBll.registarEstudante(nome, nif, morada, dataNasc, siglaCurso, anoInscricao);
 
             if (email != null && !email.isEmpty()) {
-                view.mostrarResumoRegistoEstudante(email); //
+                view.mostrarResumoRegistoEstudante(email);
             } else {
-                view.mostrarMensagem("Erro ao processar o registo do estudante."); //
+                view.mostrarMensagem("Erro ao processar o registo do estudante.");
             }
 
         } catch (utils.CancelamentoException e) {
@@ -236,6 +514,249 @@ public class GestorController {
         }
     }
 
+    // ------------------------------------------------------------
+    // MENU GERIR CURSO
+    // ------------------------------------------------------------
+
+    private final CursoBLL cursoBll = new CursoBLL();
+
+    private void menuGerirCurso() {
+        boolean voltar = false;
+        while (!voltar) {
+            int opcao = view.mostrarSubMenuCurso();
+            switch (opcao) {
+                case 1: executarCriarCurso(); break;
+                case 2: executarListarCursos(); break;
+                case 3: executarEditarCurso(); break;
+                case 4: executarApagarCurso(); break;
+                case 0: voltar = true; break;
+                default: view.mostrarOpcaoInvalida();
+            }
+        }
+    }
+
+    private void executarCriarCurso() {
+        try {
+            view.mostrarTitulo("Criar Novo Curso");
+            String sigla = view.pedirSiglaCurso();
+            // Verifica se já existe
+            if (cursoBll.obterPorSigla(sigla) != null) {
+                view.mostrarErroCursoExistente();
+                return;
+            }
+            String nome = view.pedirNomeCurso();
+
+            // Listar departamentos para escolha
+            String[] depts = gestorBll.obterListaDepartamentos();
+            if (depts.length == 0) {
+                view.mostrarErroSemDepartamentos();
+                return;
+            }
+            view.mostrarListaCursos(depts); // reutiliza,
+            String siglaDep;
+            do {
+                siglaDep = view.pedirDepartamento().toUpperCase();
+                if (!gestorBll.isDepartamentoDuplicado(siglaDep)) {
+                    view.mostrarErroDepartamentoNaoEncontrado();
+                }
+            } while (!gestorBll.isDepartamentoDuplicado(siglaDep));
+
+            double propina = view.pedirPropinaCurso();
+            if (propina < 0) {
+                view.mostrarErroPropinaNegativa();
+                return;
+            }
+
+            if (cursoBll.adicionarCurso(sigla, nome, siglaDep, propina)) {
+                view.mostrarSucessoCriacao("Curso");
+            } else {
+                view.mostrarErroCriacaoCurso();
+            }
+        } catch (CancelamentoException e) {
+            view.mostrarOperacaoCancelada();
+        }
+    }
+
+    private void executarListarCursos() {
+        List<Curso> cursos = cursoBll.listarTodos();
+        if (cursos.isEmpty()) {
+            view.mostrarErroNaoEncontrado("Cursos");
+            return;
+        }
+        view.mostrarListaCursos(cursos);
+        Consola.pausar();
+    }
+
+    private void executarEditarCurso() {
+        try {
+            String sigla = view.pedirSiglaCurso();
+            Curso curso = cursoBll.obterPorSigla(sigla);
+            if (curso == null) {
+                view.mostrarErroNaoEncontrado("Curso");
+                return;
+            }
+            if (!cursoBll.isAlteravel(sigla)) {
+                view.mostrarErroCursoComAlocacoes();
+                return;
+            }
+            view.mostrarCurso(curso);
+            view.mostrarMensagemModoEdicao();
+
+            String novoNome = view.pedirNovoNomeCurso();
+            if (novoNome.isEmpty()) novoNome = null;
+
+            String novaSiglaDep = view.pedirNovoSiglaDepartamentoCurso();
+            if (novaSiglaDep.isEmpty()) novaSiglaDep = null;
+
+            Double novaPropina = view.pedirNovaPropinaCurso();
+            if (novaPropina != null) {
+                double prop = novaPropina;
+                if (prop < 0) {
+                    view.mostrarErroPropinaNegativaMantida();
+                } else {
+                    // verificar 2 casas decimais
+                    if (Math.round(prop * 100.0) / 100.0 != prop) {
+                        view.mostrarErroPropinaDuasCasas();
+                    } else {
+                        novaPropina = prop;
+                    }
+                }
+            }
+
+            if (cursoBll.atualizarCurso(sigla, novoNome, novaSiglaDep, novaPropina)) {
+                view.mostrarSucessoAtualizacao("Curso");
+            } else {
+                view.mostrarErroAtualizacaoCurso();
+            }
+        } catch (CancelamentoException e) {
+            view.mostrarOperacaoCancelada();
+        }
+    }
+
+    private void executarApagarCurso() {
+        try {
+            String sigla = view.pedirSiglaCurso();
+            Curso curso = cursoBll.obterPorSigla(sigla);
+            if (curso == null) {
+                view.mostrarErroNaoEncontrado("Curso");
+                return;
+            }
+            view.mostrarCurso(curso);
+            if (!cursoBll.isAlteravel(sigla)) {
+                view.mostrarErroCursoComAlocacoes();
+                return;
+            }
+            if (view.confirmarRemocaoBoolean("curso " + curso.getNome())) {
+                if (cursoBll.removerCurso(sigla)) {
+                    view.mostrarSucessoRemocao("Curso");
+                } else {
+                    view.mostrarErroRemocao("Curso");
+                }
+            }
+        } catch (CancelamentoException e) {
+            view.mostrarOperacaoCancelada();
+        }
+    }
+
+    // ------------------------------------------------------------
+    // MENU GERIR DEPARTAMENTO
+    // ------------------------------------------------------------
+
+    private final DepartamentoBLL departamentoBll = new DepartamentoBLL();
+
+    private void menuGerirDepartamento() {
+        boolean voltar = false;
+        while (!voltar) {
+            int opcao = view.mostrarSubMenuDepartamento();
+            switch (opcao) {
+                case 1: executarCriarDepartamento(); break;
+                case 2: executarListarDepartamentos(); break;
+                case 3: executarEditarDepartamento(); break;
+                case 4: executarApagarDepartamento(); break;
+                case 0: voltar = true; break;
+                default: view.mostrarOpcaoInvalida();
+            }
+        }
+    }
+
+    private void executarCriarDepartamento() {
+        try {
+            view.mostrarTitulo("Criar Departamento");
+            String sigla = view.pedirSiglaDepartamento().toUpperCase();
+            if (departamentoBll.obterPorSigla(sigla) != null) {
+                view.mostrarErroDepartamentoDuplicado();
+                return;
+            }
+            String nome = view.pedirNomeDepartamento();
+            if (departamentoBll.adicionarDepartamento(sigla, nome)) {
+                view.mostrarSucessoCriacao("Departamento");
+            } else {
+                view.mostrarErroCriarDepartamento();
+            }
+        } catch (CancelamentoException e) {
+            view.mostrarOperacaoCancelada();
+        }
+    }
+
+    private void executarListarDepartamentos() {
+        List<Departamento> depts = departamentoBll.listarTodos();
+        if (depts.isEmpty()) {
+            view.mostrarErroNaoEncontrado("Departamentos");
+            return;
+        }
+        view.mostrarListaDepartamentos(depts);
+        Consola.pausar();
+    }
+
+    private void executarEditarDepartamento() {
+        try {
+            String sigla = view.pedirSiglaDepartamento().toUpperCase();
+            Departamento dept = departamentoBll.obterPorSigla(sigla);
+            if (dept == null) {
+                view.mostrarErroNaoEncontrado("Departamento");
+                return;
+            }
+            view.mostrarDepartamento(dept);
+            view.mostrarMensagemModoEdicao();
+
+            String novaSigla = view.pedirNovoSiglaDepartamento();
+            if (novaSigla.isEmpty()) novaSigla = null;
+            else novaSigla = novaSigla.toUpperCase();
+
+            String novoNome = view.pedirNovoNomeDepartamento();
+            if (novoNome.isEmpty()) novoNome = null;
+
+            if (departamentoBll.atualizarDepartamento(sigla, novaSigla, novoNome)) {
+                view.mostrarSucessoAtualizacao("Departamento");
+            } else {
+                view.mostrarErroAtualizarDepartamento();
+            }
+        } catch (CancelamentoException e) {
+            view.mostrarOperacaoCancelada();
+        }
+    }
+
+    private void executarApagarDepartamento() {
+        try {
+            String sigla = view.pedirSiglaDepartamento().toUpperCase();
+            Departamento dept = departamentoBll.obterPorSigla(sigla);
+            if (dept == null) {
+                view.mostrarErroNaoEncontrado("Departamento");
+                return;
+            }
+            view.mostrarDepartamento(dept);
+            if (!view.confirmarRemocaoBoolean("departamento " + dept.getNome())) {
+                return;
+            }
+            if (departamentoBll.removerDepartamento(sigla)) {
+                view.mostrarSucessoRemocao("Departamento");
+            } else {
+                view.mostrarErroRemoverDepartamentoComCursos();
+            }
+        } catch (CancelamentoException e) {
+            view.mostrarOperacaoCancelada();
+        }
+    }
 
     // --- Métodos de Estatísticas e Listagens ---
 
@@ -288,20 +809,51 @@ public class GestorController {
      */
     private void adicionarUc() {
         try {
-            String siglaCurso = obterSiglaCursoPelaView(false);
-            if (siglaCurso == null || siglaCurso.isEmpty()) return;
+            String[] cursos = gestorBll.obterListaCursos();
+            String siglaCurso = null;
+            int anoUc = 1;  // valor por defeito
 
-            int anoUc;
-            try {
-                anoUc = Integer.parseInt(view.pedirAnoCurricular());
-                if (anoUc < 1 || anoUc > 3) {
-                    view.mostrarMensagem("ERRO: Ano curricular deve ser 1, 2 ou 3.");
-                    return;
+            if (cursos.length == 0) {
+                view.mostrarMensagem("Aviso: Não existem cursos registados. A UC será criada sem associação a curso e no 1º ano.");
+            } else {
+                view.mostrarListaCursos(cursos);
+                view.mostrarOpcaoNaoAssociarCurso();
+
+                int escolha = -1;
+                while (escolha < 0 || escolha > cursos.length) {
+                    try {
+                        escolha = Consola.lerInt("Número do Curso (0-" + cursos.length + ")");
+                        if (escolha < 0 || escolha > cursos.length) {
+                            Consola.imprimirErro("Opção inválida. Escolha entre 0 e " + cursos.length + ".");
+                        }
+                    } catch (CancelamentoException e) {
+                        throw e;
+                    } catch (Exception e) {
+                        Consola.imprimirErro("Número inválido.");
+                    }
                 }
-            } catch (NumberFormatException ex) {
-                view.mostrarMensagem("ERRO: Ano curricular inválido. Introduza um número entre 1 e 3.");
-                return;
+
+                if (escolha == 0) {
+                    // Não associar a curso - ano será 1 por defeito
+                    siglaCurso = null;
+                    view.mostrarMensagem("UC não associada a nenhum curso. Ano curricular definido por defeito como 1º.");
+                } else {
+                    siglaCurso = cursos[escolha - 1].split(" - ")[0];
+                    // Se associou a curso, pedir o ano
+                    try {
+                        anoUc = Integer.parseInt(view.pedirAnoCurricular());
+                        if (anoUc < 1 || anoUc > 3) {
+                            view.mostrarMensagem("ERRO: Ano curricular deve ser 1, 2 ou 3. A operação foi cancelada.");
+                            return;
+                        }
+                    } catch (NumberFormatException ex) {
+                        view.mostrarMensagem("ERRO: Ano curricular inválido. A operação foi cancelada.");
+                        return;
+                    }
+                }
             }
+
+            // Se não existiam cursos, siglaCurso já é null, anoUc já é 1
 
             String siglaUc = view.pedirSiglaUc();
             String nomeUc  = view.pedirNomeUc();
@@ -318,6 +870,7 @@ public class GestorController {
                 }
             } while (!gestorBll.existeDocente(docente));
 
+            // Chamar a BLL (que deverá aceitar siglaCurso = null e ignorar o limite de 5 UCs por ano)
             if (gestorBll.adicionarUc(siglaCurso, anoUc, siglaUc, nomeUc, docente))
                 view.mostrarSucessoCriacao("UC");
             else
@@ -387,6 +940,44 @@ public class GestorController {
         }
     }
 
+    private void removerAssociacaoUcCurso() {
+        try {
+            String[] ucs = ucBll.obterListaUcs();
+            if (ucs.length == 0) {
+                view.mostrarErroNaoEncontrado("UCs");
+                return;
+            }
+            view.mostrarListaUcs(ucs);
+            int escolhaUc = view.pedirOpcaoUc(ucs.length);
+            if (escolhaUc == -1) return;
+            String siglaUc = ucs[escolhaUc - 1].split(" - ")[0];
+
+            // Obter cursos associados a esta UC
+            List<String> cursosAssociados = UcDAL.obterCursosPorUc(siglaUc, "bd");
+            if (cursosAssociados.isEmpty()) {
+                view.mostrarMensagem("Esta UC não está associada a nenhum curso.");
+                return;
+            }
+
+            view.mostrarMensagem("Cursos associados a " + siglaUc + ":");
+            for (int i = 0; i < cursosAssociados.size(); i++) {
+                view.mostrarMensagem("  [" + (i+1) + "] " + cursosAssociados.get(i));
+            }
+            view.mostrarMensagem("  [0] Cancelar");
+            int escolhaCurso = view.pedirOpcaoCurso(cursosAssociados.size());
+            if (escolhaCurso == -1 || escolhaCurso == 0) return;
+            String siglaCurso = cursosAssociados.get(escolhaCurso - 1);
+
+            if (UcDAL.removerAssociacaoUcCurso(siglaUc, siglaCurso, "bd")) {
+                view.mostrarSucessoAssociacaoRemovida();
+            } else {
+                view.mostrarErroAssociacaoRemovida();
+            }
+        } catch (CancelamentoException e) {
+            view.mostrarOperacaoCancelada();
+        }
+    }
+
     /**
      * Gere o sub-menu dedicado a consultas estatísticas.
      */
@@ -415,7 +1006,9 @@ public class GestorController {
                 case 2: view.mostrarResultadosListagem(gestorBll.listarTodasUcs()); break;
                 case 3: editarUc();                                             break;
                 case 4: removerUc();break;
-                case 5: associarUcExistente(); break;                 case 0: correr = false;                                         break;
+                case 5: associarUcExistente(); break;
+                case 6: removerAssociacaoUcCurso(); break;
+                case 0: correr = false;                                         break;
                 default: view.mostrarOpcaoInvalida();
             }
         }
@@ -609,6 +1202,10 @@ public class GestorController {
             }
             return sigla;
         }
+    }
+
+    private void menuAnoLetivo() {
+        new AnoLetivoController(repo).iniciar(view);
     }
 
     private void alterarPassword() {

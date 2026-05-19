@@ -21,11 +21,11 @@ public class InscricaoDAL {
      * @param siglaUC   Sigla da UC em que o estudante se inscreve.
      * @param pastaBase Caminho da pasta de dados.
      */
-    public static void adicionarInscricao(int numMec, String siglaUC, String pastaBase) {
+    public static void adicionarInscricao(int numMec, String siglaUC, int anoLetivo, String pastaBase) {
         if (siglaUC == null || siglaUC.trim().isEmpty()) return;
         String caminho = pastaBase + File.separator + NOME_FICHEIRO;
         DALUtil.garantirFicheiroECabecalho(caminho, CABECALHO);
-        DALUtil.adicionarLinhaCSV(caminho, numMec + ";" + siglaUC.trim());
+        DALUtil.adicionarLinhaCSV(caminho, numMec + ";" + siglaUC.trim() + ";" + anoLetivo);
     }
 
     /**
@@ -35,20 +35,21 @@ public class InscricaoDAL {
      * @param siglaUC   Sigla da UC a remover.
      * @param pastaBase Caminho da pasta de dados.
      */
-    public static void removerInscricao(int numMec, String siglaUC, String pastaBase) {
+    public static void removerInscricao(int numMec, String siglaUC, int anoLetivo, String pastaBase) {
         if (siglaUC == null || siglaUC.trim().isEmpty()) return;
         String caminho = pastaBase + File.separator + NOME_FICHEIRO;
         List<String> linhas = DALUtil.lerFicheiro(caminho);
-        List<String> novas  = new ArrayList<>();
+        List<String> novas = new ArrayList<>();
 
         for (String linha : linhas) {
             if (linha.equalsIgnoreCase(CABECALHO)) { novas.add(linha); continue; }
             String[] dados = linha.split(";", -1);
-            if (dados.length >= 2) {
+            if (dados.length >= 3) {
                 try {
                     if (Integer.parseInt(dados[0].trim()) == numMec
-                            && dados[1].trim().equalsIgnoreCase(siglaUC.trim())) {
-                        continue; // ignora esta linha → apaga a inscrição
+                            && dados[1].trim().equalsIgnoreCase(siglaUC.trim())
+                            && Integer.parseInt(dados[2].trim()) == anoLetivo) {
+                        continue;
                     }
                 } catch (NumberFormatException ignored) {}
             }
@@ -63,14 +64,37 @@ public class InscricaoDAL {
      * @param pastaBase Caminho da pasta de dados.
      * @return Lista de siglas; vazia se não houver inscrições.
      */
-    public static List<String> obterSiglasUcsPorAluno(int numMec, String pastaBase) {
+    public static List<String> obterSiglasUcsPorAluno(int numMec, int anoLetivo, String pastaBase) {
         String caminho = pastaBase + File.separator + NOME_FICHEIRO;
         List<String> linhas = DALUtil.lerFicheiro(caminho);
         List<String> siglas = new ArrayList<>();
 
         for (String linha : linhas) {
             if (linha.equalsIgnoreCase(CABECALHO)) continue;
+            String[] dados = linha.split(";", -1);
+            if (dados.length >= 3) {
+                try {
+                    if (Integer.parseInt(dados[0].trim()) == numMec
+                            && Integer.parseInt(dados[2].trim()) == anoLetivo) {
+                        siglas.add(dados[1].trim());
+                    }
+                } catch (NumberFormatException ignored) {}
+            }
+        }
+        return siglas;
+    }
 
+    /**
+     * Devolve todas as siglas de UCs em que um aluno esteve inscrito em qualquer ano.
+     * Útil para gerar percurso académico completo.
+     */
+    public static List<String> obterSiglasUcsPorAlunoTodosAnos(int numMec, String pastaBase) {
+        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
+        List<String> linhas = DALUtil.lerFicheiro(caminho);
+        List<String> siglas = new ArrayList<>();
+
+        for (String linha : linhas) {
+            if (linha.equalsIgnoreCase(CABECALHO)) continue;
             String[] dados = linha.split(";", -1);
             if (dados.length >= 2) {
                 try {
@@ -89,7 +113,30 @@ public class InscricaoDAL {
      * @param pastaBase Caminho da pasta de dados.
      * @return Lista de números mecanográficos (pode estar vazia).
      */
-    public static List<Integer> obterAlunosPorUc(String siglaUC, String pastaBase) {
+    public static List<Integer> obterAlunosPorUc(String siglaUC, int anoLetivo, String pastaBase) {
+        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
+        List<String> linhas = DALUtil.lerFicheiro(caminho);
+        List<Integer> alunos = new ArrayList<>();
+
+        for (String linha : linhas) {
+            if (linha.equalsIgnoreCase(CABECALHO)) continue;
+            String[] dados = linha.split(";", -1);
+            if (dados.length >= 3 && dados[1].trim().equalsIgnoreCase(siglaUC)) {
+                try {
+                    if (Integer.parseInt(dados[2].trim()) == anoLetivo) {
+                        alunos.add(Integer.parseInt(dados[0].trim()));
+                    }
+                } catch (NumberFormatException ignored) {}
+            }
+        }
+        return alunos;
+    }
+
+    /**
+     * Devolve todos os alunos que estiveram inscritos numa UC em qualquer ano.
+     * Útil para consultas históricas e estatísticas agregadas.
+     */
+    public static List<Integer> obterAlunosPorUcTodosAnos(String siglaUC, String pastaBase) {
         String caminho = pastaBase + File.separator + NOME_FICHEIRO;
         List<String> linhas = DALUtil.lerFicheiro(caminho);
         List<Integer> alunos = new ArrayList<>();
@@ -99,11 +146,33 @@ public class InscricaoDAL {
             String[] dados = linha.split(";", -1);
             if (dados.length >= 2 && dados[1].trim().equalsIgnoreCase(siglaUC)) {
                 try {
-                    int numMec = Integer.parseInt(dados[0].trim());
-                    alunos.add(numMec);
+                    alunos.add(Integer.parseInt(dados[0].trim()));
                 } catch (NumberFormatException ignored) {}
             }
         }
         return alunos;
+    }
+
+    public static void removerInscricoesPorAluno(int numMec, String pastaBase) {
+        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
+        List<String> linhas = DALUtil.lerFicheiro(caminho);
+        List<String> novas = new ArrayList<>();
+
+        for (String linha : linhas) {
+            if (linha.equalsIgnoreCase(CABECALHO)) {
+                novas.add(linha);
+                continue;
+            }
+            String[] dados = linha.split(";", -1);
+            if (dados.length >= 1) {
+                try {
+                    if (Integer.parseInt(dados[0].trim()) == numMec) {
+                        continue; // ignora, ou seja, remove
+                    }
+                } catch (NumberFormatException ignored) {}
+            }
+            novas.add(linha);
+        }
+        DALUtil.reescreverFicheiro(caminho, novas);
     }
 }
