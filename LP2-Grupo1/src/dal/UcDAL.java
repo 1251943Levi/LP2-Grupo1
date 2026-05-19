@@ -203,7 +203,7 @@ public class UcDAL {
      * @param pastaBase Caminho da pasta de dados.
      * @return String com todas as UCs.
      */
-    public static String listarTodasUcs(String pastaBase) {
+    public static String listarTodasUc(String pastaBase) {
         String caminho = pastaBase + File.separator + NOME_FICHEIRO;
         List<String> linhas = DALUtil.lerFicheiro(caminho);
         StringBuilder sb = new StringBuilder("\n--- LISTA DE UNIDADES CURRICULARES ---\n");
