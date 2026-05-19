@@ -811,9 +811,10 @@ public class GestorController {
         try {
             String[] cursos = gestorBll.obterListaCursos();
             String siglaCurso = null;
+            int anoUc = 1;  // valor por defeito
 
             if (cursos.length == 0) {
-                view.mostrarMensagem("Aviso: Não existem cursos registados. A UC será criada sem associação a curso.");
+                view.mostrarMensagem("Aviso: Não existem cursos registados. A UC será criada sem associação a curso e no 1º ano.");
             } else {
                 view.mostrarListaCursos(cursos);
                 view.mostrarOpcaoNaoAssociarCurso();
@@ -832,22 +833,27 @@ public class GestorController {
                     }
                 }
 
-                if (escolha != 0) {
+                if (escolha == 0) {
+                    // Não associar a curso - ano será 1 por defeito
+                    siglaCurso = null;
+                    view.mostrarMensagem("UC não associada a nenhum curso. Ano curricular definido por defeito como 1º.");
+                } else {
                     siglaCurso = cursos[escolha - 1].split(" - ")[0];
+                    // Se associou a curso, pedir o ano
+                    try {
+                        anoUc = Integer.parseInt(view.pedirAnoCurricular());
+                        if (anoUc < 1 || anoUc > 3) {
+                            view.mostrarMensagem("ERRO: Ano curricular deve ser 1, 2 ou 3. A operação foi cancelada.");
+                            return;
+                        }
+                    } catch (NumberFormatException ex) {
+                        view.mostrarMensagem("ERRO: Ano curricular inválido. A operação foi cancelada.");
+                        return;
+                    }
                 }
             }
 
-            int anoUc;
-            try {
-                anoUc = Integer.parseInt(view.pedirAnoCurricular());
-                if (anoUc < 1 || anoUc > 3) {
-                    view.mostrarMensagem("ERRO: Ano curricular deve ser 1, 2 ou 3.");
-                    return;
-                }
-            } catch (NumberFormatException ex) {
-                view.mostrarMensagem("ERRO: Ano curricular inválido. Introduza um número entre 1 e 3.");
-                return;
-            }
+            // Se não existiam cursos, siglaCurso já é null, anoUc já é 1
 
             String siglaUc = view.pedirSiglaUc();
             String nomeUc  = view.pedirNomeUc();
@@ -864,6 +870,7 @@ public class GestorController {
                 }
             } while (!gestorBll.existeDocente(docente));
 
+            // Chamar a BLL (que deverá aceitar siglaCurso = null e ignorar o limite de 5 UCs por ano)
             if (gestorBll.adicionarUc(siglaCurso, anoUc, siglaUc, nomeUc, docente))
                 view.mostrarSucessoCriacao("UC");
             else

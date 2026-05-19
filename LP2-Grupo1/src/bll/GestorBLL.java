@@ -223,7 +223,12 @@ public class GestorBLL {
      * @return true se a UC foi adicionada; false se o limite foi atingido.
      */
     public boolean adicionarUc(String siglaCurso, int anoUc, String siglaUc, String nomeUc, String siglaDocente) {
-        if (UcDAL.contarUcsPorCursoEAno(siglaCurso != null ? siglaCurso : "N/A", anoUc, PASTA_BD) >= 5) return false;
+        // Se houver curso associado, verificar limite de 5 UCs por ano
+        if (siglaCurso != null && !siglaCurso.equals("N/A")) {
+            if (UcDAL.contarUcsPorCursoEAno(siglaCurso, anoUc, PASTA_BD) >= 5) {
+                return false;
+            }
+        }
         Docente doc = DocenteDAL.procurarPorSigla(siglaDocente, PASTA_BD);
         String cursoParaGuardar = (siglaCurso == null || siglaCurso.isEmpty()) ? "N/A" : siglaCurso;
         UcDAL.adicionarUC(new UnidadeCurricular(siglaUc, nomeUc, anoUc, doc), cursoParaGuardar, PASTA_BD);
