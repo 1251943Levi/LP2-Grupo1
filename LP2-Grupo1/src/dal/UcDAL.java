@@ -465,4 +465,20 @@ public class UcDAL {
         }
         return encontrou;
     }
+
+    public static boolean temCursoAssociado(String siglaUc, String pastaBase) {
+        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
+        List<String> linhas = DALUtil.lerFicheiro(caminho);
+        for (String linha : linhas) {
+            if (linha.startsWith(CABECALHO)) continue;
+            String[] dados = linha.split(";");
+            if (dados.length >= 5 && dados[0].trim().equalsIgnoreCase(siglaUc)) {
+                String curso = dados[4].trim();
+                if (!curso.isEmpty() && !curso.equalsIgnoreCase("N/A")) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 }
