@@ -255,8 +255,12 @@ public class GestorBLL {
      * @return true se a UC existia e foi removida.
      */
     public boolean removerUc(String siglaUc) {
+        if (UcDAL.temCursoAssociado(siglaUc, PASTA_BD)) {
+            return false;
+        }
         return UcDAL.removerUC(siglaUc, PASTA_BD);
     }
+
 
 
     /**
@@ -523,5 +527,7 @@ public class GestorBLL {
     public List<String> obterHistoricoPorAno(int ano) {
         return dal.HistoricoDAL.consultarHistoricoPorAno(ano, PASTA_BD);
     }
+
+
 
 }

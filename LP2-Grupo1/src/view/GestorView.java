@@ -554,7 +554,7 @@ public class GestorView {
     public void mostrarErroCarregarDados(String ent)  { Consola.imprimirErro("Não foi possível carregar os dados de " + ent + "."); }
     public void mostrarErroNaoEncontrado(String ent)  { Consola.imprimirErro("Nenhuma " + ent + " encontrada."); }
     public void mostrarErroLimiteUcs(int ano)         { Consola.imprimirErro("Limite de 5 UCs para o " + ano + "º ano atingido."); }
-    public void mostrarErroRemocao(String ent)        { Consola.imprimirErro("Não foi possível remover: " + ent + "."); }
+    public void mostrarErroRemocao(String ent)        { Consola.imprimirErro("Não foi possível remover. UC associada a um Curso"); }
     public void mostrarSucessoCriacao(String ent)     { Consola.imprimirSucesso(ent + " criada com sucesso!"); Consola.pausar(); }
     public void mostrarSucessoAtualizacao(String ent) { Consola.imprimirSucesso(ent + " atualizada com sucesso!"); Consola.pausar(); }
     public void mostrarSucessoRemocao(String ent)     { Consola.imprimirSucesso(ent + " removida com sucesso!"); Consola.pausar(); }
@@ -565,4 +565,29 @@ public class GestorView {
     public void mostrarOpcaoInvalida()                { Consola.imprimirErro("Opção inválida."); }
     public void mostrarDespedida()                    { Consola.imprimirInfo("Logout efetuado. Até breve!"); }
     public void mostrarOperacaoCancelada()            { Consola.imprimirInfo("Operação cancelada. A regressar ao menu..."); }
+    public void mostrarErroUcNaoEncontrada() {
+        Consola.imprimirErro("UC não encontrada.");
+    }
+
+    public void mostrarErroEditarUc() {
+        Consola.imprimirErro("Erro ao editar UC.");
+    }
+
+    public String pedirNovaSiglaUc() {
+        return lerStringOpcional("Nova Sigla (Enter mantém a actual)");
+    }
+
+    public String pedirNovoNomeUc() {
+        return lerStringOpcional("Novo Nome (Enter mantém a actual)");
+    }
+
+    public String pedirNovaSiglaDocenteUc() {
+        return lerStringOpcional("Nova Sigla do Docente (Enter mantém a actual)");
+    }
+    public void mostrarErroRemocaoUcComCursos(String siglaUc, List<String> cursos) {
+        Consola.imprimirErro("Não é possível remover a UC " + siglaUc + " pois está associada aos cursos:");
+        for (String curso : cursos) {
+            System.out.println("    - " + curso);
+        }
+    }
 }

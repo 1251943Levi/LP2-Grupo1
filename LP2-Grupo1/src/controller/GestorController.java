@@ -887,38 +887,67 @@ public class GestorController {
     private void editarUc() {
         try {
             String[] ucs = ucBll.obterListaUcs();
-            if (ucs.length == 0) { view.mostrarErroNaoEncontrado("UCs"); return; }
-
+            if (ucs.length == 0) {
+                view.mostrarErroNaoEncontrado("UCs");
+                return;
+            }
             view.mostrarListaUcs(ucs);
             int escolha = view.pedirOpcaoUc(ucs.length);
-            if (escolha == -1) { view.mostrarOperacaoCancelada(); return; }
+            if (escolha == -1) return;
             String siglaAntiga = ucs[escolha - 1].split(" - ")[0];
+
+            UnidadeCurricular ucOriginal = ucBll.procurarUCCompleta(siglaAntiga);
+            if (ucOriginal == null) {
+                view.mostrarErroUcNaoEncontrada();
+                return;
+            }
+
+            int anoOriginal = ucOriginal.getAnoCurricular();
+            String cursoOriginal = "N/A";
+            Curso[] cursos = ucOriginal.getCursos();
+            if (cursos.length > 0 && cursos[0] != null) {
+                cursoOriginal = cursos[0].getSigla();
+            }
 
             view.mostrarMensagemModoEdicao();
 
-            String novaSigla = view.pedirSiglaUc();
-            String novoNome = view.pedirNovoNome();
-            String novoAno = view.pedirNovoAnoCurricular();
+            String novaSigla = view.pedirNovaSiglaUc();
+            if (novaSigla.isEmpty()) novaSigla = siglaAntiga;
 
-            String novaSiglaDocente;
-            do {
-                novaSiglaDocente = view.pedirNovaSiglaDocente();
-                if (!gestorBll.existeDocente(novaSiglaDocente)) {
-                    view.mostrarMensagem("ERRO: Docente não encontrado. Introduza uma sigla de um docente existente.");
+            String novoNome = view.pedirNovoNomeUc();
+            if (novoNome.isEmpty()) novoNome = ucOriginal.getNome();
+
+            if (view.perguntarVerListagem("Docentes")) {
+                view.mostrarResultadosListagem(gestorBll.obterListaDocentes());
+            }
+
+            String novaSiglaDocente = view.pedirNovaSiglaDocenteUc();
+            if (novaSiglaDocente.isEmpty()) {
+                novaSiglaDocente = ucOriginal.getDocenteResponsavel().getSigla();
+            } else {
+                while (!gestorBll.existeDocente(novaSiglaDocente)) {
+                    view.mostrarMensagem("ERRO: Docente não encontrado.");
+                    novaSiglaDocente = view.pedirNovaSiglaDocenteUc();
+                    if (novaSiglaDocente.isEmpty()) {
+                        novaSiglaDocente = ucOriginal.getDocenteResponsavel().getSigla();
+                        break;
+                    }
                 }
-            } while (!gestorBll.existeDocente(novaSiglaDocente));
-
-            String novaSiglaCurso = view.pedirNovaSiglaCurso();
+            }
 
             boolean sucesso = gestorBll.editarUc(
                     siglaAntiga,
                     novaSigla,
                     novoNome,
-                    novoAno,
+                    String.valueOf(anoOriginal),
                     novaSiglaDocente,
-                    novaSiglaCurso);
+                    cursoOriginal);
 
-            if (sucesso) view.mostrarSucessoAtualizacao("UC");
+            if (sucesso) {
+                view.mostrarSucessoAtualizacao("UC");
+            } else {
+                view.mostrarErroEditarUc();
+            }
 
         } catch (CancelamentoException e) {
             view.mostrarOperacaoCancelada();
@@ -927,16 +956,28 @@ public class GestorController {
 
     private void removerUc() {
         String[] ucs = ucBll.obterListaUcs();
-        if (ucs.length == 0) { view.mostrarErroNaoEncontrado("UCs"); return; }
+        if (ucs.length == 0) {
+            view.mostrarErroNaoEncontrado("UCs");
+            return;
+        }
 
         view.mostrarListaUcs(ucs);
-        int escolha    = view.pedirOpcaoUc(ucs.length);
-        if (escolha == -1) { view.mostrarOperacaoCancelada(); return; }
+        int escolha = view.pedirOpcaoUc(ucs.length);
+        if (escolha == -1) {
+            view.mostrarOperacaoCancelada();
+            return;
+        }
         String siglaUc = ucs[escolha - 1].split(" - ")[0];
 
+        // Obter cursos associados antes de tentar remover
+        List<String> cursosAssociados = UcDAL.obterCursosPorUc(siglaUc, "bd");
+
         if (view.confirmarRemocaoBoolean(siglaUc)) {
-            if (gestorBll.removerUc(siglaUc)) view.mostrarSucessoRemocao("UC");
-            else                              view.mostrarErroRemocao("UC");
+            if (gestorBll.removerUc(siglaUc)) {
+                view.mostrarSucessoRemocao("UC");
+            } else {
+                view.mostrarErroRemocaoUcComCursos(siglaUc, cursosAssociados);
+            }
         }
     }
 
@@ -1076,7 +1117,6 @@ public class GestorController {
         }
     }
 
-    /** Permite editar o nome, departamento e propina de um curso sem alocações. */
     /** Permite editar o nome, departamento e propina de um curso sem alocações. */
     private void editarCurso() {
         try {
