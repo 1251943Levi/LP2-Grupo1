@@ -149,7 +149,11 @@ public class EstudanteBLL {
      */
     public String obterInfoInscricoes(Estudante e) {
         StringBuilder sb = new StringBuilder();
-        sb.append("Ano Curricular: ").append(e.getAnoCurricular()).append("º\n");
+        if (e.getAnoCurricular() == 4) {
+            sb.append("Curso Concluído\n");
+        } else {
+            sb.append("Ano Curricular: ").append(e.getAnoCurricular()).append("º\n");
+        }
         sb.append("UCs inscrito:\n");
         UnidadeCurricular[] ucs = e.getPercurso().getUcsInscrito(); // Nota: esse getter pode não existir; vamos ver abaixo.
         int total = e.getPercurso().getTotalUcsInscrito();
