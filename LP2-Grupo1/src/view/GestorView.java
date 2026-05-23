@@ -590,4 +590,8 @@ public class GestorView {
             System.out.println("    - " + curso);
         }
     }
+
+    public String pedirNovaMoradaEstudante() {
+        return lerStringOpcional("Nova Morada (Enter mantém a actual)");
+    }
 }

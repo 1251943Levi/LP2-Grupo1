@@ -33,16 +33,19 @@ public class GestorBLL {
         view.mostrarCabecalhoArranqueAnoLetivo();
 
         int anoLetivoCorrente = repo.getAnoAtual();
-        int proximoAnoLetivo  = anoLetivoCorrente + 1;
+        int proximoAnoLetivo = anoLetivoCorrente + 1;
 
         String[] cursos = CursoDAL.obterListaCursos(PASTA_BD);
-        if (cursos.length == 0) { view.mostrarErroCarregarDados("Cursos"); return; }
+        if (cursos.length == 0) {
+            view.mostrarErroCarregarDados("Cursos");
+            return;
+        }
 
         view.mostrarVerificacaoQuorum();
         CursoBLL cursoBll = new CursoBLL();
         for (String c : cursos) {
             String sigla = c.split(" - ")[0];
-            Curso curso  = cursoBll.procurarCursoCompleto(sigla);
+            Curso curso = cursoBll.procurarCursoCompleto(sigla);
             if (curso == null) continue;
 
             int a1 = EstudanteDAL.contarEstudantesPorCursoEAno(sigla, 1, PASTA_BD);
@@ -81,69 +84,21 @@ public class GestorBLL {
         }
 
         view.mostrarProcessamentoTransicoes();
-        List<Estudante> estudantes = new EstudanteBLL().carregarTodosCompleto();
 
-        for (Estudante e : estudantes) {
-            if (e == null) continue;
-            if (e.getAnoCurricular() > 3) continue;
+        AnoLetivo anoAtualObj = new AnoLetivo(anoLetivoCorrente);
+        AnoLetivo anoSeguinteObj = new AnoLetivo(proximoAnoLetivo);
 
-            if (e.getSaldoDevedor() > 0) {
-                view.mostrarBloqueioDivida(
-                        e.getNumeroMecanografico(), e.getNome(),
-                        e.getAnoCurricular(), e.getSaldoDevedor());
-                continue;
-            }
+        InscricaoBLL inscricaoBLL = new InscricaoBLL();
+        OperationResult resultado = inscricaoBLL.transitarAlunos(anoAtualObj, anoSeguinteObj);
 
-            if (!e.getPercurso().temAproveitamentoSuficiente()) {
-                double pct = e.getPercurso().calcularPercentagemAproveitamento();
-                view.mostrarBloqueioAproveitamento(
-                        e.getNumeroMecanografico(), e.getNome(),
-                        e.getAnoCurricular(), pct);
-                continue;
-            }
-
-            if (e.getAnoCurricular() < 3) {
-                int novoAnoCurricular = e.getAnoCurricular() + 1;
-                e.setAnoCurricular(novoAnoCurricular);
-                e.getPercurso().limparInscricoesAtivas();
-
-                // UCs aprovadas em qualquer ano — para excluir das que precisam ser retomadas
-                List<String> aprovadas = obterSiglasUcsAprovadas(e);
-
-                // UCs do ano que terminou que NÃO foram aprovadas — vão ser retomadas no novo ano
-                List<String> ucsParaRetomar = new ArrayList<>();
-                for (String siglaAnt : InscricaoDAL.obterSiglasUcsPorAluno(
-                        e.getNumeroMecanografico(), anoLetivoCorrente, PASTA_BD)) {
-                    if (!aprovadas.contains(siglaAnt)) {
-                        ucsParaRetomar.add(siglaAnt);
-                    }
-                }
-
-                // Inscrições para o novo ano letivo: novas UCs do ano curricular...
-                for (String siglaUc : UcDAL.obterSiglasUcsPorCursoEAno(
-                        e.getSiglaCurso(), novoAnoCurricular, PASTA_BD)) {
-                    InscricaoDAL.adicionarInscricao(
-                            e.getNumeroMecanografico(), siglaUc, proximoAnoLetivo, PASTA_BD);
-                }
-                // ...e UCs por retomar do ano anterior
-                for (String siglaUc : ucsParaRetomar) {
-                    InscricaoDAL.adicionarInscricao(
-                            e.getNumeroMecanografico(), siglaUc, proximoAnoLetivo, PASTA_BD);
-                }
-
-                Curso cursoDoEstudante = new CursoBLL().procurarCursoCompleto(e.getSiglaCurso());
-                if (cursoDoEstudante != null) {
-                    e.setSaldoDevedor(cursoDoEstudante.getValorPropinaAnual());
-                }
-                view.mostrarTransicaoSucedida(e.getNumeroMecanografico(), novoAnoCurricular);
-
-            } else {
-                e.setAnoCurricular(4);
-                view.mostrarConclusaoCurso(e.getNumeroMecanografico());
-            }
-            EstudanteDAL.atualizarEstudante(e, PASTA_BD);
+        if (!resultado.isSucesso()) {
+            view.mostrarMensagem("ERRO: " + resultado.getMensagem());
+            return; // Interrompe o avanço, não muda o ano no repositório
+        } else {
+            view.mostrarMensagem(resultado.getMensagem());
         }
 
+// Só avança o ano se a transição foi bem sucedida
         repo.setAnoAtual(proximoAnoLetivo);
         view.mostrarSucessoAvancoAno(proximoAnoLetivo);
     }

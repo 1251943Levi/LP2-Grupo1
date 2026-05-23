@@ -54,9 +54,9 @@ public class GestorController {
                     case 5: menuGerirCurso(); break;
                     case 6: menuEstatisticas(); break;
                     case 7: menuAnoLetivo(); break;
-                    case 8: listarDevedores(); break;
-                    case 9: alterarPassword(); break;
-                    case 10: consultarHistoricoAno(); break;
+                    case 8: consultarHistoricoAno(); break;
+                    case 9: listarDevedores(); break;
+                    case 10: alterarPassword(); break;
                     case 0:
                         view.mostrarDespedida();
                         repo.limparSessao();
@@ -153,6 +153,12 @@ public class GestorController {
                         view.mostrarErroIdadeForaLimites();
                         break;
                 }
+            }
+
+            // Editar Morada
+            String novaMorada = view.pedirNovaMoradaEstudante();
+            if (!novaMorada.isEmpty()) {
+                e.setMorada(novaMorada);
             }
 
             estudanteBll.atualizarEstudante(e);
