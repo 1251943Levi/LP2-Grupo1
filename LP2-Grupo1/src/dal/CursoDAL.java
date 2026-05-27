@@ -216,6 +216,11 @@ public class CursoDAL {
 
                 qtdAlunos = alunosUnicos.size();
 
+                double propina = 0.0;
+                try {
+                    propina = Double.parseDouble(dados[3].trim());
+                } catch (NumberFormatException ignored) {}
+
                 sb.append(anoLetivoAtual)
                         .append(" | ")
                         .append(siglaCurso)
@@ -223,6 +228,8 @@ public class CursoDAL {
                         .append(nomeCurso)
                         .append(" | ")
                         .append(departamento)
+                        .append(" | ")
+                        .append(String.format("%.0f€", propina))
                         .append(" | ")
                         .append(qtdAlunos)
                         .append(" | ")
