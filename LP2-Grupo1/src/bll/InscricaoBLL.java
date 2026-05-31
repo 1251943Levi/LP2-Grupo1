@@ -10,6 +10,8 @@ public class InscricaoBLL {
     private static final String PASTA_BD = Config.PASTA_BD;
     private static final double NOTA_MINIMA_APROVACAO = 9.5;
 
+    private final EstudanteDAL estudanteDAL = new EstudanteDAL(PASTA_BD);
+
     public OperationResult transitarAlunos(AnoLetivo anoAtual, AnoLetivo anoSeguinte) {
         List<Estudante> todos = new EstudanteBLL().carregarTodosCompleto();
         if (todos == null || todos.isEmpty()) {
@@ -25,11 +27,9 @@ public class InscricaoBLL {
 
             int anoAtualCurricular = e.getAnoCurricular();
 
-            // Obter UCs inscritas no ano atual
             List<String> ucsInscritas = InscricaoDAL.obterSiglasUcsPorAluno(
                     e.getNumeroMecanografico(), anoAtual.getAno(), PASTA_BD);
 
-            // Separar aprovadas e reprovadas
             List<String> aprovadas = new ArrayList<>();
             List<String> reprovadas = new ArrayList<>();
             for (String sigla : ucsInscritas) {
@@ -41,39 +41,32 @@ public class InscricaoBLL {
                 }
             }
 
-            // Calcular percentagem de aproveitamento (sobre UCs inscritas no ano)
             double percentagem = ucsInscritas.isEmpty() ? 0.0 : (double) aprovadas.size() / ucsInscritas.size();
 
             List<String> ucsParaInscrever = new ArrayList<>();
             int novoAno = anoAtualCurricular;
 
             if (percentagem >= 0.6) {
-                // Aproveitamento suficiente → sobe de ano (ou conclui)
                 if (anoAtualCurricular < 3) {
                     novoAno = anoAtualCurricular + 1;
-                    // UCs do novo ano
                     ucsParaInscrever.addAll(UcDAL.obterSiglasUcsPorCursoEAno(e.getSiglaCurso(), novoAno, PASTA_BD));
-                    // + reprovadas do ano anterior
                     ucsParaInscrever.addAll(reprovadas);
-                } else { // anoAtualCurricular == 3
-                    // Se aprovou em todas as UCs do 3º ano, conclui o curso
+                } else {
                     List<String> ucsTerceiroAno = UcDAL.obterSiglasUcsPorCursoEAno(e.getSiglaCurso(), 3, PASTA_BD);
                     boolean aprovouTodas = !ucsTerceiroAno.isEmpty() && ucsTerceiroAno.stream().allMatch(aprovadas::contains);
                     if (aprovouTodas) {
-                        novoAno = 4; // concluído
-                        // sem inscrições
+                        novoAno = 4;
                     } else {
-                        novoAno = 3; // permanece no 3º ano
-                        ucsParaInscrever.addAll(reprovadas); // apenas as reprovadas
+                        novoAno = 3;
+                        ucsParaInscrever.addAll(reprovadas);
                     }
                 }
             } else {
-                // Aproveitamento insuficiente → não sobe, repete apenas as reprovadas
+
                 novoAno = anoAtualCurricular;
                 ucsParaInscrever.addAll(reprovadas);
             }
 
-            // Remover duplicados (caso uma reprovada coincida com UC do novo ano)
             List<String> semDuplicados = new ArrayList<>();
             for (String uc : ucsParaInscrever) {
                 if (!semDuplicados.contains(uc)) semDuplicados.add(uc);
@@ -83,7 +76,6 @@ public class InscricaoBLL {
             novasInscricoesMap.put(e, semDuplicados);
         }
 
-        // Se houve alunos bloqueados, retorna falha (para não avançar o ano)
         if (!alunosBloqueados.isEmpty()) {
             StringBuilder msg = new StringBuilder("Existem alunos sem aproveitamento mínimo (60%):\n");
             for (String bloco : alunosBloqueados) {
@@ -93,7 +85,6 @@ public class InscricaoBLL {
             return OperationResult.falha(msg.toString());
         }
 
-        // Persistir alterações
         try {
             for (Map.Entry<Estudante, List<String>> entry : novasInscricoesMap.entrySet()) {
                 Estudante e = entry.getKey();
@@ -101,7 +92,8 @@ public class InscricaoBLL {
                 List<String> ucs = entry.getValue();
 
                 e.setAnoCurricular(novoAno);
-                EstudanteDAL.atualizarEstudante(e, PASTA_BD);
+
+                estudanteDAL.atualizarEstudante(e);
 
                 InscricaoDAL.removerInscricoesPorAluno(e.getNumeroMecanografico(), PASTA_BD);
                 for (String sigla : ucs) {

@@ -27,6 +27,7 @@ import java.util.List;
 public class AnoLetivoBLL {
 
     private static final String PASTA_BD = "bd";
+    private final EstudanteDAL estudanteDAL = new EstudanteDAL(PASTA_BD);
 
     // ============================================================
     // CRUD básico
@@ -100,7 +101,7 @@ public class AnoLetivoBLL {
         String[] cursos = CursoDAL.obterListaCursos(PASTA_BD);
         for (String c : cursos) {
             String sigla = c.split(" - ")[0];
-            int a1 = EstudanteDAL.contarEstudantesPorCursoEAno(sigla, 1, PASTA_BD);
+            int a1 = estudanteDAL.contarEstudantesPorCursoEAno(sigla, 1);
             if (a1 > 0 && a1 < 5) {
                 Curso curso = cursoBll.procurarCursoCompleto(sigla);
                 if (curso != null) {
@@ -287,7 +288,7 @@ public class AnoLetivoBLL {
         String[] cursos = CursoDAL.obterListaCursos(PASTA_BD);
         for (String c : cursos) {
             String sigla = c.split(" - ")[0];
-            int a1 = EstudanteDAL.contarEstudantesPorCursoEAno(sigla, 1, PASTA_BD);
+            int a1 = estudanteDAL.contarEstudantesPorCursoEAno(sigla, 1);
             if (a1 > 0 && a1 < 5)
                 erros.add("Curso " + sigla + " — 1.º ano tem " + a1 + " aluno(s); mínimo exigido é 5.");
         }
@@ -307,7 +308,7 @@ public class AnoLetivoBLL {
 
     private List<String> validarNotasPendentes(int anoLetivo) {
         List<String> pendentes = new ArrayList<>();
-        List<Estudante> estudantes = EstudanteDAL.carregarTodos(PASTA_BD);
+        List<Estudante> estudantes = estudanteDAL.carregarTodos();
         for (Estudante e : estudantes) {
             if (e == null || e.getAnoCurricular() > 3) continue;
             List<String> siglasInscritas = InscricaoDAL.obterSiglasUcsPorAluno(
@@ -326,7 +327,7 @@ public class AnoLetivoBLL {
     /** Devolve os alunos com saldo devedor positivo (propina em dívida). */
     private List<String> validarPropinasPendentes() {
         List<String> pendentes = new ArrayList<>();
-        for (Estudante e : EstudanteDAL.carregarTodos(PASTA_BD)) {
+        for (Estudante e : estudanteDAL.carregarTodos()) {
             if (e != null && e.getSaldoDevedor() > 0) {
                 pendentes.add(String.format("Aluno %d (%s) — dívida de %.2f€.",
                         e.getNumeroMecanografico(), e.getNome(), e.getSaldoDevedor()));

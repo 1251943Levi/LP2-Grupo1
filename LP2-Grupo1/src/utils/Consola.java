@@ -271,4 +271,17 @@ public final class Consola {
             imprimirErro("Responda apenas com 'S' ou 'N'.");
         }
     }
+
+    /**
+     * Lê uma string que aceita um Enter vazio (para manter o valor atual).
+     * Se o utilizador escrever "sair", cancela a operação.
+     */
+    public static String lerStringOpcional(String prompt) {
+        System.out.print("  " + prompt + ": ");
+        String input = new java.util.Scanner(System.in).nextLine().trim();
+        if (input.equalsIgnoreCase("sair")) {
+            throw new CancelamentoException();
+        }
+        return input;
+    }
 }
