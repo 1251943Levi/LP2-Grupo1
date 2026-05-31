@@ -30,8 +30,36 @@ public class LoginDALFile implements LoginDAL {
     public void inicializar() {
         DALUtil.garantirFicheiroECabecalho(caminho(), CABECALHO);
         if (contar() == 0) {
-            criar(LoginDAL.adminPorOmissao());
+            if (!importarDeCredenciaisCSV()) {
+                criar(LoginDAL.adminPorOmissao());
+            }
         }
+    }
+
+    /**
+     * Migra os registos do antigo credenciais.csv para logins.csv.
+     * O hash PBKDF2 é guardado em passwordHash com passwordSalt vazio (marcador legacy).
+     * Devolve true se importou pelo menos um registo.
+     */
+    private boolean importarDeCredenciaisCSV() {
+        String caminhoCreds = ConfigApp.PASTA_BD + File.separator + "credenciais.csv";
+        List<String> linhas = DALUtil.lerFicheiro(caminhoCreds);
+        if (linhas.isEmpty()) return false;
+        boolean importou = false;
+        for (String linha : linhas) {
+            if (linha.toLowerCase().startsWith("email")) continue;
+            String[] d = linha.split(";", -1);
+            if (d.length < 3) continue;
+            String email = d[0].trim();
+            String hashPbkdf2 = d[1].trim(); // formato salt:hash PBKDF2
+            String tipo = d[2].trim().toUpperCase();
+            if (!existe(email)) {
+                criar(new LoginModel(email, hashPbkdf2, "", tipo, true));
+                importou = true;
+            }
+        }
+        if (importou) System.out.println(">> Migração: credenciais.csv importado para logins.csv.");
+        return importou;
     }
 
     @Override

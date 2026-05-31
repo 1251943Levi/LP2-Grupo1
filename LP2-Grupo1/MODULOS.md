@@ -142,7 +142,7 @@ funciona em runtime com o JAR presente e a `db.password` correta.
 # compilar
 javac -d build -cp "lib/*" $(find src -name "*.java")
 # correr a view do Login (usa o modo definido em config.properties)
-java -cp "build;lib/*" modules.login.LoginView
+java -cp "build;lib/*" view.LoginView
 ```
 
 Em `login.persistence.mode=file` cria-se/usa-se `bd/logins.csv`.
