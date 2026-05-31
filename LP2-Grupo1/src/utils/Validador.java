@@ -1,8 +1,10 @@
 package utils;
 
 import java.time.LocalDate;
+import java.time.Period;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.time.format.ResolverStyle;
 
 /**
  * Centraliza as regras de validação de dados introduzidos pelo utilizador.
@@ -90,4 +92,43 @@ public class Validador {
             return false;
         }
     }
+
+    /**
+     * Valida a data de nascimento e retorna um código indicando o tipo de erro.
+     * @param dataNascimento Data no formato "dd-MM-yyyy"
+     * @return 0 se válida, 1 se formato inválido ou data inexistente (ex: 31-06-2005),
+     *         2 se data futura, 3 se idade fora do intervalo (16-120 anos).
+     */
+    public static int validarDataNascimentoDetalhado(String dataNascimento) {
+        if (!isDataReal(dataNascimento)) {
+            return 1; // formato inválido ou data inexistente
+        }
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+        LocalDate nascimento = LocalDate.parse(dataNascimento, formatter);
+        LocalDate hoje = LocalDate.now();
+
+        if (nascimento.isAfter(hoje)) {
+            return 2; // data futura
+        }
+
+        int idade = Period.between(nascimento, hoje).getYears();
+        if (idade < 16 || idade > 120) {
+            return 3; // idade fora dos limites
+        }
+        return 0; // válida
+    }
+
+    private static final DateTimeFormatter DATE_FORMATTER_STRICT =
+            DateTimeFormatter.ofPattern("dd-MM-uuuu").withResolverStyle(ResolverStyle.STRICT);
+
+    public static boolean isDataReal(String data) {
+        if (data == null) return false;
+        try {
+            LocalDate.parse(data, DATE_FORMATTER_STRICT);
+            return true;
+        } catch (DateTimeParseException e) {
+            return false;
+        }
+    }
+
 }

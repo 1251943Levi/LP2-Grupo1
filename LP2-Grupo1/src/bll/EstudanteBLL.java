@@ -13,6 +13,8 @@ import model.UnidadeCurricular;
 import utils.SegurancaPasswords;
 import java.util.ArrayList;
 import java.util.List;
+import utils.Config;
+
 
 /**
  * Lógica de negócio para o perfil Estudante.
@@ -118,8 +120,9 @@ public class EstudanteBLL {
      * @param e Estudante cujas inscrições se pretendem carregar.
      */
     private void carregarInscricoes(Estudante e) {
+        int anoAtual = Config.getAnoAtual();
         List<String> siglas = InscricaoDAL.obterSiglasUcsPorAluno(
-                e.getNumeroMecanografico(), PASTA_BD);
+                e.getNumeroMecanografico(), anoAtual, PASTA_BD);
         for (String sigla : siglas) {
             UnidadeCurricular uc = new UcBLL().procurarUCCompleta(sigla);
             if (uc != null) e.getPercurso().inscreverEmUc(uc);
@@ -146,7 +149,11 @@ public class EstudanteBLL {
      */
     public String obterInfoInscricoes(Estudante e) {
         StringBuilder sb = new StringBuilder();
-        sb.append("Ano Curricular: ").append(e.getAnoCurricular()).append("º\n");
+        if (e.getAnoCurricular() == 4) {
+            sb.append("Curso Concluído\n");
+        } else {
+            sb.append("Ano Curricular: ").append(e.getAnoCurricular()).append("º\n");
+        }
         sb.append("UCs inscrito:\n");
         UnidadeCurricular[] ucs = e.getPercurso().getUcsInscrito(); // Nota: esse getter pode não existir; vamos ver abaixo.
         int total = e.getPercurso().getTotalUcsInscrito();
@@ -202,5 +209,37 @@ public class EstudanteBLL {
             sb.append("\n");
         }
         return sb.toString();
+    }
+
+    /**
+     * Lista todos os estudantes (dados básicos, sem percurso carregado).
+     */
+    public List<Estudante> listarTodos() {
+        return EstudanteDAL.carregarTodos(PASTA_BD);
+    }
+
+    /**
+     * Obtém um estudante pelo número mecanográfico.
+     */
+    public Estudante obterPorNumMec(int numMec) {
+        return EstudanteDAL.procurarPorNumMec(numMec, PASTA_BD);
+    }
+
+    /**
+     * Actualiza os dados de um estudante (morada, ano curricular, etc.) e persiste.
+     * @return true se a actualização foi bem-sucedida.
+     */
+    public boolean atualizarEstudante(Estudante estudante) {
+        if (estudante == null) return false;
+        EstudanteDAL.atualizarEstudante(estudante, PASTA_BD);
+        return true;
+    }
+
+    /**
+     * Remove um estudante e todos os seus dados associados.
+     * @return true se removido.
+     */
+    public boolean removerEstudante(int numMec) {
+        return EstudanteDAL.removerEstudanteCompleto(numMec, PASTA_BD);
     }
 }
