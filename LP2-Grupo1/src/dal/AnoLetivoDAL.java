@@ -168,6 +168,15 @@ public class AnoLetivoDAL {
         for (AnoLetivo a : todos) {
             if (a.getEstado() == EstadoAnoLetivo.PLANEAMENTO) return a;
         }
-        return null;
+        // Prioridade 3: FECHADO (devolve o mais recente, se existir)
+        AnoLetivo maisRecenteFechado = null;
+        for (AnoLetivo a : todos) {
+            if (a.getEstado() == EstadoAnoLetivo.FECHADO) {
+                if (maisRecenteFechado == null || a.getAno() > maisRecenteFechado.getAno()) {
+                    maisRecenteFechado = a;
+                }
+            }
+        }
+        return maisRecenteFechado;
     }
 }
