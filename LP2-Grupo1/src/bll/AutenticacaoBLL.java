@@ -2,8 +2,7 @@ package bll;
 
 import dal.*;
 import model.*;
-import modules.login.LoginController;
-import modules.login.LoginModel;
+import controller.LoginController;
 import utils.SegurancaPasswords;
 
 import java.util.List;

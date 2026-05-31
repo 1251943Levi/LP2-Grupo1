@@ -2,6 +2,7 @@ package modules.login;
 
 import common.ConfigApp;
 import dal.DALUtil;
+import model.LoginModel;
 
 import java.io.File;
 import java.time.LocalDateTime;

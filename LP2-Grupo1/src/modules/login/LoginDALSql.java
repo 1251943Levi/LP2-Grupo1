@@ -2,6 +2,7 @@ package modules.login;
 
 import dal.db.ConnectionManager;
 import dal.db.RowMapper;
+import model.LoginModel;
 
 import java.io.IOException;
 import java.nio.file.Files;

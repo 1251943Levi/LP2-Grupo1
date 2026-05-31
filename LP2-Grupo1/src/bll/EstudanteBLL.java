@@ -9,7 +9,7 @@ import model.Avaliacao;
 import model.Estudante;
 import model.Pagamento;
 import model.UnidadeCurricular;
-import modules.login.LoginController;
+import controller.LoginController;
 import java.util.ArrayList;
 import java.util.List;
 import utils.Config;

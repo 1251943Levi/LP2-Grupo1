@@ -1,6 +1,6 @@
 package bll;
 
-import modules.login.LoginController;
+import controller.LoginController;
 import utils.PasswordGenerator;
 import utils.EmailService;
 

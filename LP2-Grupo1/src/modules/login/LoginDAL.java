@@ -2,6 +2,7 @@ package modules.login;
 
 import common.ConfigApp;
 import common.PasswordHasher;
+import model.LoginModel;
 
 import java.util.List;
 

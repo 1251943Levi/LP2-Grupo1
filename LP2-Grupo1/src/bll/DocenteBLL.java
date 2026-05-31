@@ -8,7 +8,7 @@ import model.Avaliacao;
 import model.Docente;
 import model.Estudante;
 import model.UnidadeCurricular;
-import modules.login.LoginController;
+import controller.LoginController;
 import utils.Config;
 import java.util.ArrayList;
 import java.util.List;

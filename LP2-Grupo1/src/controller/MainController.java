@@ -3,7 +3,6 @@ package controller;
 import model.*;
 import view.MainView;
 import bll.AutenticacaoBLL;
-import modules.login.LoginController;
 import utils.CancelamentoException;
 import utils.Validador;
 

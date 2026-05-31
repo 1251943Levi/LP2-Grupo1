@@ -6,7 +6,7 @@ import dal.InscricaoDAL;
 import dal.UcDAL;
 import model.Curso;
 import model.Estudante;
-import modules.login.LoginController;
+import controller.LoginController;
 import utils.EmailGenerator;
 import utils.EmailService;
 import utils.PasswordGenerator;

@@ -2,7 +2,7 @@ package bll;
 
 import dal.*;
 import model.*;
-import modules.login.LoginController;
+import controller.LoginController;
 import utils.*;
 import view.GestorView;
 import utils.Config;
