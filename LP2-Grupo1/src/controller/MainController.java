@@ -3,6 +3,7 @@ package controller;
 import model.*;
 import view.MainView;
 import bll.AutenticacaoBLL;
+import modules.login.LoginController;
 import utils.CancelamentoException;
 import utils.Validador;
 
@@ -85,6 +86,7 @@ public class MainController {
         if (!pasta.exists() && pasta.mkdirs()) {
             view.mostrarPastaCriada();
         }
+        new LoginController().inicializar();
     }
 
     /**

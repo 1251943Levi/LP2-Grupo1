@@ -1,7 +1,6 @@
 package bll;
 
 import dal.AvaliacaoDAL;
-import dal.CredencialDAL;
 import dal.EstudanteDAL;
 import dal.InscricaoDAL;
 import dal.PagamentoDAL;
@@ -10,7 +9,7 @@ import model.Avaliacao;
 import model.Estudante;
 import model.Pagamento;
 import model.UnidadeCurricular;
-import utils.SegurancaPasswords;
+import modules.login.LoginController;
 import java.util.ArrayList;
 import java.util.List;
 import utils.Config;
@@ -24,6 +23,7 @@ import utils.Config;
 public class EstudanteBLL {
 
     private static final String PASTA_BD = "bd";
+    private final LoginController loginController = new LoginController();
 
 
     /**
@@ -86,9 +86,7 @@ public class EstudanteBLL {
      * @param novaPass  Nova password em texto limpo.
      */
     public void alterarPassword(Estudante estudante, String novaPass) {
-        String passSegura = SegurancaPasswords.gerarCredencialMista(novaPass);
-        estudante.setPassword(passSegura);
-        CredencialDAL.atualizarPassword(estudante.getEmail(), passSegura, PASTA_BD);
+        loginController.atualizarPassword(estudante.getEmail(), novaPass);
     }
 
     /**

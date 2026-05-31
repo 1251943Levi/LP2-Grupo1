@@ -1,6 +1,7 @@
 package modules.login;
 
 import common.PasswordHasher;
+import utils.SegurancaPasswords;
 
 import java.util.List;
 
@@ -39,7 +40,13 @@ public class LoginController {
         if (email == null || passwordLimpa == null) return null;
         LoginModel m = dal.procurarPorEmail(email);
         if (m == null || !m.isAtivo()) return null;
-        boolean ok = PasswordHasher.verificar(passwordLimpa, m.getPasswordSalt(), m.getPasswordHash());
+        boolean ok;
+        if (m.getPasswordSalt() == null || m.getPasswordSalt().isEmpty()) {
+            // entrada migrada do credenciais.csv — hash PBKDF2 legacy (salt vazio = marcador)
+            ok = SegurancaPasswords.verificarPassword(passwordLimpa, m.getPasswordHash());
+        } else {
+            ok = PasswordHasher.verificar(passwordLimpa, m.getPasswordSalt(), m.getPasswordHash());
+        }
         return ok ? m : null;
     }
 
@@ -84,5 +91,15 @@ public class LoginController {
     /** Remove a credencial de um email. */
     public boolean eliminar(String email) {
         return dal.eliminar(email);
+    }
+
+    /** Indica se já existe credencial para o email. */
+    public boolean existe(String email) {
+        return dal.existe(email);
+    }
+
+    /** Acesso ao DAL para uso interno das BLLs que precisam de verificações simples. */
+    public LoginDAL dal() {
+        return dal;
     }
 }

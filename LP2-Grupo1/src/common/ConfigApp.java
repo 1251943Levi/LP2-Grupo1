@@ -46,7 +46,7 @@ public final class ConfigApp {
     public static String jdbcUrl() {
         return "jdbc:sqlserver://" + DB_SERVER
                 + ";databaseName=" + DB_DATABASE
-                + ";encrypt=true;trustServerCertificate=true;loginTimeout=15";
+                + ";encrypt=false;loginTimeout=15";
     }
 
     /** true se o Login deve usar SQL Server; false para modo ficheiros. */

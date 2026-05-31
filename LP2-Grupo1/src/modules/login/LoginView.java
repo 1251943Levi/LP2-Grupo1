@@ -13,7 +13,7 @@ import java.util.Scanner;
  * Inclui um pequeno menu de gestão de credenciais que serve também para
  * demonstrar a paridade total entre os modos SQL e ficheiros.
  *
- * Pode ser executada isoladamente: {@code java -cp ... modules.login.LoginView}
+ * Pode ser executada isoladamente: {@code java -cp ... view.LoginView}
  */
 public class LoginView {
 
