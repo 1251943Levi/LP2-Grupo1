@@ -1,13 +1,15 @@
 package view;
 
 import model.AnoLetivo;
+import model.Curso;
 import utils.Consola;
 
 import java.util.List;
 
 /**
  * View do módulo Ano Letivo.
- * Apenas apresenta informação e recolhe inputs.
+ * Sprint 6: removidas opções Editar e Eliminar (ano letivo é imutável após criação).
+ * Adicionados métodos para relatório de aptidão, histórico e momentos de avaliação.
  */
 public class AnoLetivoView {
 
@@ -18,33 +20,41 @@ public class AnoLetivoView {
         Consola.imprimirMenu(new String[]{
                 "Criar Ano Letivo",
                 "Iniciar Ano Letivo",
-                "Editar Ano Letivo",
-                "Avançar Ano Letivo",
                 "Fechar Ano Letivo",
+                "Avançar Ano Letivo",
                 "Listar Anos Letivos",
-                "Estado"
+                "Estado do Ano Atual",
+                "Histórico de Anos Fechados",
+                "Alterar Momentos de Avaliação de UC"
         }, "Voltar");
         return Consola.lerOpcaoMenu();
     }
 
     // ---------- INPUTS ----------
 
-    /**
-     * Lê um ano letivo. "0" lança CancelamentoException.
-     * */
     public int pedirAno(String mensagem) {
         return Consola.lerInt(mensagem);
     }
 
-    // ---------- LISTAGENS ----------
+    public String pedirSiglaUc(String mensagem) {
+        return Consola.lerString(mensagem).toUpperCase().trim();
+    }
+
+    public int pedirNumeroMomentos() {
+        return Consola.lerInt("Número de momentos de avaliação (1, 2 ou 3)");
+    }
+
+    // ---------- LISTAGENS DE ANOS ----------
 
     public void mostrarListaAnos(List<AnoLetivo> anos) {
         Consola.imprimirTitulo("Anos Letivos Registados");
         if (anos == null || anos.isEmpty()) {
             Consola.imprimirInfo("Nenhum ano letivo registado.");
         } else {
+            System.out.printf("  %-8s  %s%n", "Ano", "Estado");
+            Consola.imprimirLinha();
             for (AnoLetivo a : anos) {
-                System.out.printf("  %d  -  %s%n", a.getAno(), a.getEstado());
+                System.out.printf("  %-8d  %s%n", a.getAno(), a.getEstado());
             }
         }
         Consola.imprimirLinha();
@@ -59,6 +69,100 @@ public class AnoLetivoView {
             for (String l : linhas) Consola.imprimirInfo(l);
         }
         Consola.imprimirLinha();
+        Consola.pausar();
+    }
+
+    // ---------- RELATÓRIO DE APTIDÃO (Iniciar Ano) ----------
+
+    /**
+     * Mostra o cabeçalho do relatório de aptidão antes de iniciar o ano.
+     * @param anos Lista de todos os anos com estado, para contexto.
+     */
+    public void mostrarCabecalhoRelatorioAptidao(List<AnoLetivo> anos) {
+        Consola.imprimirCabecalho("Iniciar Ano Letivo — Relatório de Aptidão");
+        Consola.imprimirTitulo("Anos Letivos Existentes");
+        if (anos != null) {
+            for (AnoLetivo a : anos) {
+                System.out.printf("  %-8d  %s%n", a.getAno(), a.getEstado());
+            }
+        }
+        Consola.imprimirLinha();
+    }
+
+    /**
+     * Mostra o resultado da verificação de aptidão por curso.
+     * @param sigla      Sigla do curso.
+     * @param apto       true se o curso está pronto para arrancar.
+     * @param motivo     Descrição do motivo de bloqueio (se não apto).
+     */
+    public void mostrarAptidaoCurso(String sigla, boolean apto, String motivo) {
+        if (apto) {
+            Consola.imprimirSucesso(String.format("  Curso %-8s — APTO", sigla));
+        } else {
+            Consola.imprimirErro(String.format("  Curso %-8s — NÃO APTO: %s", sigla, motivo));
+        }
+    }
+
+    /**
+     * Pergunta ao gestor o que fazer com um curso não apto.
+     * @param siglaCurso Sigla do curso em causa.
+     * @return true se o gestor escolhe Inativar e continuar; false para Cancelar arranque.
+     */
+    public boolean perguntarInativarOuCancelar(String siglaCurso) {
+        Consola.imprimirTitulo("Curso " + siglaCurso + " não está apto");
+        Consola.imprimirMenu(new String[]{
+                "Inativar curso " + siglaCurso + " e continuar arranque",
+        }, "Cancelar arranque do ano letivo");
+        int op = Consola.lerOpcaoMenu();
+        return op == 1;
+    }
+
+    public void mostrarCursoInativado(String sigla) {
+        Consola.imprimirInfo("Curso " + sigla + " marcado como Inativo — excluído do arranque.");
+    }
+
+    // ---------- FECHO ----------
+
+    /**
+     * Mostra as pendências que bloqueiam o fecho do ano letivo.
+     * @param pendenciasNotas     Lista de alunos sem notas lançadas.
+     * @param pendenciasPropinas  Lista de alunos com propinas em dívida.
+     */
+    public void mostrarPendenciasFecho(List<String> pendenciasNotas, List<String> pendenciasPropinas) {
+        Consola.imprimirCabecalho("Fecho de Ano Letivo — Pendências");
+        if (!pendenciasNotas.isEmpty()) {
+            Consola.imprimirTitulo("Notas por lançar");
+            for (String p : pendenciasNotas) Consola.imprimirErro("  " + p);
+        }
+        if (!pendenciasPropinas.isEmpty()) {
+            Consola.imprimirTitulo("Propinas em dívida");
+            for (String p : pendenciasPropinas) Consola.imprimirErro("  " + p);
+        }
+        Consola.imprimirLinha();
+        Consola.pausar();
+    }
+
+    // ---------- HISTÓRICO ----------
+
+    public void mostrarHistoricoAnos(List<String> linhas) {
+        Consola.imprimirCabecalho("Histórico de Anos Letivos Fechados");
+        if (linhas == null || linhas.isEmpty()) {
+            Consola.imprimirInfo("Nenhum ano letivo fechado no histórico.");
+        } else {
+            for (String l : linhas) System.out.println("  " + l);
+        }
+        Consola.imprimirLinha();
+        Consola.pausar();
+    }
+
+    // ---------- MOMENTOS DE AVALIAÇÃO ----------
+
+    public void mostrarMomentosUc(String siglaUc, int momentosAtuais) {
+        System.out.printf("  UC %-8s — momentos de avaliação atuais: %d%n", siglaUc, momentosAtuais);
+    }
+
+    public void mostrarSucessoMomentos(String siglaUc, int novos) {
+        Consola.imprimirSucesso("UC " + siglaUc + " — momentos de avaliação atualizados para " + novos + ".");
         Consola.pausar();
     }
 

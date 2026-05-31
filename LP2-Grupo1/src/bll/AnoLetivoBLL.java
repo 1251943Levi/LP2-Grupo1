@@ -8,18 +8,20 @@ import dal.InscricaoDAL;
 import dal.UcDAL;
 import model.AnoLetivo;
 import model.Avaliacao;
+import model.Curso;
 import model.EstadoAnoLetivo;
 import model.Estudante;
 import model.RepositorioDados;
 import utils.Config;
+import view.AnoLetivoView;   // FIX: necessário para as novas assinaturas iniciar/fechar
 import view.GestorView;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Lógica de negócio do módulo Ano Letivo.
- * Coordena o ciclo de vida: Criar → Iniciar → Fechar → Avançar.
+ * Lógica de negócio do módulo Ano Letivo — Sprint 6.
+ * Ciclo de vida: Criar → Iniciar → Fechar → Avançar.
  * Em caso de violação de pré-condição é lançada EstadoInvalidoException.
  */
 public class AnoLetivoBLL {
@@ -30,10 +32,6 @@ public class AnoLetivoBLL {
     // CRUD básico
     // ============================================================
 
-    /**
-     * Cria um novo ano letivo em estado PLANEAMENTO.
-     * @throws EstadoInvalidoException se já existir um ano com esse número.
-     */
     public void criar(int ano) {
         if (AnoLetivoDAL.procurarPorAno(ano, PASTA_BD) != null) {
             throw new EstadoInvalidoException(
@@ -42,82 +40,115 @@ public class AnoLetivoBLL {
         AnoLetivoDAL.adicionar(new AnoLetivo(ano), PASTA_BD);
     }
 
-    /**
-     * Permite alterar o número de um ano enquanto este estiver em PLANEAMENTO.
-     * Como o ano é a chave (final no modelo), o "editar" é remover+adicionar.
-     */
     public void editar(int anoAntigo, int anoNovo) {
         AnoLetivo alvo = AnoLetivoDAL.procurarPorAno(anoAntigo, PASTA_BD);
-        if (alvo == null) {
+        if (alvo == null)
             throw new EstadoInvalidoException("Ano " + anoAntigo + " não existe.");
-        }
-        if (alvo.getEstado() != EstadoAnoLetivo.PLANEAMENTO) {
+        if (alvo.getEstado() != EstadoAnoLetivo.PLANEAMENTO)
             throw new EstadoInvalidoException(
                     "Só anos em PLANEAMENTO podem ser editados. Estado atual: " + alvo.getEstado() + ".");
-        }
-        if (AnoLetivoDAL.procurarPorAno(anoNovo, PASTA_BD) != null) {
+        if (AnoLetivoDAL.procurarPorAno(anoNovo, PASTA_BD) != null)
             throw new EstadoInvalidoException(
                     "Já existe um ano letivo registado com o ano " + anoNovo + ".");
-        }
         AnoLetivoDAL.remover(anoAntigo, PASTA_BD);
         AnoLetivoDAL.adicionar(new AnoLetivo(anoNovo), PASTA_BD);
     }
 
-    /** @return Lista de todos os anos letivos (passados, atual e em planeamento). */
     public List<AnoLetivo> listar() {
         return AnoLetivoDAL.listarTodos(PASTA_BD);
     }
 
     // ============================================================
-    // Ciclo de vida — Iniciar / Fechar / Avançar
+    // Ciclo de vida — Iniciar / Fechar / Avançar (Sprint 6)
     // ============================================================
 
     /**
-     * Inicia um ano letivo (PLANEAMENTO → INICIADO).
-     * Valida quórum por curso e momentos de avaliação das UCs.
+     * Inicia um ano letivo (PLANEAMENTO → INICIADO) com relatório de aptidão.
+     *
+     * FIX: assinatura corrigida para (int, AnoLetivoView) devolvendo List<String>,
+     * conforme o AnoLetivoController da Sprint 6 (linha 94):
+     *     List&lt;String&gt; cursosInativados = bll.iniciar(ano, view);
+     *
+     * Regras:
+     *   - Bloqueia (lança exceção) se o ano não estiver em PLANEAMENTO.
+     *   - Bloqueia se alguma UC não tiver momentos de avaliação definidos.
+     *   - Cursos com 1.º ano sem quórum (1–4 alunos) são automaticamente inativados.
+     *
+     * @param ano  Ano letivo a iniciar.
+     * @param view Vista do módulo (reservada para feedback interativo).
+     * @return Lista de siglas de cursos inativados por falta de quórum (vazia se todos aptos).
      */
-    public void iniciar(int ano) {
+    public List<String> iniciar(int ano, AnoLetivoView view) {
         AnoLetivo alvo = AnoLetivoDAL.procurarPorAno(ano, PASTA_BD);
-        if (alvo == null) {
+        if (alvo == null)
             throw new EstadoInvalidoException("Ano " + ano + " não existe.");
-        }
-        if (alvo.getEstado() != EstadoAnoLetivo.PLANEAMENTO) {
+        if (alvo.getEstado() != EstadoAnoLetivo.PLANEAMENTO)
             throw new EstadoInvalidoException(
                     "Só anos em PLANEAMENTO podem ser iniciados. Estado atual: " + alvo.getEstado() + ".");
+
+        // Momentos de avaliação em falta → bloqueia o arranque
+        List<String> errosMomentos = validarMomentosUcs();
+        if (!errosMomentos.isEmpty()) {
+            StringBuilder msg = new StringBuilder("Bloqueado para iniciar — momentos de avaliação em falta:");
+            for (String e : errosMomentos) msg.append("\n  - ").append(e);
+            throw new EstadoInvalidoException(msg.toString());
         }
 
-        List<String> erros = new ArrayList<>();
-        erros.addAll(validarQuorumCursos());
-        erros.addAll(validarMomentosUcs());
-
-        if (!erros.isEmpty()) {
-            StringBuilder msg = new StringBuilder("Bloqueado para iniciar o ano letivo:");
-            for (String e : erros) msg.append("\n  - ").append(e);
-            throw new EstadoInvalidoException(msg.toString());
+        // Quórum: cursos do 1.º ano com 1–4 alunos são inativados (não bloqueiam o arranque)
+        List<String> cursosInativados = new ArrayList<>();
+        CursoBLL cursoBll = new CursoBLL();
+        String[] cursos = CursoDAL.obterListaCursos(PASTA_BD);
+        for (String c : cursos) {
+            String sigla = c.split(" - ")[0];
+            int a1 = EstudanteDAL.contarEstudantesPorCursoEAno(sigla, 1, PASTA_BD);
+            if (a1 > 0 && a1 < 5) {
+                Curso curso = cursoBll.procurarCursoCompleto(sigla);
+                if (curso != null) {
+                    curso.setEstado("Inativo");
+                    CursoDAL.atualizarCurso(curso, PASTA_BD);
+                    cursosInativados.add(sigla);
+                }
+            }
         }
 
         alvo.setEstado(EstadoAnoLetivo.INICIADO);
         AnoLetivoDAL.atualizar(alvo, PASTA_BD);
+        return cursosInativados;
     }
 
     /**
-     * Fecha um ano letivo (INICIADO → FECHADO).
-     * Bloqueia se houver alguma nota por lançar.
+     * Fecha um ano letivo (INICIADO → FECHADO) com verificação de notas e propinas.
+     *
+     * FIX: assinatura corrigida para (int, AnoLetivoView), conforme o
+     * AnoLetivoController da Sprint 6 (linha 116): bll.fechar(ano, view);
+     *
+     * Se existirem pendências (notas por lançar ou propinas em dívida),
+     * são listadas por categoria na mensagem da exceção e o fecho é bloqueado.
+     *
+     * @param ano  Ano letivo a fechar.
+     * @param view Vista do módulo (reservada para feedback adicional).
      */
-    public void fechar(int ano) {
+    public void fechar(int ano, AnoLetivoView view) {
         AnoLetivo alvo = AnoLetivoDAL.procurarPorAno(ano, PASTA_BD);
-        if (alvo == null) {
+        if (alvo == null)
             throw new EstadoInvalidoException("Ano " + ano + " não existe.");
-        }
-        if (alvo.getEstado() != EstadoAnoLetivo.INICIADO) {
+        if (alvo.getEstado() != EstadoAnoLetivo.INICIADO)
             throw new EstadoInvalidoException(
                     "Só anos INICIADOS podem ser fechados. Estado atual: " + alvo.getEstado() + ".");
-        }
 
-        List<String> pendentes = validarNotasPendentes(ano);
-        if (!pendentes.isEmpty()) {
-            StringBuilder msg = new StringBuilder("Bloqueado para fechar — notas em falta:");
-            for (String p : pendentes) msg.append("\n  - ").append(p);
+        List<String> pendentesNotas    = validarNotasPendentes(ano);
+        List<String> pendentesPropinas = validarPropinasPendentes();
+
+        if (!pendentesNotas.isEmpty() || !pendentesPropinas.isEmpty()) {
+            StringBuilder msg = new StringBuilder("Fecho bloqueado — existem pendências:");
+            if (!pendentesNotas.isEmpty()) {
+                msg.append("\n  [NOTAS EM FALTA]");
+                for (String p : pendentesNotas) msg.append("\n    - ").append(p);
+            }
+            if (!pendentesPropinas.isEmpty()) {
+                msg.append("\n  [PROPINAS EM DÍVIDA]");
+                for (String p : pendentesPropinas) msg.append("\n    - ").append(p);
+            }
             throw new EstadoInvalidoException(msg.toString());
         }
 
@@ -127,66 +158,44 @@ public class AnoLetivoBLL {
         System.out.println("A calcular o aproveitamento e a guardar o histórico académico do ano " + ano + "...");
 
         List<Estudante> listaAlunos = new EstudanteBLL().carregarTodosCompleto();
-
         for (Estudante e : listaAlunos) {
             if (e == null) continue;
-
             for (int i = 0; i < e.getPercurso().getTotalAvaliacoes(); i++) {
                 model.Avaliacao av = e.getPercurso().getHistoricoAvaliacoes()[i];
-
                 if (av != null && av.getAnoLetivo() == ano) {
                     String notas = "";
                     for (int n = 0; n < av.getTotalAvaliacoesLancadas(); n++) {
                         notas += av.getResultados()[n] + " ";
                     }
-
                     String estado = av.isAprovado() ? "APROVADO" : "REPROVADO";
-
                     dal.HistoricoDAL.guardarRegistoHistorico(
-                            ano,
-                            e.getNumeroMecanografico(),
-                            av.getUc().getSigla(),
-                            notas.trim(),
-                            estado,
-                            PASTA_BD
-                    );
+                            ano, e.getNumeroMecanografico(),
+                            av.getUc().getSigla(), notas.trim(), estado, PASTA_BD);
                 }
             }
         }
         System.out.println("Histórico académico fechado com sucesso!");
     }
 
-    /**
-     * Avança o ano letivo (transita alunos e cria o próximo).
-     * Pré-condição: o ano atual tem de estar FECHADO.
-     * Delega a transição de alunos para a lógica existente da Sprint 4 (GestorBLL.avancarAnoLetivo).
-     */
     public void avancar(RepositorioDados repo, GestorView view) {
         AnoLetivo atual = AnoLetivoDAL.obterAnoAtivo(Config.PASTA_BD);
-        if (atual == null) {
+        if (atual == null)
             throw new EstadoInvalidoException("Não existe ano letivo registado no sistema.");
-        }
-        if (atual.getEstado() != EstadoAnoLetivo.FECHADO) {
+        if (atual.getEstado() != EstadoAnoLetivo.FECHADO)
             throw new EstadoInvalidoException(
                     "Só anos FECHADOS podem avançar. Estado atual: " + atual.getEstado() + ".");
-        }
 
         new GestorBLL().avancarAnoLetivo(repo, view);
 
         int proximo = atual.getAno() + 1;
-        if (AnoLetivoDAL.procurarPorAno(proximo, Config.PASTA_BD) == null) {
+        if (AnoLetivoDAL.procurarPorAno(proximo, Config.PASTA_BD) == null)
             AnoLetivoDAL.adicionar(new AnoLetivo(proximo), Config.PASTA_BD);
-        }
     }
 
     // ============================================================
-    // Estado — read-only, idempotente (NÃO altera ficheiros)
+    // Estado — read-only
     // ============================================================
 
-    /**
-     * Devolve um sumário do estado atual sem alterar nada nos ficheiros.
-     * Mostra o ano atual e as pendências aplicáveis ao seu estado.
-     */
     public List<String> obterEstadoResumo() {
         List<String> linhas = new ArrayList<>();
         AnoLetivo atual = AnoLetivoDAL.obterAnoAtivo(PASTA_BD);
@@ -203,20 +212,14 @@ public class AnoLetivoBLL {
                 List<String> errosInicio = new ArrayList<>();
                 errosInicio.addAll(validarQuorumCursos());
                 errosInicio.addAll(validarMomentosUcs());
-                if (errosInicio.isEmpty()) {
-                    linhas.add("[INICIAR] Pronto para iniciar.");
-                } else {
-                    for (String e : errosInicio) linhas.add("[INICIAR - BLOQUEIO] " + e);
-                }
+                if (errosInicio.isEmpty()) linhas.add("[INICIAR] Pronto para iniciar.");
+                else for (String e : errosInicio) linhas.add("[INICIAR - BLOQUEIO] " + e);
                 break;
 
             case INICIADO:
                 List<String> pendentes = validarNotasPendentes(atual.getAno());
-                if (pendentes.isEmpty()) {
-                    linhas.add("[FECHAR] Pronto para fechar — todas as notas lançadas.");
-                } else {
-                    for (String p : pendentes) linhas.add("[FECHAR - BLOQUEIO] " + p);
-                }
+                if (pendentes.isEmpty()) linhas.add("[FECHAR] Pronto para fechar — todas as notas lançadas.");
+                else for (String p : pendentes) linhas.add("[FECHAR - BLOQUEIO] " + p);
                 break;
 
             case FECHADO:
@@ -227,64 +230,106 @@ public class AnoLetivoBLL {
     }
 
     // ============================================================
-    // Validadores privados
+    // Histórico e Momentos de Avaliação (Sprint 6)
     // ============================================================
 
     /**
-     * Regra do enunciado v1.1:
-     *   - 1.º ano: mínimo 5 alunos inscritos
-     *   - 2.º e 3.º anos: mínimo 1 aluno (já satisfeito se existirem alunos)
-     * Cursos sem alunos no ano em causa são ignorados (não bloqueiam).
+     * Devolve a lista de anos letivos já fechados (arquivados no histórico).
+     * Usado pelo AnoLetivoController.verHistorico() (linha 151) — devolve List<String>.
      */
+    public List<String> obterHistoricoAnos() {
+        List<String> anos = new ArrayList<>();
+        List<AnoLetivo> todos = AnoLetivoDAL.listarTodos(PASTA_BD);
+        for (AnoLetivo a : todos) {
+            if (a.getEstado() == EstadoAnoLetivo.FECHADO) {
+                anos.add(a.getAno() + " (FECHADO)");
+            }
+        }
+        return anos;
+    }
+
+    /**
+     * Devolve o número de momentos de avaliação configurados para uma UC.
+     * Usado pelo AnoLetivoController.alterarMomentosUc() (linha 164).
+     *
+     * Nota: usa valor padrão enquanto a tabela de momentos não estiver implementada.
+     *
+     * @param siglaUc Sigla da UC.
+     * @return Número de momentos (padrão 3).
+     */
+    public int obterMomentosUc(String siglaUc) {
+        // TODO: substituir por leitura real da tabela de momentos quando disponível
+        return 3;
+    }
+
+    /**
+     * Altera o número de momentos de avaliação de uma UC.
+     * Usado pelo AnoLetivoController.alterarMomentosUc() (linha 168).
+     *
+     * @param siglaUc  Sigla da UC.
+     * @param momentos Novo número de momentos (1–3).
+     * @throws EstadoInvalidoException se a sigla for inválida ou o nº de momentos estiver fora de 1–3.
+     */
+    public void alterarMomentosUc(String siglaUc, int momentos) {
+        if (siglaUc == null || siglaUc.isEmpty())
+            throw new EstadoInvalidoException("Sigla de UC inválida.");
+        if (momentos < 1 || momentos > 3)
+            throw new EstadoInvalidoException("O número de momentos deve estar entre 1 e 3.");
+        // TODO: persistir quando a tabela de momentos estiver implementada
+    }
+
+    // ============================================================
+    // Validadores privados
+    // ============================================================
+
     private List<String> validarQuorumCursos() {
         List<String> erros = new ArrayList<>();
         String[] cursos = CursoDAL.obterListaCursos(PASTA_BD);
-
         for (String c : cursos) {
             String sigla = c.split(" - ")[0];
             int a1 = EstudanteDAL.contarEstudantesPorCursoEAno(sigla, 1, PASTA_BD);
-            if (a1 > 0 && a1 < 5) {
+            if (a1 > 0 && a1 < 5)
                 erros.add("Curso " + sigla + " — 1.º ano tem " + a1 + " aluno(s); mínimo exigido é 5.");
-            }
-            // 2.º e 3.º anos: mínimo 1 é automaticamente cumprido se houver pelo menos 1 inscrito
         }
         return erros;
     }
 
-    /** Verifica se cada UC tem momentos de avaliação definidos (via mock por agora). */
     private List<String> validarMomentosUcs() {
         List<String> erros = new ArrayList<>();
         String[] ucs = UcDAL.obterListaUcs(PASTA_BD);
-
         for (String linha : ucs) {
             String sigla = linha.split(" - ")[0];
-            if (!mockTemMomentosDefinidos(sigla)) {
+            if (!mockTemMomentosDefinidos(sigla))
                 erros.add("UC " + sigla + " — momentos de avaliação não definidos.");
-            }
         }
         return erros;
     }
 
-    /** Para cada inscrição ativa, verifica se existe avaliação com pelo menos uma nota. */
     private List<String> validarNotasPendentes(int anoLetivo) {
         List<String> pendentes = new ArrayList<>();
         List<Estudante> estudantes = EstudanteDAL.carregarTodos(PASTA_BD);
-
         for (Estudante e : estudantes) {
             if (e == null || e.getAnoCurricular() > 3) continue;
-
-            List<String> siglasInscritas =
-                    InscricaoDAL.obterSiglasUcsPorAluno(
-                            e.getNumeroMecanografico(), anoLetivo, PASTA_BD);
+            List<String> siglasInscritas = InscricaoDAL.obterSiglasUcsPorAluno(
+                    e.getNumeroMecanografico(), anoLetivo, PASTA_BD);
             for (String siglaUc : siglasInscritas) {
                 Avaliacao av = AvaliacaoDAL.obterAvaliacao(
                         e.getNumeroMecanografico(), siglaUc, anoLetivo, PASTA_BD);
-
-                if (av == null || av.getTotalAvaliacoesLancadas() == 0) {
-                    pendentes.add(String.format(
-                            "Aluno %d (%s) — UC %s sem nota lançada.",
+                if (av == null || av.getTotalAvaliacoesLancadas() == 0)
+                    pendentes.add(String.format("Aluno %d (%s) — UC %s sem nota lançada.",
                             e.getNumeroMecanografico(), e.getNome(), siglaUc));
-                }
+            }
+        }
+        return pendentes;
+    }
+
+    /** Devolve os alunos com saldo devedor positivo (propina em dívida). */
+    private List<String> validarPropinasPendentes() {
+        List<String> pendentes = new ArrayList<>();
+        for (Estudante e : EstudanteDAL.carregarTodos(PASTA_BD)) {
+            if (e != null && e.getSaldoDevedor() > 0) {
+                pendentes.add(String.format("Aluno %d (%s) — dívida de %.2f€.",
+                        e.getNumeroMecanografico(), e.getNome(), e.getSaldoDevedor()));
             }
         }
         return pendentes;
@@ -294,21 +339,9 @@ public class AnoLetivoBLL {
     // MOCK — Momentos de Avaliação
     // ============================================================
 
-    /**
-     * Indica se uma UC tem os momentos de avaliação definidos.
-     *
-     * Implementação temporária enquanto o card dedicado aos Momentos de Avaliação
-     * não está disponível. Devolve sempre true, EXCETO para a sigla "TESTE99"
-     * — usada para demonstrar o bloqueio de Iniciar na Sprint Review.
-     *
-     * @return true se tiver momentos definidos; false caso contrário.
-     */
     private boolean mockTemMomentosDefinidos(String siglaUc) {
-        // TODO: substituir pela chamada real à BLL de Momentos de Avaliação
         if (siglaUc == null) return true;
-        if (siglaUc.equalsIgnoreCase("TESTE99")) {
-            return false;  // força erro para demonstração
-        }
+        if (siglaUc.equalsIgnoreCase("TESTE99")) return false;
         return true;
     }
 }
