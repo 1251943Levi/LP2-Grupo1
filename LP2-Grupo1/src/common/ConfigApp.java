@@ -44,9 +44,7 @@ public final class ConfigApp {
      * encrypt=true + trustServerCertificate=true são exigidos pelo driver mssql-jdbc recente.
      */
     public static String jdbcUrl() {
-        return "jdbc:sqlserver://" + DB_SERVER
-                + ";databaseName=" + DB_DATABASE
-                + ";encrypt=false;loginTimeout=15";
+        return "jdbc:jtds:sqlserver://" + DB_SERVER + ":1433/" + DB_DATABASE;
     }
 
     /** true se o Login deve usar SQL Server; false para modo ficheiros. */

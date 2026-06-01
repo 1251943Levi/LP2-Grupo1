@@ -32,10 +32,10 @@ public class ConnectionManager {
 
     static {
         try {
-            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+            Class.forName("net.sourceforge.jtds.jdbc.Driver");
         } catch (ClassNotFoundException e) {
-            System.err.println(">> AVISO: driver mssql-jdbc não encontrado no classpath. "
-                    + "Adicione o JAR a lib/ para usar o modo SQL.");
+            System.err.println(">> AVISO: driver jTDS não encontrado no classpath. "
+                    + "Adicione jtds-1.3.1.jar a lib/ para usar o modo SQL.");
         }
     }
 
