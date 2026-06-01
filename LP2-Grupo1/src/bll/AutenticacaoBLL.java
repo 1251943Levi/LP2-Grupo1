@@ -15,6 +15,7 @@ import java.util.List;
 public class AutenticacaoBLL {
 
     private static final String PASTA_BD = "bd";
+    private final EstudanteDAL estudanteDAL = new EstudanteDAL(PASTA_BD);
 
     /**
      * Credencial PBKDF2 pré-gerada para o administrador de backoffice.
@@ -95,7 +96,7 @@ public class AutenticacaoBLL {
      * @return true se o NIF já existir.
      */
     public boolean isNifDuplicado(String nif) {
-        return EstudanteDAL.existeNif(nif, PASTA_BD)
+        return estudanteDAL.existeNif(nif)
                 || DocenteDAL.existeNif(nif, PASTA_BD);
     }
 

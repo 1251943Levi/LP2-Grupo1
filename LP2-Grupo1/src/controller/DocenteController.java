@@ -22,6 +22,7 @@ public class DocenteController {
     private final Docente docente;
     private final DocenteView view;
     private final DocenteBLL docenteBll;
+    private final EstudanteDAL estudanteDAL = new EstudanteDAL("bd");
 
     public DocenteController(RepositorioDados repo, Docente docente) {
         this.repo        = repo;
@@ -118,7 +119,7 @@ public class DocenteController {
             boolean alunoValido = false;
             while (!alunoValido) {
                 numMec = view.pedirNumeroAluno();
-                if (dal.EstudanteDAL.procurarPorNumMec(numMec, "bd") != null) {
+                if (estudanteDAL.procurarPorNumMec(numMec) != null) {
                     alunoValido = true;
                     break;
                 } else {
@@ -212,7 +213,7 @@ public class DocenteController {
 
             // Função que pergunta a nota para cada aluno
             java.util.function.Function<Integer, Double> obterNota = (numMec) -> {
-                Estudante e = EstudanteDAL.procurarPorNumMec(numMec, "bd");
+                Estudante e = estudanteDAL.procurarPorNumMec(numMec);
                 String nome = (e != null) ? e.getNome() : "Desconhecido";
                 view.mostrarPedidoNotaParaAluno(numMec, nome);
                 try {

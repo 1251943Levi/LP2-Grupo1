@@ -112,7 +112,7 @@ public class EstudanteView {
     public String pedirNovaMorada() {
         Consola.imprimirTitulo("Atualizar Morada");
         Consola.imprimirDicaFormulario();
-        return Consola.lerString("Nova Morada (Enter mantém a atual)");
+        return Consola.lerStringOpcional("Nova Morada (Enter mantém a atual)");
     }
 
     public String pedirNovaPassword() {

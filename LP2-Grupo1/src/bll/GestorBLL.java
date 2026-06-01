@@ -18,6 +18,7 @@ import java.util.List;
 public class GestorBLL {
 
     private static final String PASTA_BD = "bd";
+    private final EstudanteDAL estudanteDAL = new EstudanteDAL(PASTA_BD);
 
     // ─────────────────────────── ANO LETIVO ────────────────────────────
 
@@ -54,9 +55,10 @@ public class GestorBLL {
             Curso curso  = cursoBll.procurarCursoCompleto(sigla);
             if (curso == null) continue;
 
-            int a1 = EstudanteDAL.contarEstudantesPorCursoEAno(sigla, 1, PASTA_BD);
-            int a2 = EstudanteDAL.contarEstudantesPorCursoEAno(sigla, 2, PASTA_BD);
-            int a3 = EstudanteDAL.contarEstudantesPorCursoEAno(sigla, 3, PASTA_BD);
+            // Chamadas atualizadas usando a instância estudanteDAL
+            int a1 = estudanteDAL.contarEstudantesPorCursoEAno(sigla, 1);
+            int a2 = estudanteDAL.contarEstudantesPorCursoEAno(sigla, 2);
+            int a3 = estudanteDAL.contarEstudantesPorCursoEAno(sigla, 3);
 
             if (a1 > 0 && a1 < 5) {
                 view.mostrarErroQuorum(sigla, a1);
@@ -71,9 +73,6 @@ public class GestorBLL {
         }
 
         // ── Transição dos alunos ───────────────────────────────────────
-        // PATCH (Bug 4): bloco de guardar histórico removido daqui —
-        //                AnoLetivoBLL.fechar() já o fez antes.
-
         view.mostrarProcessamentoTransicoes();
 
         AnoLetivo anoAtualObj    = new AnoLetivo(anoLetivoCorrente);
@@ -134,7 +133,9 @@ public class GestorBLL {
      */
     public String registarEstudante(String nome, String nif, String morada,
                                     String dataNasc, String siglaCurso, int anoInscricao) {
-        int    numMec    = EstudanteDAL.obterProximoNumeroMecanografico(PASTA_BD, anoInscricao);
+
+        // Chamada atualizada usando a instância estudanteDAL
+        int    numMec    = estudanteDAL.obterProximoNumeroMecanografico(anoInscricao);
         String email     = EmailGenerator.gerarEmailEstudante(numMec);
         String passLimpa = PasswordGenerator.gerarPasswordSegura();
         EmailService.enviarCredenciaisTodos(nome, email, passLimpa);
@@ -144,7 +145,8 @@ public class GestorBLL {
         Curso curso    = new CursoBLL().procurarCursoCompleto(siglaCurso);
         if (curso != null) novo.setSaldoDevedor(curso.getValorPropinaAnual());
 
-        EstudanteDAL.adicionarEstudante(novo, siglaCurso, PASTA_BD);
+        // Chamada atualizada usando a instância estudanteDAL
+        estudanteDAL.adicionarEstudante(novo, siglaCurso);
         CredencialDAL.adicionarCredencial(email, passHash, "ESTUDANTE", PASTA_BD);
 
         for (String siglaUc : UcDAL.obterSiglasUcsPorCursoEAno(siglaCurso, 1, PASTA_BD)) {
@@ -201,12 +203,11 @@ public class GestorBLL {
      */
     public boolean editarUc(String siglaAntiga, String novaSigla, String nome,
                             String ano, String siglaDocente, String siglaCurso) {
-        // PATCH Bug 1: validar 'ano' ANTES de qualquer alteração destrutiva
         int anoInt;
         try {
             anoInt = Integer.parseInt(ano);
         } catch (NumberFormatException ex) {
-            return false; // falha sem apagar nada
+            return false;
         }
 
         if (!UcDAL.removerUC(siglaAntiga, PASTA_BD)) return false;
@@ -270,9 +271,9 @@ public class GestorBLL {
      */
     public boolean isCursoAlteravel(String sigla) {
         int totalAlunos =
-                EstudanteDAL.contarEstudantesPorCursoEAno(sigla, 1, PASTA_BD)
-                        + EstudanteDAL.contarEstudantesPorCursoEAno(sigla, 2, PASTA_BD)
-                        + EstudanteDAL.contarEstudantesPorCursoEAno(sigla, 3, PASTA_BD);
+                estudanteDAL.contarEstudantesPorCursoEAno(sigla, 1)
+                        + estudanteDAL.contarEstudantesPorCursoEAno(sigla, 2)
+                        + estudanteDAL.contarEstudantesPorCursoEAno(sigla, 3);
         int totalUcs =
                 UcDAL.contarUcsPorCursoEAno(sigla, 1, PASTA_BD)
                         + UcDAL.contarUcsPorCursoEAno(sigla, 2, PASTA_BD)
@@ -380,7 +381,7 @@ public class GestorBLL {
      */
     public List<Estudante> obterListaDevedores() {
         List<Estudante> devedores = new ArrayList<>();
-        for (Estudante e : EstudanteDAL.carregarTodos(PASTA_BD))
+        for (Estudante e : estudanteDAL.carregarTodos())
             if (e != null && e.getSaldoDevedor() > 0) devedores.add(e);
         return devedores;
     }
@@ -421,8 +422,7 @@ public class GestorBLL {
      * @return true se o NIF já existir.
      */
     public boolean isNifDuplicado(String nif) {
-        return EstudanteDAL.existeNif(nif, PASTA_BD) || DocenteDAL.existeNif(nif, PASTA_BD);
-    }
+        return estudanteDAL.existeNif(nif) || DocenteDAL.existeNif(nif, PASTA_BD);    }
 
     /**
      * Verifica se já existe um departamento com a sigla fornecida.
