@@ -24,7 +24,7 @@ public class DocenteBLL {
 
     private static final String PASTA_BD = "bd";
     private final LoginController loginController = new LoginController();
-
+    private final EstudanteDAL estudanteDAL = new EstudanteDAL(PASTA_BD);
 
     /**
      * Verifica se uma UC pertence ao plano de lecionação do docente.
@@ -47,7 +47,8 @@ public class DocenteBLL {
      *   - Linha ~275: "adicionarAvaliacao(avaliacao)" → "adicionarAvaliacao(avaliacao, numMec, PASTA_BD)" (args em falta)
      */
     public String lancarNota(int numMec, String siglaUc, int ano, double notaMomento, Docente d) {
-        Estudante aluno = EstudanteDAL.procurarPorNumMec(numMec, PASTA_BD);
+        Estudante aluno = estudanteDAL.procurarPorNumMec(numMec);
+
         if (aluno == null)
             return "ERRO: Aluno com nº " + numMec + " não encontrado.";
 
@@ -112,8 +113,7 @@ public class DocenteBLL {
             for (int numMec : numsMec) {
                 if (contemAluno(alunosAdicionados, numMec)) continue;
 
-                Estudante aluno = EstudanteDAL.procurarPorNumMec(numMec, PASTA_BD);
-                if (aluno == null) continue;
+                Estudante aluno = estudanteDAL.procurarPorNumMec(numMec);                if (aluno == null) continue;
 
                 carregarAvaliacoesSeNecessario(aluno);
                 double media = calcularMediaAlunoNaUc(aluno, uc.getSigla());
@@ -145,8 +145,7 @@ public class DocenteBLL {
         List<Integer> nums = InscricaoDAL.obterAlunosPorUc(siglaUc, Config.getAnoAtual(), PASTA_BD);
         List<String> alunosFormatados = new ArrayList<>();
         for (int num : nums) {
-            Estudante e = EstudanteDAL.procurarPorNumMec(num, PASTA_BD);
-            String nome = (e != null) ? e.getNome() : "Desconhecido";
+            Estudante e = estudanteDAL.procurarPorNumMec(num);            String nome = (e != null) ? e.getNome() : "Desconhecido";
             alunosFormatados.add(num + " - " + nome);
         }
         return alunosFormatados;
@@ -207,7 +206,7 @@ public class DocenteBLL {
         int sucessos = 0, erros = 0;
 
         for (int numMec : alunosInscritos) {
-            Estudante aluno = EstudanteDAL.procurarPorNumMec(numMec, PASTA_BD);
+            Estudante aluno = estudanteDAL.procurarPorNumMec(numMec);
             String nome = (aluno != null) ? aluno.getNome() : "Desconhecido";
 
             Double nota = obterNota.apply(numMec);
@@ -237,7 +236,7 @@ public class DocenteBLL {
         List<Integer> nums = InscricaoDAL.obterAlunosPorUc(siglaUc, anoLetivo, PASTA_BD);
         List<String> formatados = new ArrayList<>();
         for (int num : nums) {
-            Estudante e = EstudanteDAL.procurarPorNumMec(num, PASTA_BD);
+            Estudante e = estudanteDAL.procurarPorNumMec(num);
             String nome = (e != null) ? e.getNome() : "Desconhecido";
             formatados.add(num + " - " + nome);
         }

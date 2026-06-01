@@ -4,37 +4,30 @@ import dal.AvaliacaoDAL;
 import dal.EstudanteDAL;
 import dal.InscricaoDAL;
 import dal.PagamentoDAL;
-import dal.UcDAL;
 import model.Avaliacao;
 import model.Estudante;
 import model.Pagamento;
 import model.UnidadeCurricular;
 import controller.LoginController;
-import java.util.ArrayList;
-import java.util.List;
 import utils.Config;
 
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Lógica de negócio para o perfil Estudante.
- * Responsável por carregar e instanciar o percurso académico completo
- * (inscrições em UCs, avaliações e histórico de pagamentos) após a autenticação.
  */
 public class EstudanteBLL {
 
     private static final String PASTA_BD = "bd";
     private final LoginController loginController = new LoginController();
 
+    // Instanciação da DAL com o caminho estipulado
+    private final EstudanteDAL dal = new EstudanteDAL(PASTA_BD);
 
-    /**
-     * Carrega o perfil completo de um estudante após login.
-     * Carrega sequencialmente: inscrições, avaliações e pagamentos.
-     * @param email Email do estudante.
-     * @param hash  Hash PBKDF2 da palavra-chave.
-     * @return Estudante com percurso completo, ou null se não existir.
-     */
+    /** Carrega o perfil completo de um estudante após login. */
     public Estudante obterPerfilCompleto(String email, String hash) {
-        Estudante e = EstudanteDAL.carregarPerfil(email, hash, PASTA_BD);
+        Estudante e = dal.carregarPerfil(email, hash);
         if (e == null) return null;
 
         carregarInscricoes(e);
@@ -43,21 +36,19 @@ public class EstudanteBLL {
         return e;
     }
 
-    /**
-     * Devolve todos os estudantes com dados básicos.
-     * @return Lista de estudantes.
-     */
+    /** Devolve todos os estudantes com dados básicos. */
     public List<Estudante> obterTodos() {
-        return EstudanteDAL.carregarTodos(PASTA_BD);
+        return dal.carregarTodos();
     }
 
-    /**
-     * Devolve todos os estudantes com percurso académico completo.
-     * Usado em estatísticas e no cálculo de aproveitamento.
-     * @return Lista de estudantes com percurso carregado.
-     */
+    /** Mantido por retrocompatibilidade. Faz o mesmo que obterTodos(). */
+    public List<Estudante> listarTodos() {
+        return dal.carregarTodos();
+    }
+
+    /** Devolve todos os estudantes com percurso académico completo. */
     public List<Estudante> carregarTodosCompleto() {
-        List<Estudante> base = EstudanteDAL.carregarTodos(PASTA_BD);
+        List<Estudante> base = dal.carregarTodos();
         List<Estudante> hidratados = new ArrayList<>();
 
         for (Estudante e : base) {
@@ -69,41 +60,54 @@ public class EstudanteBLL {
         return hidratados;
     }
 
-
-    /**
-     * Atualiza a morada do estudante e persiste a alteração.
-     * @param estudante  Estudante a atualizar.
-     * @param novaMorada Nova morada de residência.
-     */
-    public void atualizarMorada(Estudante estudante, String novaMorada) {
-        estudante.setMorada(novaMorada);
-        EstudanteDAL.atualizarEstudante(estudante, PASTA_BD);
+    /** Obtém um estudante pelo número mecanográfico. */
+    public Estudante obterPorNumMec(int numMec) {
+        return dal.procurarPorNumMec(numMec);
     }
 
-    /**
-     * Altera a password do estudante com hashing e persistência.
-     * @param estudante Estudante cujo acesso se altera.
-     * @param novaPass  Nova password em texto limpo.
-     */
+    /** Atualiza a morada do estudante e persiste a alteração. */
+    public void atualizarMorada(Estudante estudante, String novaMorada) {
+        estudante.setMorada(novaMorada);
+        dal.atualizarEstudante(estudante);
+    }
+
+    /** Actualiza os dados de um estudante e persiste. */
+    public boolean atualizarEstudante(Estudante estudante) {
+        if (estudante == null) return false;
+        dal.atualizarEstudante(estudante);
+        return true;
+    }
+
+    /** Altera a password do estudante com hashing e persistência. */
     public void alterarPassword(Estudante estudante, String novaPass) {
         loginController.atualizarPassword(estudante.getEmail(), novaPass);
     }
 
-    /**
-     * Calcula o próximo número mecanográfico disponível para um dado ano letivo.
-     * @param anoAtual Ano letivo atual.
-     * @return Próximo número mecanográfico no formato AAAA####.
-     */
+    /** Calcula o próximo número mecanográfico disponível. */
     public int obterProximoNumeroMecanografico(int anoAtual) {
-        return EstudanteDAL.obterProximoNumeroMecanografico(PASTA_BD, anoAtual);
+        return dal.obterProximoNumeroMecanografico(anoAtual);
     }
 
-
     /**
-     * Carrega o histórico de pagamentos do estudante a partir do ficheiro
-     * e adiciona-os ao array de pagamentos do estudante.
-     * @param e Estudante cujo histórico se pretende carregar.
+     * Remove um estudante e todos os seus dados associados.
+     * ORQUESTRAÇÃO NA BLL (Boa Prática de Arquitetura).
      */
+    public boolean removerEstudante(int numMec) {
+        Estudante e = dal.procurarPorNumMec(numMec);
+        if (e == null) return false;
+
+        // Remove apenas inscrições activas e credencial primeiro
+        InscricaoDAL.removerInscricoesPorAluno(numMec, PASTA_BD);
+        CredencialDAL.removerCredencial(e.getEmail(), PASTA_BD);
+
+        // Remove o estudante no ficheiro estudantes.csv
+        return dal.removerEstudante(numMec);
+    }
+
+    // ==================================================================
+    // Lógica Privada de Hidratação de Dados
+    // ==================================================================
+
     private void carregarHistoricoPagamentos(Estudante e) {
         List<Pagamento> pagamentos =
                 PagamentoDAL.carregarPagamentosPorAluno(e.getNumeroMecanografico(), PASTA_BD);
@@ -112,11 +116,6 @@ public class EstudanteBLL {
         }
     }
 
-    /**
-     * Carrega as inscrições ativas do estudante a partir do ficheiro
-     * e inscreve-o nas respetivas UCs do percurso académico.
-     * @param e Estudante cujas inscrições se pretendem carregar.
-     */
     private void carregarInscricoes(Estudante e) {
         int anoAtual = Config.getAnoAtual();
         List<String> siglas = InscricaoDAL.obterSiglasUcsPorAluno(
@@ -127,11 +126,6 @@ public class EstudanteBLL {
         }
     }
 
-    /**
-     * Carrega o historial de avaliações do estudante a partir do ficheiro
-     * e regista-as no percurso académico.
-     * @param e Estudante cujas avaliações se pretendem carregar.
-     */
     private void carregarAvaliacoes(Estudante e) {
         List<Avaliacao> avaliacoes =
                 AvaliacaoDAL.obterAvaliacoesPorAluno(e.getNumeroMecanografico(), PASTA_BD);
@@ -140,20 +134,19 @@ public class EstudanteBLL {
         }
     }
 
-    /**
-     * Retorna uma lista formatada com o ano curricular e as UCs em que o estudante está inscrito.
-     * @param e Estudante autenticado
-     * @return String formatada para exibição
-     */
+    // ==================================================================
+    // Lógica de Apresentação (View Helpers)
+    // ==================================================================
+
     public String obterInfoInscricoes(Estudante e) {
         StringBuilder sb = new StringBuilder();
-        if (e.getAnoCurricular() == 4) {
+        if (e.getAnoCurricular() >= 4) {
             sb.append("Curso Concluído\n");
         } else {
             sb.append("Ano Curricular: ").append(e.getAnoCurricular()).append("º\n");
         }
         sb.append("UCs inscrito:\n");
-        UnidadeCurricular[] ucs = e.getPercurso().getUcsInscrito(); // Nota: esse getter pode não existir; vamos ver abaixo.
+        UnidadeCurricular[] ucs = e.getPercurso().getUcsInscrito();
         int total = e.getPercurso().getTotalUcsInscrito();
         if (total == 0) {
             sb.append("  Nenhuma UC encontrada.\n");
@@ -165,11 +158,6 @@ public class EstudanteBLL {
         return sb.toString();
     }
 
-    /**
-     * Devolve uma string formatada com as notas do estudante por UC.
-     * @param e Estudante autenticado
-     * @return String com as notas (UC, notas lançadas, média, estado)
-     */
     public String obterNotasDoEstudante(Estudante e) {
         StringBuilder sb = new StringBuilder();
         sb.append(String.format("Notas do aluno: %s (%d)\n", e.getNome(), e.getNumeroMecanografico()));
@@ -207,37 +195,5 @@ public class EstudanteBLL {
             sb.append("\n");
         }
         return sb.toString();
-    }
-
-    /**
-     * Lista todos os estudantes (dados básicos, sem percurso carregado).
-     */
-    public List<Estudante> listarTodos() {
-        return EstudanteDAL.carregarTodos(PASTA_BD);
-    }
-
-    /**
-     * Obtém um estudante pelo número mecanográfico.
-     */
-    public Estudante obterPorNumMec(int numMec) {
-        return EstudanteDAL.procurarPorNumMec(numMec, PASTA_BD);
-    }
-
-    /**
-     * Actualiza os dados de um estudante (morada, ano curricular, etc.) e persiste.
-     * @return true se a actualização foi bem-sucedida.
-     */
-    public boolean atualizarEstudante(Estudante estudante) {
-        if (estudante == null) return false;
-        EstudanteDAL.atualizarEstudante(estudante, PASTA_BD);
-        return true;
-    }
-
-    /**
-     * Remove um estudante e todos os seus dados associados.
-     * @return true se removido.
-     */
-    public boolean removerEstudante(int numMec) {
-        return EstudanteDAL.removerEstudanteCompleto(numMec, PASTA_BD);
     }
 }
