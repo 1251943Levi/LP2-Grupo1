@@ -5,7 +5,6 @@ import model.Curso;
 import model.Departamento;
 import dal.CursoDAL;
 import dal.DepartamentoDAL;
-import dal.EstudanteDAL;
 import dal.UcDAL;
 
 import java.util.List;
@@ -18,6 +17,7 @@ import java.util.List;
 public class CursoBLL {
 
     private static final String PASTA_BD = "bd";
+    private final EstudanteDAL estudanteDAL = new EstudanteDAL(PASTA_BD);
 
     /**
      * Constrói e devolve um objeto Curso completamente preenchido.
@@ -67,8 +67,7 @@ public class CursoBLL {
      * @return true se tiver 5 ou mais alunos
      */
     public boolean verificarQuorumPrimeiroAno(String siglaCurso) {
-        int total = dal.EstudanteDAL.contarEstudantesPorCursoEAno(siglaCurso, 1, "bd");
-        return total >= 5;
+        int total = estudanteDAL.contarEstudantesPorCursoEAno(siglaCurso, 1);        return total >= 5;
     }
 
     /**
@@ -157,9 +156,10 @@ public class CursoBLL {
      * @return true se não tiver alocações.
      */
     public boolean isAlteravel(String sigla) {
-        int totalAlunos = EstudanteDAL.contarEstudantesPorCursoEAno(sigla, 1, PASTA_BD)
-                + EstudanteDAL.contarEstudantesPorCursoEAno(sigla, 2, PASTA_BD)
-                + EstudanteDAL.contarEstudantesPorCursoEAno(sigla, 3, PASTA_BD);
+        // Chamadas corrigidas (usando a instância e sem o PASTA_BD)
+        int totalAlunos = estudanteDAL.contarEstudantesPorCursoEAno(sigla, 1)
+                + estudanteDAL.contarEstudantesPorCursoEAno(sigla, 2)
+                + estudanteDAL.contarEstudantesPorCursoEAno(sigla, 3);
         int totalUcs = UcDAL.contarUcsPorCursoEAno(sigla, 1, PASTA_BD)
                 + UcDAL.contarUcsPorCursoEAno(sigla, 2, PASTA_BD)
                 + UcDAL.contarUcsPorCursoEAno(sigla, 3, PASTA_BD);

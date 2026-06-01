@@ -18,6 +18,8 @@ public class PagamentoBLL {
     private static final String PASTA_BD = "bd";
     private static final DateTimeFormatter FORMATO_DATA = DateTimeFormatter.ofPattern("dd-MM-yyyy");
 
+    // Instância da DAL criada aqui
+    private final EstudanteDAL estudanteDAL = new EstudanteDAL(PASTA_BD);
 
     /**
      * Processa um pagamento de propina total ou parcial.
@@ -37,7 +39,8 @@ public class PagamentoBLL {
         String dataHoje = LocalDate.now().format(FORMATO_DATA);
         Pagamento registo = new Pagamento(estudante.getNumeroMecanografico(), valor, dataHoje);
         estudante.adicionarPagamento(registo);
-        EstudanteDAL.atualizarEstudante(estudante, PASTA_BD);
+
+        estudanteDAL.atualizarEstudante(estudante);
         PagamentoDAL.adicionarPagamento(estudante.getNumeroMecanografico(), valor, dataHoje, PASTA_BD);
 
         return true;

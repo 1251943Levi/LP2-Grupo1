@@ -21,6 +21,7 @@ import utils.SegurancaPasswords;
 public class MatriculaBLL {
 
     private static final String PASTA_BD = "bd";
+    private final EstudanteDAL estudanteDAL = new EstudanteDAL(PASTA_BD);
 
     /**
      * Realiza o processo completo de auto-matrícula de um novo estudante.
@@ -38,7 +39,7 @@ public class MatriculaBLL {
         if (UcDAL.contarUcsPorCursoEAno(siglaCurso, 1, PASTA_BD) == 0) {
             return null;
         }
-        int numMec = EstudanteDAL.obterProximoNumeroMecanografico(PASTA_BD, anoAtual);
+        int numMec = estudanteDAL.obterProximoNumeroMecanografico(anoAtual);
         String emailInst = EmailGenerator.gerarEmailEstudante(numMec);
         String passLimpa = PasswordGenerator.gerarPasswordSegura();
         String passHash = SegurancaPasswords.gerarCredencialMista(passLimpa);
@@ -51,7 +52,8 @@ public class MatriculaBLL {
         }
         novo.setSiglaCurso(siglaCurso);
 
-        EstudanteDAL.adicionarEstudante(novo, siglaCurso, PASTA_BD);
+        estudanteDAL.adicionarEstudante(novo, siglaCurso);
+
         CredencialDAL.adicionarCredencial(emailInst, passHash, "ESTUDANTE", PASTA_BD);
         for (String siglaUc : UcDAL.obterSiglasUcsPorCursoEAno(siglaCurso, 1, PASTA_BD)) {
             InscricaoDAL.adicionarInscricao(numMec, siglaUc, anoAtual, PASTA_BD);
