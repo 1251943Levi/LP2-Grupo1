@@ -1,5 +1,7 @@
 package bll;
 
+import common.ConfigApp;
+
 import model.UnidadeCurricular;
 import model.Docente;
 import model.Curso;
@@ -14,7 +16,7 @@ import dal.CursoDAL;
  */
 public class UcBLL {
 
-    private static final String PASTA_BD = "bd";
+    private static final String PASTA_BD = ConfigApp.PASTA_BD;
 
     /**
      * Constrói e devolve uma UC com docente e cursos associados.

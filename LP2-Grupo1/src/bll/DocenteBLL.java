@@ -1,7 +1,8 @@
 package bll;
 
+import common.ConfigApp;
+
 import dal.AvaliacaoDAL;
-import dal.CredencialDAL;
 import dal.EstudanteDAL;
 import dal.UcDAL;
 import dal.InscricaoDAL;
@@ -9,7 +10,7 @@ import model.Avaliacao;
 import model.Docente;
 import model.Estudante;
 import model.UnidadeCurricular;
-import utils.SegurancaPasswords;
+import controller.LoginController;
 import utils.Config;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,7 +24,8 @@ import dal.DocenteDAL;
  */
 public class DocenteBLL {
 
-    private static final String PASTA_BD = "bd";
+    private static final String PASTA_BD = ConfigApp.PASTA_BD;
+    private final LoginController loginController = new LoginController();
     private final EstudanteDAL estudanteDAL = new EstudanteDAL(PASTA_BD);
 
     /**
@@ -82,9 +84,7 @@ public class DocenteBLL {
      * Altera a password do docente com hashing e persistência.
      */
     public void alterarPassword(Docente docente, String novaPass) {
-        String passSegura = SegurancaPasswords.gerarCredencialMista(novaPass);
-        docente.setPassword(passSegura);
-        CredencialDAL.atualizarPassword(docente.getEmail(), passSegura, PASTA_BD);
+        loginController.atualizarPassword(docente.getEmail(), novaPass);
     }
 
     /**

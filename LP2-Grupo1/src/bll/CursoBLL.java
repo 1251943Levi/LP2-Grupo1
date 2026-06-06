@@ -1,5 +1,7 @@
 package bll;
 
+import common.ConfigApp;
+
 import dal.EstudanteDAL;
 import model.Curso;
 import model.Departamento;
@@ -16,7 +18,7 @@ import java.util.List;
  */
 public class CursoBLL {
 
-    private static final String PASTA_BD = "bd";
+    private static final String PASTA_BD = ConfigApp.PASTA_BD;
     private final EstudanteDAL estudanteDAL = new EstudanteDAL(PASTA_BD);
 
     /**

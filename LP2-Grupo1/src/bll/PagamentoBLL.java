@@ -1,5 +1,7 @@
 package bll;
 
+import common.ConfigApp;
+
 import dal.EstudanteDAL;
 import dal.PagamentoDAL;
 import model.Estudante;
@@ -15,7 +17,7 @@ import java.time.format.DateTimeFormatter;
  */
 public class PagamentoBLL {
 
-    private static final String PASTA_BD = "bd";
+    private static final String PASTA_BD = ConfigApp.PASTA_BD;
     private static final DateTimeFormatter FORMATO_DATA = DateTimeFormatter.ofPattern("dd-MM-yyyy");
 
     // Instância da DAL criada aqui

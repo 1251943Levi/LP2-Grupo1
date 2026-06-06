@@ -1,7 +1,10 @@
 package bll;
 
+import common.ConfigApp;
+
 import dal.*;
 import model.*;
+import controller.LoginController;
 import utils.*;
 import view.GestorView;
 import utils.Config;
@@ -17,8 +20,9 @@ import java.util.List;
  */
 public class GestorBLL {
 
-    private static final String PASTA_BD = "bd";
+    private static final String PASTA_BD = ConfigApp.PASTA_BD;
     private final EstudanteDAL estudanteDAL = new EstudanteDAL(PASTA_BD);
+    private final LoginController loginController = new LoginController();
 
     // ─────────────────────────── ANO LETIVO ────────────────────────────
 
@@ -111,10 +115,9 @@ public class GestorBLL {
         String email     = EmailGenerator.gerarEmailDocente(sigla);
         String passLimpa = PasswordGenerator.gerarPasswordSegura();
         EmailService.enviarCredenciaisTodos(nome, email, passLimpa);
-        String passHash  = SegurancaPasswords.gerarCredencialMista(passLimpa);
         DocenteDAL.adicionarDocente(
-                new Docente(sigla, email, passHash, nome, nif, morada, dataNasc), PASTA_BD);
-        CredencialDAL.adicionarCredencial(email, passHash, "DOCENTE", PASTA_BD);
+                new Docente(sigla, email, "", nome, nif, morada, dataNasc), PASTA_BD);
+        loginController.criarCredencial(email, passLimpa, "DOCENTE");
         return new String[]{email, sigla};
     }
 
@@ -139,15 +142,14 @@ public class GestorBLL {
         String email     = EmailGenerator.gerarEmailEstudante(numMec);
         String passLimpa = PasswordGenerator.gerarPasswordSegura();
         EmailService.enviarCredenciaisTodos(nome, email, passLimpa);
-        String passHash  = SegurancaPasswords.gerarCredencialMista(passLimpa);
 
-        Estudante novo = new Estudante(numMec, email, passHash, nome, nif, morada, dataNasc, anoInscricao);
+        Estudante novo = new Estudante(numMec, email, "", nome, nif, morada, dataNasc, anoInscricao);
         Curso curso    = new CursoBLL().procurarCursoCompleto(siglaCurso);
         if (curso != null) novo.setSaldoDevedor(curso.getValorPropinaAnual());
 
         // Chamada atualizada usando a instância estudanteDAL
+        loginController.criarCredencial(email, passLimpa, "ESTUDANTE");
         estudanteDAL.adicionarEstudante(novo, siglaCurso);
-        CredencialDAL.adicionarCredencial(email, passHash, "ESTUDANTE", PASTA_BD);
 
         for (String siglaUc : UcDAL.obterSiglasUcsPorCursoEAno(siglaCurso, 1, PASTA_BD)) {
             InscricaoDAL.adicionarInscricao(numMec, siglaUc, anoInscricao, PASTA_BD);
@@ -410,9 +412,7 @@ public class GestorBLL {
      * @param novaPass Nova password em texto limpo.
      */
     public void alterarPasswordGestor(Gestor gestor, String novaPass) {
-        String hash = SegurancaPasswords.gerarCredencialMista(novaPass);
-        gestor.setPassword(hash);
-        CredencialDAL.atualizarPassword(gestor.getEmail(), hash, PASTA_BD);
+        loginController.atualizarPassword(gestor.getEmail(), novaPass);
     }
 
     /**

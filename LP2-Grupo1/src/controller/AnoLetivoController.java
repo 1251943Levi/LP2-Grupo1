@@ -89,7 +89,13 @@ public class AnoLetivoController {
      */
     private void iniciarAno() {
         try {
-            int ano = view.pedirAno("Ano letivo a iniciar");
+            Consola.imprimirCabecalho("Iniciar Ano Letivo");
+            List<AnoLetivo> anos = bll.listar().stream()
+                    .filter(a -> a.getEstado() == model.EstadoAnoLetivo.PLANEAMENTO)
+                    .collect(java.util.stream.Collectors.toList());
+            AnoLetivo selecionado = view.pedirSelecaoAno(anos);
+            if (selecionado == null) return;
+            int ano = selecionado.getAno();
 
             List<String> cursosInativados = bll.iniciar(ano, view);
 

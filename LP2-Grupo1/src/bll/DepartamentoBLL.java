@@ -1,5 +1,7 @@
 package bll;
 
+import common.ConfigApp;
+
 import dal.DepartamentoDAL;
 import model.Departamento;
 import java.util.List;
@@ -7,7 +9,7 @@ import model.Curso;
 
 public class DepartamentoBLL {
 
-    private static final String PASTA_BD = "bd";
+    private static final String PASTA_BD = ConfigApp.PASTA_BD;
 
     public List<Departamento> listarTodos() {
         return DepartamentoDAL.carregarTodos(PASTA_BD);

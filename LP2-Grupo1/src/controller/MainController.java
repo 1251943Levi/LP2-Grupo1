@@ -1,5 +1,6 @@
 package controller;
 
+import common.ConfigApp;
 import model.*;
 import view.MainView;
 import bll.AutenticacaoBLL;
@@ -12,7 +13,7 @@ import utils.Validador;
  */
 public class MainController {
 
-    private static final String PASTA_BD = "bd";
+    private static final String PASTA_BD = ConfigApp.PASTA_BD;
 
     private final MainView view;
     private final RepositorioDados repositorio;
@@ -28,6 +29,8 @@ public class MainController {
      * Ponto de entrada: arranca o sistema e entra no loop de menu principal.
      */
     public void iniciar() {
+        int modo = view.pedirModoPersistencia();
+        ConfigApp.definirModo(modo == 2 ? "sql" : "file");
         iniciarSistema();
         view.mostrarBemVindo();
 
@@ -85,6 +88,7 @@ public class MainController {
         if (!pasta.exists() && pasta.mkdirs()) {
             view.mostrarPastaCriada();
         }
+        new LoginController().inicializar();
     }
 
     /**
