@@ -1,16 +1,17 @@
 package bll;
 
-import dal.CredencialDAL;
+import common.ConfigApp;
+
 import dal.CursoDAL;
 import dal.EstudanteDAL;
 import dal.InscricaoDAL;
 import dal.UcDAL;
 import model.Curso;
 import model.Estudante;
+import controller.LoginController;
 import utils.EmailGenerator;
 import utils.EmailService;
 import utils.PasswordGenerator;
-import utils.SegurancaPasswords;
 
 /**
  * Lógica de negócio do processo de auto-matrícula de novos estudantes.
@@ -20,8 +21,9 @@ import utils.SegurancaPasswords;
  */
 public class MatriculaBLL {
 
-    private static final String PASTA_BD = "bd";
+    private static final String PASTA_BD = ConfigApp.PASTA_BD;
     private final EstudanteDAL estudanteDAL = new EstudanteDAL(PASTA_BD);
+    private final LoginController loginController = new LoginController();
 
     /**
      * Realiza o processo completo de auto-matrícula de um novo estudante.
@@ -42,9 +44,8 @@ public class MatriculaBLL {
         int numMec = estudanteDAL.obterProximoNumeroMecanografico(anoAtual);
         String emailInst = EmailGenerator.gerarEmailEstudante(numMec);
         String passLimpa = PasswordGenerator.gerarPasswordSegura();
-        String passHash = SegurancaPasswords.gerarCredencialMista(passLimpa);
 
-        Estudante novo = new Estudante(numMec, emailInst, passHash, nome, nif, morada, dataNasc, anoAtual);
+        Estudante novo = new Estudante(numMec, emailInst, "", nome, nif, morada, dataNasc, anoAtual);
 
         Curso curso = CursoDAL.procurarCurso(siglaCurso, PASTA_BD);
         if (curso != null) {
@@ -54,7 +55,7 @@ public class MatriculaBLL {
 
         estudanteDAL.adicionarEstudante(novo, siglaCurso);
 
-        CredencialDAL.adicionarCredencial(emailInst, passHash, "ESTUDANTE", PASTA_BD);
+        loginController.criarCredencial(emailInst, passLimpa, "ESTUDANTE");
         for (String siglaUc : UcDAL.obterSiglasUcsPorCursoEAno(siglaCurso, 1, PASTA_BD)) {
             InscricaoDAL.adicionarInscricao(numMec, siglaUc, anoAtual, PASTA_BD);
         }

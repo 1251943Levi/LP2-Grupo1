@@ -1,5 +1,7 @@
 package bll;
 
+import common.ConfigApp;
+
 import dal.AvaliacaoDAL;
 import dal.CredencialDAL;
 import dal.EstudanteDAL;
@@ -9,7 +11,7 @@ import model.Avaliacao;
 import model.Estudante;
 import model.Pagamento;
 import model.UnidadeCurricular;
-import utils.SegurancaPasswords;
+import controller.LoginController;
 import utils.Config;
 
 import java.util.ArrayList;
@@ -20,7 +22,8 @@ import java.util.List;
  */
 public class EstudanteBLL {
 
-    private static final String PASTA_BD = "bd";
+    private static final String PASTA_BD = ConfigApp.PASTA_BD;
+    private final LoginController loginController = new LoginController();
 
     // Instanciação da DAL com o caminho estipulado
     private final EstudanteDAL dal = new EstudanteDAL(PASTA_BD);
@@ -80,9 +83,7 @@ public class EstudanteBLL {
 
     /** Altera a password do estudante com hashing e persistência. */
     public void alterarPassword(Estudante estudante, String novaPass) {
-        String passSegura = SegurancaPasswords.gerarCredencialMista(novaPass);
-        estudante.setPassword(passSegura);
-        CredencialDAL.atualizarPassword(estudante.getEmail(), passSegura, PASTA_BD);
+        loginController.atualizarPassword(estudante.getEmail(), novaPass);
     }
 
     /** Calcula o próximo número mecanográfico disponível. */

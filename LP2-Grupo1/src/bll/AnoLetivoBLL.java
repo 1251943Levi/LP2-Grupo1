@@ -1,5 +1,7 @@
 package bll;
 
+import common.ConfigApp;
+
 import dal.AnoLetivoDAL;
 import dal.AvaliacaoDAL;
 import dal.CursoDAL;
@@ -26,7 +28,7 @@ import java.util.List;
  */
 public class AnoLetivoBLL {
 
-    private static final String PASTA_BD = "bd";
+    private static final String PASTA_BD = ConfigApp.PASTA_BD;
     private final EstudanteDAL estudanteDAL = new EstudanteDAL(PASTA_BD);
 
     // ============================================================

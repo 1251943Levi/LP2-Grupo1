@@ -1,52 +1,50 @@
 package bll;
 
-import dal.*;
-import model.*;
-import utils.SegurancaPasswords;
+import common.ConfigApp;
 
+import dal.*;
+import dal.DocenteDAL;
+import dal.DocenteDALFile;
+import dal.DocenteDALSql;
+import dal.GestorDAL;
+import dal.GestorDALFile;
+import dal.GestorDALSql;
+import model.*;
+import controller.LoginController;
 import java.util.List;
 
 
 /**
  * Ponto único de autenticação no sistema.
- * Valida as credenciais, constrói o perfil correto consoante o tipo
- * de utilizador e inicia a sessão.
+ * Valida as credenciais via {@link LoginController} (SQL ou ficheiro conforme
+ * config.properties) e constrói o perfil correto consoante o tipo de utilizador.
  */
 public class AutenticacaoBLL {
 
-    private static final String PASTA_BD = "bd";
+    private static final String PASTA_BD = ConfigApp.PASTA_BD;
     private final EstudanteDAL estudanteDAL = new EstudanteDAL(PASTA_BD);
+    private final GestorDAL gestorDAL =
+            ConfigApp.isModoSql() ? new GestorDALSql() : new GestorDALFile();
+    private final DocenteDAL docenteDAL =
+            ConfigApp.isModoSql() ? new DocenteDALSql() : new DocenteDALFile();
 
-    /**
-     * Credencial PBKDF2 pré-gerada para o administrador de backoffice.
-     * Permite acesso sem registo em ficheiro.
-     */
-    private static final String CREDENCIAL_ADMIN =
-            "A67KdOiGgwLZQTdjXrCPUg==:1Emuaac5kl+mA0SKMMRX1m+5bpOXaLVPqcttF1EPyG4=";
+    private final LoginController loginController = new LoginController();
 
     /**
      * Autentica um utilizador e devolve o seu perfil completo.
-     * @param email Email institucional introduzido.
-     * @param pass  Password em texto limpo a verificar.
-     * @return O Utilizador do tipo correto, ou null se as credenciais forem inválidas.
+     * Delega a verificação de credenciais no LoginController.
      */
     public Utilizador autenticar(String email, String pass) {
-        boolean isEmailAdmin = email.equals("backoffice@issmf.ipp.pt");
-        if (isEmailAdmin && SegurancaPasswords.verificarPassword(pass, CREDENCIAL_ADMIN)) {
-            return new Gestor("backoffice@issmf.ipp.pt", CREDENCIAL_ADMIN,
-                    "Admin Geral", "123456789", "Sede", "01-01-1980");
-        }
+        LoginModel login = loginController.autenticar(email, pass);
+        if (login == null) return null;
 
-        String[] creds = CredencialDAL.obterCredenciais(email, PASTA_BD);
-        if (creds == null || !SegurancaPasswords.verificarPassword(pass, creds[0])) return null;
-
-        String tipo = creds[1];
-        switch (tipo) {
+        String hash = login.getPasswordHash();
+        switch (login.getTipoUtilizador()) {
             case "ESTUDANTE":
-                return new EstudanteBLL().obterPerfilCompleto(email, creds[0]);
+                return new EstudanteBLL().obterPerfilCompleto(email, hash);
 
             case "DOCENTE":
-                Docente d = DocenteDAL.procurarPorEmail(email, creds[0], PASTA_BD);
+                Docente d = docenteDAL.procurarPorEmail(email, hash);
                 if (d != null) {
                     List<UnidadeCurricular> ucs = UcDAL.obterUcsPorDocente(d, PASTA_BD);
                     ucs.forEach(d::adicionarUcLecionada);
@@ -54,7 +52,7 @@ public class AutenticacaoBLL {
                 return d;
 
             case "GESTOR":
-                return GestorDAL.procurarPorEmail(email, creds[0], PASTA_BD);
+                return gestorDAL.procurarPorEmail(email, hash);
 
             default:
                 return null;
@@ -63,12 +61,9 @@ public class AutenticacaoBLL {
 
     /**
      * Recupera a password de um utilizador delegando na PasswordBLL.
-     * @param email Email do utilizador que esqueceu a password.
-     * @return true se o email existir no sistema.
      */
     public boolean recuperarPassword(String email) {
-        String[] creds = CredencialDAL.obterCredenciais(email, PASTA_BD);
-        if (creds == null) return false;
+        if (!loginController.existe(email)) return false;
         new PasswordBLL().recuperarPassword(email);
         return true;
     }
@@ -97,7 +92,7 @@ public class AutenticacaoBLL {
      */
     public boolean isNifDuplicado(String nif) {
         return estudanteDAL.existeNif(nif)
-                || DocenteDAL.existeNif(nif, PASTA_BD);
+                || docenteDAL.existeNif(nif);
     }
 
     /**

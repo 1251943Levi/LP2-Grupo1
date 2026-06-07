@@ -1,35 +1,31 @@
 package dal;
 
 import model.Gestor;
-import java.io.File;
-import java.util.List;
 
 /**
- * Acesso aos dados de gestores armazenados em gestores.csv.
- * Formato das colunas: email; nome; nif; morada; dataNascimento.
+ * Contrato de persistência do módulo Gestor. Tem duas implementações
+ * intermutáveis — {@link GestorDALSql} e {@link GestorDALFile} —
+ * escolhidas em tempo de execução pela {@link bll.AutenticacaoBLL}
+ * consoante config.properties.
+ *
+ * Âmbito mínimo: suporte ao login e à inicialização com dados do CSV.
+ * A gestão de credenciais (password) é da responsabilidade de {@link LoginDAL}.
  */
-public class GestorDAL {
-    private static final String NOME_FICHEIRO = "gestores.csv";
-    private static final String CABECALHO = "email;nome;nif;morada;dataNascimento";
+public interface GestorDAL {
 
     /**
-     * Carrega o perfil de um gestor a partir do seu email.
-     * @param email     Email do gestor.
-     * @param hash      Hash PBKDF2 da palavra-chave.
-     * @param pastaBase Caminho da pasta de dados.
-     * @return O Gestor encontrado, ou null se não existir.
+     * Prepara o armazenamento: cria a tabela/ficheiro se necessário e,
+     * se estiver vazio, importa os dados de gestores.csv.
      */
-    public static Gestor procurarPorEmail(String email, String hash, String pastaBase) {
-        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
-        List<String> linhas = DALUtil.lerFicheiro(caminho);
+    void inicializar();
 
-        for (String linha : linhas) {
-            String[] dados = linha.split(";", -1);
-            if (dados.length >= 5 && dados[0].trim().equalsIgnoreCase(email)) {
-                return new Gestor(email, hash,
-                        dados[1].trim(), dados[2].trim(), dados[3].trim(), dados[4].trim());
-            }
-        }
-        return null;
-    }
+    /**
+     * Devolve o perfil do gestor com o email indicado, construído com
+     * o {@code hash} proveniente de {@link LoginDAL}.
+     * Devolve null se o email não existir.
+     */
+    Gestor procurarPorEmail(String email, String hash);
+
+    /** Número total de gestores registados. */
+    int contar();
 }

@@ -12,8 +12,11 @@ public final class Config {
 
     private Config() {}
 
-    /** Pasta onde estão guardados todos os ficheiros CSV da aplicação. */
-    public static final String PASTA_BD = "bd";
+    /**
+     * Pasta onde estão guardados todos os ficheiros CSV da aplicação.
+     * Valor centralizado em {@link common.ConfigApp#PASTA_BD} (lê config.properties).
+     */
+    public static final String PASTA_BD = common.ConfigApp.PASTA_BD;
 
     /**
      * Devolve o ano letivo ativo segundo AnoLetivoDAL.

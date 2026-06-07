@@ -1,149 +1,42 @@
 package dal;
 
 import model.Departamento;
-import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Acesso aos dados de departamentos armazenados em departamentos.csv.
- * Formato das colunas: sigla; nome.
+ * Contrato de persistência do módulo Departamento. Tem duas implementações
+ * intermutáveis — {@link DepartamentoDALSql} e {@link DepartamentoDALFile} —
+ * escolhidas em tempo de execução pelas BLLs consoante config.properties.
  */
-public class DepartamentoDAL {
-    private static final String NOME_FICHEIRO = "departamentos.csv";
-    private static final String CABECALHO = "sigla;nome";
-
+public interface DepartamentoDAL {
 
     /**
-     * Persiste um novo departamento no ficheiro CSV.
-     * @param departamento Departamento a adicionar.
-     * @param pastaBase    Caminho da pasta de dados.
+     * Prepara o armazenamento: cria a tabela/ficheiro se necessário e,
+     * se estiver vazio, importa os dados do CSV.
      */
-    public static void adicionarDepartamento(Departamento departamento, String pastaBase) {
-        if (departamento == null) return;
-        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
-        DALUtil.garantirFicheiroECabecalho(caminho, CABECALHO);
+    void inicializar();
 
-        String linha = departamento.getSigla() + ";" + departamento.getNome();
-        DALUtil.adicionarLinhaCSV(caminho, linha);
-    }
+    /** Devolve o departamento com a sigla indicada, ou null se não existir. */
+    Departamento procurarPorSigla(String sigla);
 
+    /** Devolve todos os departamentos. */
+    List<Departamento> listarTodos();
 
-    /**
-     * Procura um departamento pela sua sigla.
-     * @param sigla     Sigla do departamento.
-     * @param pastaBase Caminho da pasta de dados.
-     * @return O Departamento encontrado, ou null se não existir.
-     */
-    public static Departamento procurarDepartamento(String sigla, String pastaBase) {
-        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
-        List<String> linhas = DALUtil.lerFicheiro(caminho);
+    /** Devolve um array "SIGLA - Nome" de todos os departamentos (para menus). */
+    String[] obterListaFormatada();
 
-        for (String linha : linhas) {
-            if (linha.equalsIgnoreCase(CABECALHO)) continue;
+    /** Persiste um novo departamento. Devolve true se inseriu. */
+    boolean criar(Departamento d);
 
-            String[] dados = linha.split(";", -1);
-            if (dados.length >= 2 && dados[0].trim().equalsIgnoreCase(sigla)) {
-                return new Departamento(dados[0].trim(), dados[1].trim());
-            }
-        }
-        return null;
-    }
+    /** Atualiza o departamento identificado pela sigla de {@code d}. Devolve true se afetou alguma linha. */
+    boolean atualizar(Departamento d);
 
-    /**
-     * Devolve um array "SIGLA - Nome" de todos os departamentos.
-     */
-    public static String[] obterListaDepartamentos(String pastaBase) {
-        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
-        List<String> linhas = DALUtil.lerFicheiro(caminho);
-        List<String> lista = new ArrayList<>();
+    /** Remove o departamento com a sigla indicada. Devolve true se removeu. */
+    boolean eliminar(String sigla);
 
-        for (String linha : linhas) {
-            if (linha.equalsIgnoreCase(CABECALHO)) continue;
-            String[] dados = linha.split(";", -1);
-            if (dados.length >= 2) {
-                lista.add(dados[0].trim() + " - " + dados[1].trim());
-            }
-        }
-        return lista.toArray(new String[0]);
-    }
+    /** Indica se já existe um departamento com a sigla indicada. */
+    boolean existe(String sigla);
 
-    /**
-     * Carrega todos os departamentos do ficheiro.
-     * @param pastaBase Caminho da pasta de dados.
-     * @return Lista de departamentos.
-     */
-    public static List<Departamento> carregarTodos(String pastaBase) {
-        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
-        List<String> linhas = DALUtil.lerFicheiro(caminho);
-        List<Departamento> lista = new ArrayList<>();
-
-        for (String linha : linhas) {
-            if (linha.equalsIgnoreCase(CABECALHO)) continue;
-            String[] dados = linha.split(";", -1);
-            if (dados.length >= 2) {
-                lista.add(new Departamento(dados[0].trim(), dados[1].trim()));
-            }
-        }
-        return lista;
-    }
-
-    /**
-     * Actualiza os dados de um departamento existente.
-     * @param dept Departamento com os dados actualizados.
-     * @param pastaBase Caminho da pasta de dados.
-     */
-    public static void atualizarDepartamento(Departamento dept, String pastaBase) {
-        if (dept == null) return;
-        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
-        List<String> linhas = DALUtil.lerFicheiro(caminho);
-        List<String> novasLinhas = new ArrayList<>();
-
-        for (String linha : linhas) {
-            if (linha.equalsIgnoreCase(CABECALHO)) {
-                novasLinhas.add(linha);
-                continue;
-            }
-            String[] dados = linha.split(";", -1);
-            if (dados.length >= 2 && dados[0].trim().equalsIgnoreCase(dept.getSigla())) {
-                // Substitui pela linha actualizada
-                novasLinhas.add(dept.getSigla() + ";" + dept.getNome());
-            } else {
-                novasLinhas.add(linha);
-            }
-        }
-        DALUtil.reescreverFicheiro(caminho, novasLinhas);
-    }
-
-    /**
-     * Remove um departamento pela sua sigla.
-     * @param sigla Sigla do departamento a remover.
-     * @param pastaBase Caminho da pasta de dados.
-     * @return true se encontrado e removido.
-     */
-    public static boolean removerDepartamento(String sigla, String pastaBase) {
-        if (sigla == null) return false;
-        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
-        List<String> linhas = DALUtil.lerFicheiro(caminho);
-        List<String> novasLinhas = new ArrayList<>();
-        boolean encontrou = false;
-
-        for (String linha : linhas) {
-            if (linha.equalsIgnoreCase(CABECALHO)) {
-                novasLinhas.add(linha);
-                continue;
-            }
-            String[] dados = linha.split(";", -1);
-            if (dados.length >= 1 && dados[0].trim().equalsIgnoreCase(sigla)) {
-                encontrou = true;
-                continue; // não adiciona esta linha
-            }
-            novasLinhas.add(linha);
-        }
-
-        if (encontrou) {
-            DALUtil.reescreverFicheiro(caminho, novasLinhas);
-        }
-        return encontrou;
-    }
+    /** Número total de departamentos. */
+    int contar();
 }
