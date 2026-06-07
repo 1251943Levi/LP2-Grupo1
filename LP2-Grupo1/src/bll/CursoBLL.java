@@ -2,11 +2,13 @@ package bll;
 
 import common.ConfigApp;
 
+import dal.DepartamentoDAL;
+import dal.DepartamentoDALFile;
+import dal.DepartamentoDALSql;
 import dal.EstudanteDAL;
 import model.Curso;
 import model.Departamento;
 import dal.CursoDAL;
-import dal.DepartamentoDAL;
 import dal.UcDAL;
 
 import java.util.List;
@@ -20,6 +22,8 @@ public class CursoBLL {
 
     private static final String PASTA_BD = ConfigApp.PASTA_BD;
     private final EstudanteDAL estudanteDAL = new EstudanteDAL(PASTA_BD);
+    private final DepartamentoDAL departamentoDAL =
+            ConfigApp.isModoSql() ? new DepartamentoDALSql() : new DepartamentoDALFile();
 
     /**
      * Constrói e devolve um objeto Curso completamente preenchido.
@@ -42,7 +46,7 @@ public class CursoBLL {
             } catch (NumberFormatException ignored) {}
         }
 
-        Departamento dep = DepartamentoDAL.procurarDepartamento(siglaDepartamento, PASTA_BD);
+        Departamento dep = departamentoDAL.procurarPorSigla(siglaDepartamento);
 
         Curso curso = new Curso(siglaCurso, nomeCurso, dep, propina);
 
@@ -99,7 +103,7 @@ public class CursoBLL {
         // Verificar se já existe curso com essa sigla
         if (procurarCursoCompleto(sigla) != null) return false;
 
-        Departamento dep = DepartamentoDAL.procurarDepartamento(siglaDepartamento, PASTA_BD);
+        Departamento dep = departamentoDAL.procurarPorSigla(siglaDepartamento);
         if (dep == null) return false; // departamento obrigatório
 
         Curso curso = new Curso(sigla, nome, dep, propina);
@@ -125,7 +129,7 @@ public class CursoBLL {
 
         Departamento depFinal = existente.getDepartamento();
         if (novaSiglaDep != null && !novaSiglaDep.isEmpty()) {
-            Departamento novoDep = DepartamentoDAL.procurarDepartamento(novaSiglaDep, PASTA_BD);
+            Departamento novoDep = departamentoDAL.procurarPorSigla(novaSiglaDep);
             if (novoDep != null) depFinal = novoDep;
         }
 

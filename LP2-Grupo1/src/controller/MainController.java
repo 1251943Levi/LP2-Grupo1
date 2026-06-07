@@ -1,9 +1,16 @@
 package controller;
 
+import bll.AutenticacaoBLL;
+import bll.DepartamentoBLL;
 import common.ConfigApp;
+import dal.DocenteDAL;
+import dal.DocenteDALFile;
+import dal.DocenteDALSql;
+import dal.GestorDAL;
+import dal.GestorDALFile;
+import dal.GestorDALSql;
 import model.*;
 import view.MainView;
-import bll.AutenticacaoBLL;
 import utils.CancelamentoException;
 import utils.Validador;
 
@@ -89,13 +96,18 @@ public class MainController {
             view.mostrarPastaCriada();
         }
         new LoginController().inicializar();
+        new DepartamentoBLL().inicializar();
+        GestorDAL gestorDAL = ConfigApp.isModoSql() ? new GestorDALSql() : new GestorDALFile();
+        gestorDAL.inicializar();
+        DocenteDAL docenteDAL = ConfigApp.isModoSql() ? new DocenteDALSql() : new DocenteDALFile();
+        docenteDAL.inicializar();
     }
 
     /**
      * Valida se o e-mail tem o formato institucional correto antes de proceder ao login.
      */
     public boolean validarFormatoEmailLogin(String email) {
-        if (email.equals("admin@issmf.pt") || email.equals("backoffice@issmf.ipp.pt")) {
+        if (email.equals("backoffice@issmf.ipp.pt")) {
             return true;
         }
         if (!Validador.validarSufixoLogin(email)) {

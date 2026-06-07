@@ -31,9 +31,6 @@ import java.util.List;
 public class ConnectionManager {
 
     static {
-        // Reativa TLS 1.0 e 1.1 para compatibilidade com o servidor SQL Server do ISEP,
-        // que não suporta versões mais recentes de TLS. Java 21+ desativa estes protocolos
-        // por defeito, o que impede a ligação.
         java.security.Security.setProperty("jdk.tls.disabledAlgorithms", "");
         System.setProperty("jdk.tls.client.protocols", "TLSv1,TLSv1.1,TLSv1.2");
 

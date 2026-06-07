@@ -3,10 +3,14 @@ package bll;
 import common.ConfigApp;
 
 import dal.*;
+import dal.DocenteDAL;
+import dal.DocenteDALFile;
+import dal.DocenteDALSql;
+import dal.GestorDAL;
+import dal.GestorDALFile;
+import dal.GestorDALSql;
 import model.*;
 import controller.LoginController;
-import utils.SegurancaPasswords;
-
 import java.util.List;
 
 
@@ -19,13 +23,10 @@ public class AutenticacaoBLL {
 
     private static final String PASTA_BD = ConfigApp.PASTA_BD;
     private final EstudanteDAL estudanteDAL = new EstudanteDAL(PASTA_BD);
-
-    /**
-     * Credencial PBKDF2 do administrador de backoffice hardcoded.
-     * Mantida como fallback para a conta especial que não está em logins.*.
-     */
-    private static final String CREDENCIAL_ADMIN =
-            "A67KdOiGgwLZQTdjXrCPUg==:1Emuaac5kl+mA0SKMMRX1m+5bpOXaLVPqcttF1EPyG4=";
+    private final GestorDAL gestorDAL =
+            ConfigApp.isModoSql() ? new GestorDALSql() : new GestorDALFile();
+    private final DocenteDAL docenteDAL =
+            ConfigApp.isModoSql() ? new DocenteDALSql() : new DocenteDALFile();
 
     private final LoginController loginController = new LoginController();
 
@@ -34,13 +35,6 @@ public class AutenticacaoBLL {
      * Delega a verificação de credenciais no LoginController.
      */
     public Utilizador autenticar(String email, String pass) {
-        // conta especial de backoffice (hardcoded, não está em logins.*)
-        if (email.equals("backoffice@issmf.ipp.pt")
-                && SegurancaPasswords.verificarPassword(pass, CREDENCIAL_ADMIN)) {
-            return new Gestor("backoffice@issmf.ipp.pt", CREDENCIAL_ADMIN,
-                    "Admin Geral", "123456789", "Sede", "01-01-1980");
-        }
-
         LoginModel login = loginController.autenticar(email, pass);
         if (login == null) return null;
 
@@ -50,7 +44,7 @@ public class AutenticacaoBLL {
                 return new EstudanteBLL().obterPerfilCompleto(email, hash);
 
             case "DOCENTE":
-                Docente d = DocenteDAL.procurarPorEmail(email, hash, PASTA_BD);
+                Docente d = docenteDAL.procurarPorEmail(email, hash);
                 if (d != null) {
                     List<UnidadeCurricular> ucs = UcDAL.obterUcsPorDocente(d, PASTA_BD);
                     ucs.forEach(d::adicionarUcLecionada);
@@ -58,7 +52,7 @@ public class AutenticacaoBLL {
                 return d;
 
             case "GESTOR":
-                return GestorDAL.procurarPorEmail(email, hash, PASTA_BD);
+                return gestorDAL.procurarPorEmail(email, hash);
 
             default:
                 return null;
@@ -98,7 +92,7 @@ public class AutenticacaoBLL {
      */
     public boolean isNifDuplicado(String nif) {
         return estudanteDAL.existeNif(nif)
-                || DocenteDAL.existeNif(nif, PASTA_BD);
+                || docenteDAL.existeNif(nif);
     }
 
     /**

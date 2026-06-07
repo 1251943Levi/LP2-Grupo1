@@ -1,241 +1,28 @@
 package dal;
 
 import model.Docente;
-import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Acesso aos dados de docentes armazenados em docentes.csv.
- * Formato das colunas: sigla; email; nome; nif; morada; dataNascimento.
+ * Contrato de acesso aos dados de docentes.
+ * Implementado por {@link DocenteDALFile} (CSV) e {@link DocenteDALSql} (SQL Server).
  */
-public class DocenteDAL {
-    private static final String NOME_FICHEIRO = "docentes.csv";
-    private static final String CABECALHO = "sigla;email;nome;nif;morada;dataNascimento";
+public interface DocenteDAL {
+    void inicializar();
 
+    Docente procurarPorEmail(String email, String hash);
+    Docente procurarPorSigla(String sigla);
 
-    /**
-     * Persiste um novo docente no ficheiro CSV.
-     * @param docente   Docente a adicionar.
-     * @param pastaBase Caminho da pasta de dados.
-     */
-    public static void adicionarDocente(Docente docente, String pastaBase) {
-        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
-        DALUtil.garantirFicheiroECabecalho(caminho, CABECALHO);
-        String linha = docente.getSigla() + ";" + docente.getEmail() + ";"
-                + docente.getNome() + ";" + docente.getNif() + ";"
-                + docente.getMorada() + ";" + docente.getDataNascimento();
-        DALUtil.adicionarLinhaCSV(caminho, linha);
-    }
+    List<Docente> carregarTodos();
+    String[] obterListaDocentes();
 
-    /**
-     * Carrega o perfil de um docente a partir do seu email.
-     * @param email     Email do docente.
-     * @param hash      Hash PBKDF2 da palavra-chave.
-     * @param pastaBase Caminho da pasta de dados.
-     * @return O Docente encontrado, ou null se não existir.
-     */
-    public static Docente procurarPorEmail(String email, String hash, String pastaBase) {
-        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
-        List<String> linhas = DALUtil.lerFicheiro(caminho);
-        for (String linha : linhas) {
-            if (linha.equalsIgnoreCase(CABECALHO)) continue;
-            String[] dados = linha.split(";", -1);
-            if (dados.length >= 6 && dados[1].trim().equalsIgnoreCase(email)) {
-                return new Docente(dados[0].trim(), email, hash,
-                        dados[2].trim(), dados[3].trim(), dados[4].trim(), dados[5].trim());
-            }
-        }
-        return null;
-    }
+    boolean adicionarDocente(Docente docente);
+    boolean atualizarDocente(Docente docente);
+    boolean removerDocente(String sigla);
 
+    boolean existeSigla(String sigla);
+    boolean existeNif(String nif);
+    boolean temUcAtribuida(String sigla);
 
-    /**
-     * Carrega o perfil básico de um docente a partir da sua sigla.
-     * Não carrega as UCs para evitar dependência circular com UcDAL.
-     * @param sigla     Sigla do docente.
-     * @param pastaBase Caminho da pasta de dados.
-     * @return O Docente encontrado, ou null se não existir.
-     */
-    public static Docente procurarPorSigla(String sigla, String pastaBase) {
-        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
-        List<String> linhas = DALUtil.lerFicheiro(caminho);
-        for (String linha : linhas) {
-            if (linha.equalsIgnoreCase(CABECALHO)) continue;
-            String[] dados = linha.split(";", -1);
-            if (dados.length >= 6 && dados[0].trim().equalsIgnoreCase(sigla)) {
-                return new Docente(dados[0].trim(), dados[1].trim(), "",
-                        dados[2].trim(), dados[3].trim(), dados[4].trim(), dados[5].trim());
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Verifica se já existe um docente com a sigla indicada.
-     * @param sigla     Sigla a verificar.
-     * @param pastaBase Caminho da pasta de dados.
-     * @return true se a sigla já estiver em uso.
-     */
-    public static boolean existeSigla(String sigla, String pastaBase) {
-        if (sigla == null || sigla.trim().isEmpty()) return false;
-        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
-        List<String> linhas = DALUtil.lerFicheiro(caminho);
-        for (String linha : linhas) {
-            if (linha.equalsIgnoreCase(CABECALHO)) continue;
-            String[] dados = linha.split(";", -1);
-            // col 0 = sigla em docentes.csv (sigla;email;nome;nif;morada;dataNasc)
-            if (dados.length >= 1 && dados[0].trim().equalsIgnoreCase(sigla.trim())) return true;
-        }
-        return false;
-    }
-
-    /**
-     * Verifica se já existe um docente com o NIF indicado.
-     * @param nif       NIF a verificar.
-     * @param pastaBase Caminho da pasta de dados.
-     * @return true se o NIF já estiver registado.
-     */
-    public static boolean existeNif(String nif, String pastaBase) {
-        if (nif == null || nif.trim().isEmpty()) return false;
-        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
-        List<String> linhas = DALUtil.lerFicheiro(caminho);
-        for (String linha : linhas) {
-            if (linha.equalsIgnoreCase(CABECALHO)) continue;
-            String[] dados = linha.split(";", -1);
-            if (dados.length >= 4 && dados[3].trim().equals(nif.trim())) return true;
-        }
-        return false;
-    }
-
-    /**
-     * Devolve um array "SIGLA - Nome" de todos os docentes.
-     */
-    public static String[] obterListaDocentes(String pastaBase) {
-        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
-        List<String> linhas = DALUtil.lerFicheiro(caminho);
-        List<String> lista = new ArrayList<>();
-
-        for (String linha : linhas) {
-            String[] dados = linha.split(";", -1);
-            if (dados.length < 3 || dados[0].trim().equalsIgnoreCase("sigla")) continue;
-
-            lista.add(dados[0].trim() + " - " + dados[2].trim());
-        }
-        return lista.toArray(new String[0]);
-    }
-
-    /**
-     * Carrega todos os docentes (dados básicos, sem UCs).
-     * @param pastaBase Caminho da pasta de dados.
-     * @return Lista de docentes.
-     */
-    public static List<Docente> carregarTodos(String pastaBase) {
-        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
-        List<String> linhas = DALUtil.lerFicheiro(caminho);
-        List<Docente> lista = new ArrayList<>();
-
-        for (String linha : linhas) {
-            if (linha.equalsIgnoreCase(CABECALHO)) continue;
-            String[] dados = linha.split(";", -1);
-            if (dados.length >= 6) {
-                Docente d = new Docente(
-                        dados[0].trim(), // sigla
-                        dados[1].trim(), // email
-                        "",               // password (não carregada aqui)
-                        dados[2].trim(), // nome
-                        dados[3].trim(), // nif
-                        dados[4].trim(), // morada
-                        dados[5].trim()  // dataNascimento
-                );
-                lista.add(d);
-            }
-        }
-        return lista;
-    }
-
-    /**
-     * Actualiza os dados de um docente (nome, morada, dataNascimento, nif).
-     * @param docente Docente com os dados actualizados.
-     * @param pastaBase Caminho da pasta de dados.
-     */
-    public static void atualizarDocente(Docente docente, String pastaBase) {
-        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
-        List<String> linhasAntigas = DALUtil.lerFicheiro(caminho);
-        if (linhasAntigas.isEmpty()) return;
-
-        List<String> linhasAtualizadas = new ArrayList<>();
-        for (String linha : linhasAntigas) {
-            if (linha.equalsIgnoreCase(CABECALHO)) {
-                linhasAtualizadas.add(linha);
-                continue;
-            }
-            String[] dados = linha.split(";", -1);
-            if (dados.length >= 6 && dados[0].trim().equalsIgnoreCase(docente.getSigla())) {
-                // Substitui pela linha actualizada
-                linhasAtualizadas.add(
-                        docente.getSigla() + ";" +
-                                docente.getEmail() + ";" +
-                                docente.getNome() + ";" +
-                                docente.getNif() + ";" +
-                                docente.getMorada() + ";" +
-                                docente.getDataNascimento()
-                );
-            } else {
-                linhasAtualizadas.add(linha);
-            }
-        }
-        DALUtil.reescreverFicheiro(caminho, linhasAtualizadas);
-    }
-
-    /**
-     * Verifica se um docente tem unidades curriculares associadas.
-     * @param sigla Sigla do docente.
-     * @param pastaBase Caminho da pasta de dados.
-     * @return true se tiver pelo menos uma UC.
-     */
-    public static boolean temUcAtribuida(String sigla, String pastaBase) {
-        List<String> siglasUcs = UcDAL.obterSiglasUcsPorDocente(sigla, pastaBase);
-        return !siglasUcs.isEmpty();
-    }
-
-    /**
-     * Remove um docente e a sua credencial de acesso.
-     * @param sigla Sigla do docente.
-     * @param pastaBase Caminho da pasta de dados.
-     * @return true se removido com sucesso.
-     */
-    public static boolean removerDocente(String sigla, String pastaBase) {
-        // 1. Obter o docente para saber o email
-        Docente d = procurarPorSigla(sigla, pastaBase);
-        if (d == null) return false;
-
-        // 2. Remover credencial
-        CredencialDAL.removerCredencial(d.getEmail(), pastaBase);
-
-        // 3. Remover o docente do ficheiro docentes.csv
-        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
-        List<String> linhas = DALUtil.lerFicheiro(caminho);
-        List<String> novas = new ArrayList<>();
-        boolean encontrou = false;
-
-        for (String linha : linhas) {
-            if (linha.equalsIgnoreCase(CABECALHO)) {
-                novas.add(linha);
-                continue;
-            }
-            String[] dados = linha.split(";", -1);
-            if (dados.length > 0 && dados[0].trim().equalsIgnoreCase(sigla)) {
-                encontrou = true;
-                continue;
-            }
-            novas.add(linha);
-        }
-
-        if (encontrou) {
-            DALUtil.reescreverFicheiro(caminho, novas);
-        }
-        return encontrou;
-    }
-
+    int contar();
 }
