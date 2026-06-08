@@ -65,7 +65,7 @@ public class UcDAL {
                         int ects = (dados.length >= 6 && !dados[5].trim().isEmpty())
                                 ? Integer.parseInt(dados[5].trim())
                                 : model.UnidadeCurricular.ECTS_PADRAO;
-                        Docente doc = DocenteDAL.procurarPorSigla(dados[3].trim(), pastaBase);
+                        Docente doc = new DocenteDALFile().procurarPorSigla(dados[3].trim());
                         ucEncontrada = new UnidadeCurricular(dados[0].trim(), dados[1].trim(), ano, doc, ects);
                     } catch (NumberFormatException e) { continue; }
                 }

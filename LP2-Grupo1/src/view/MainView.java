@@ -18,6 +18,30 @@ public class MainView {
     }
 
 
+    // ---------- MENU INICIAL ----------
+
+    /**
+     * Apresenta o ecrã de seleção do modo de persistência e devolve a escolha:
+     * 1 = Ficheiros, 2 = Base de Dados.
+     * Repete até receber uma opção válida.
+     */
+    public int pedirModoPersistencia() {
+        while (true) {
+            Consola.imprimirCabecalho("Sistema ISSMF - 2025/2026");
+            Consola.imprimirTitulo("Modo de Persistência");
+            System.out.println("  [1] Ficheiros");
+            System.out.println("  [2] Base de Dados (SQL Server)");
+            Consola.imprimirLinha();
+            try {
+                int opcao = Consola.lerOpcaoMenu();
+                if (opcao == 1 || opcao == 2) return opcao;
+                Consola.imprimirErro("Opção inválida. Escolha 1 ou 2.");
+            } catch (Exception e) {
+                Consola.imprimirErro("Opção inválida. Escolha 1 ou 2.");
+            }
+        }
+    }
+
     // ---------- MENU ----------
 
     public int mostrarMenu() {

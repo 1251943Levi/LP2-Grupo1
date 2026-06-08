@@ -1,55 +1,73 @@
 package bll;
 
+import common.ConfigApp;
 import dal.DepartamentoDAL;
-import model.Departamento;
-import java.util.List;
+import dal.DepartamentoDALFile;
+import dal.DepartamentoDALSql;
 import model.Curso;
+import model.Departamento;
+
+import java.util.List;
 
 public class DepartamentoBLL {
 
-    private static final String PASTA_BD = "bd";
+    private final DepartamentoDAL dal;
+
+    public DepartamentoBLL() {
+        this.dal = ConfigApp.isModoSql() ? new DepartamentoDALSql() : new DepartamentoDALFile();
+    }
+
+    /** Inicializa o armazenamento (cria tabela/ficheiro e importa CSV se vazio). */
+    public void inicializar() {
+        dal.inicializar();
+    }
 
     public List<Departamento> listarTodos() {
-        return DepartamentoDAL.carregarTodos(PASTA_BD);
+        return dal.listarTodos();
     }
 
     public Departamento obterPorSigla(String sigla) {
-        return DepartamentoDAL.procurarDepartamento(sigla, PASTA_BD);
+        return dal.procurarPorSigla(sigla);
     }
 
     public boolean adicionarDepartamento(String sigla, String nome) {
         if (sigla == null || nome == null) return false;
-        if (obterPorSigla(sigla) != null) return false; // evita duplicados
-        Departamento dep = new Departamento(sigla.toUpperCase(), nome);
-        DepartamentoDAL.adicionarDepartamento(dep, PASTA_BD);
-        return true;
+        if (dal.existe(sigla)) return false;
+        return dal.criar(new Departamento(sigla.toUpperCase(), nome));
     }
 
     public boolean atualizarDepartamento(String sigla, String novaSigla, String novoNome) {
         Departamento existente = obterPorSigla(sigla);
         if (existente == null) return false;
 
-        String siglaFinal = (novaSigla != null && !novaSigla.isEmpty()) ? novaSigla.toUpperCase() : existente.getSigla();
-        String nomeFinal = (novoNome != null && !novoNome.isEmpty()) ? novoNome : existente.getNome();
+        String siglaFinal = (novaSigla != null && !novaSigla.isEmpty())
+                ? novaSigla.toUpperCase() : existente.getSigla();
+        String nomeFinal  = (novoNome != null && !novoNome.isEmpty())
+                ? novoNome : existente.getNome();
 
-        // Se a sigla mudou, verificar se a nova sigla já existe (excepto se for a mesma)
-        if (!siglaFinal.equals(existente.getSigla()) && obterPorSigla(siglaFinal) != null) {
-            return false; // nova sigla já em uso
+        // Verifica conflito de sigla
+        if (!siglaFinal.equalsIgnoreCase(existente.getSigla()) && dal.existe(siglaFinal)) {
+            return false;
         }
 
-        Departamento depAtualizado = new Departamento(siglaFinal, nomeFinal);
-        DepartamentoDAL.atualizarDepartamento(depAtualizado, PASTA_BD);
-        return true;
+        if (!siglaFinal.equalsIgnoreCase(existente.getSigla())) {
+            // Sigla mudou: elimina e recria (PK não pode ser UPDATE direto em SQL)
+            if (!dal.eliminar(sigla)) return false;
+            return dal.criar(new Departamento(siglaFinal, nomeFinal));
+        } else {
+            return dal.atualizar(new Departamento(siglaFinal, nomeFinal));
+        }
     }
 
     public boolean removerDepartamento(String sigla) {
-        // Verificar se existem cursos associados a este departamento
+        // Não remove se existirem cursos associados
         List<Curso> cursos = new CursoBLL().listarTodos();
         for (Curso c : cursos) {
-            if (c.getDepartamento() != null && c.getDepartamento().getSigla().equalsIgnoreCase(sigla)) {
-                return false; // não remove porque há cursos dependentes
+            if (c.getDepartamento() != null
+                    && c.getDepartamento().getSigla().equalsIgnoreCase(sigla)) {
+                return false;
             }
         }
-        return DepartamentoDAL.removerDepartamento(sigla, PASTA_BD);
+        return dal.eliminar(sigla);
     }
 }

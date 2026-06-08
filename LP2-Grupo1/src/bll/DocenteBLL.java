@@ -1,7 +1,11 @@
 package bll;
 
+import common.ConfigApp;
+
 import dal.AvaliacaoDAL;
-import dal.CredencialDAL;
+import dal.DocenteDAL;
+import dal.DocenteDALFile;
+import dal.DocenteDALSql;
 import dal.EstudanteDAL;
 import dal.UcDAL;
 import dal.InscricaoDAL;
@@ -9,11 +13,10 @@ import model.Avaliacao;
 import model.Docente;
 import model.Estudante;
 import model.UnidadeCurricular;
-import utils.SegurancaPasswords;
+import controller.LoginController;
 import utils.Config;
 import java.util.ArrayList;
 import java.util.List;
-import dal.DocenteDAL;
 
 
 /**
@@ -23,8 +26,11 @@ import dal.DocenteDAL;
  */
 public class DocenteBLL {
 
-    private static final String PASTA_BD = "bd";
+    private static final String PASTA_BD = ConfigApp.PASTA_BD;
+    private final LoginController loginController = new LoginController();
     private final EstudanteDAL estudanteDAL = new EstudanteDAL(PASTA_BD);
+    private final DocenteDAL docenteDAL =
+            ConfigApp.isModoSql() ? new DocenteDALSql() : new DocenteDALFile();
 
     /**
      * Verifica se uma UC pertence ao plano de lecionação do docente.
@@ -82,9 +88,7 @@ public class DocenteBLL {
      * Altera a password do docente com hashing e persistência.
      */
     public void alterarPassword(Docente docente, String novaPass) {
-        String passSegura = SegurancaPasswords.gerarCredencialMista(novaPass);
-        docente.setPassword(passSegura);
-        CredencialDAL.atualizarPassword(docente.getEmail(), passSegura, PASTA_BD);
+        loginController.atualizarPassword(docente.getEmail(), novaPass);
     }
 
     /**
@@ -157,14 +161,14 @@ public class DocenteBLL {
      * Lista todos os docentes (dados básicos, sem UCs carregadas).
      */
     public List<Docente> listarTodos() {
-        return DocenteDAL.carregarTodos(PASTA_BD);
+        return docenteDAL.carregarTodos();
     }
 
     /**
      * Obtém um docente pela sua sigla (com dados básicos).
      */
     public Docente obterPorSigla(String sigla) {
-        return DocenteDAL.procurarPorSigla(sigla, PASTA_BD);
+        return docenteDAL.procurarPorSigla(sigla);
     }
 
     /**
@@ -172,15 +176,14 @@ public class DocenteBLL {
      */
     public boolean atualizarDocente(Docente docente) {
         if (docente == null) return false;
-        DocenteDAL.atualizarDocente(docente, PASTA_BD);
-        return true;
+        return docenteDAL.atualizarDocente(docente);
     }
 
     /**
      * Verifica se um docente tem UCs atribuídas.
      */
     public boolean temUcAtribuida(String sigla) {
-        return DocenteDAL.temUcAtribuida(sigla, PASTA_BD);
+        return docenteDAL.temUcAtribuida(sigla);
     }
 
     /**
@@ -188,7 +191,7 @@ public class DocenteBLL {
      */
     public boolean removerDocente(String sigla) {
         if (temUcAtribuida(sigla)) return false;
-        return DocenteDAL.removerDocente(sigla, PASTA_BD);
+        return docenteDAL.removerDocente(sigla);
     }
 
     /**

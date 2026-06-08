@@ -1,7 +1,16 @@
 package bll;
 
+import common.ConfigApp;
+
 import dal.*;
+import dal.DepartamentoDAL;
+import dal.DepartamentoDALFile;
+import dal.DepartamentoDALSql;
+import dal.DocenteDAL;
+import dal.DocenteDALFile;
+import dal.DocenteDALSql;
 import model.*;
+import controller.LoginController;
 import utils.*;
 import view.GestorView;
 import utils.Config;
@@ -17,8 +26,13 @@ import java.util.List;
  */
 public class GestorBLL {
 
-    private static final String PASTA_BD = "bd";
+    private static final String PASTA_BD = ConfigApp.PASTA_BD;
     private final EstudanteDAL estudanteDAL = new EstudanteDAL(PASTA_BD);
+    private final LoginController loginController = new LoginController();
+    private final DepartamentoDAL departamentoDAL =
+            ConfigApp.isModoSql() ? new DepartamentoDALSql() : new DepartamentoDALFile();
+    private final DocenteDAL docenteDAL =
+            ConfigApp.isModoSql() ? new DocenteDALSql() : new DocenteDALFile();
 
     // ─────────────────────────── ANO LETIVO ────────────────────────────
 
@@ -111,10 +125,9 @@ public class GestorBLL {
         String email     = EmailGenerator.gerarEmailDocente(sigla);
         String passLimpa = PasswordGenerator.gerarPasswordSegura();
         EmailService.enviarCredenciaisTodos(nome, email, passLimpa);
-        String passHash  = SegurancaPasswords.gerarCredencialMista(passLimpa);
-        DocenteDAL.adicionarDocente(
-                new Docente(sigla, email, passHash, nome, nif, morada, dataNasc), PASTA_BD);
-        CredencialDAL.adicionarCredencial(email, passHash, "DOCENTE", PASTA_BD);
+        docenteDAL.adicionarDocente(
+                new Docente(sigla, email, "", nome, nif, morada, dataNasc));
+        loginController.criarCredencial(email, passLimpa, "DOCENTE");
         return new String[]{email, sigla};
     }
 
@@ -139,15 +152,14 @@ public class GestorBLL {
         String email     = EmailGenerator.gerarEmailEstudante(numMec);
         String passLimpa = PasswordGenerator.gerarPasswordSegura();
         EmailService.enviarCredenciaisTodos(nome, email, passLimpa);
-        String passHash  = SegurancaPasswords.gerarCredencialMista(passLimpa);
 
-        Estudante novo = new Estudante(numMec, email, passHash, nome, nif, morada, dataNasc, anoInscricao);
+        Estudante novo = new Estudante(numMec, email, "", nome, nif, morada, dataNasc, anoInscricao);
         Curso curso    = new CursoBLL().procurarCursoCompleto(siglaCurso);
         if (curso != null) novo.setSaldoDevedor(curso.getValorPropinaAnual());
 
         // Chamada atualizada usando a instância estudanteDAL
+        loginController.criarCredencial(email, passLimpa, "ESTUDANTE");
         estudanteDAL.adicionarEstudante(novo, siglaCurso);
-        CredencialDAL.adicionarCredencial(email, passHash, "ESTUDANTE", PASTA_BD);
 
         for (String siglaUc : UcDAL.obterSiglasUcsPorCursoEAno(siglaCurso, 1, PASTA_BD)) {
             InscricaoDAL.adicionarInscricao(numMec, siglaUc, anoInscricao, PASTA_BD);
@@ -163,7 +175,7 @@ public class GestorBLL {
      */
     public void registarDepartamento(String sigla, String nome) {
         Departamento dep = new Departamento(sigla.toUpperCase(), nome);
-        DepartamentoDAL.adicionarDepartamento(dep, PASTA_BD);
+        departamentoDAL.criar(dep);
     }
 
     // ─────────────────────────── CURSOS E UCs ──────────────────────────
@@ -185,7 +197,7 @@ public class GestorBLL {
                 return false;
             }
         }
-        Docente doc = DocenteDAL.procurarPorSigla(siglaDocente, PASTA_BD);
+        Docente doc = docenteDAL.procurarPorSigla(siglaDocente);
         String cursoParaGuardar = (siglaCurso == null || siglaCurso.isEmpty()) ? "N/A" : siglaCurso;
         UcDAL.adicionarUC(new UnidadeCurricular(siglaUc, nomeUc, anoUc, doc), cursoParaGuardar, PASTA_BD);
         return true;
@@ -212,7 +224,7 @@ public class GestorBLL {
 
         if (!UcDAL.removerUC(siglaAntiga, PASTA_BD)) return false;
 
-        Docente doc = DocenteDAL.procurarPorSigla(siglaDocente, PASTA_BD);
+        Docente doc = docenteDAL.procurarPorSigla(siglaDocente);
         UcDAL.adicionarUC(new UnidadeCurricular(novaSigla, nome, anoInt, doc), siglaCurso, PASTA_BD);
         return true;
     }
@@ -256,7 +268,7 @@ public class GestorBLL {
      * @param propina  Valor da propina anual em euros.
      */
     public void adicionarCurso(String sigla, String nome, String siglaDep, double propina) {
-        Departamento dep = DepartamentoDAL.procurarDepartamento(siglaDep, PASTA_BD);
+        Departamento dep = departamentoDAL.procurarPorSigla(siglaDep);
         Curso c = new Curso(sigla, nome, dep, propina);
         c.setEstado("Inativo");
         CursoDAL.adicionarCurso(c, PASTA_BD);
@@ -290,7 +302,7 @@ public class GestorBLL {
         if (!isCursoAlteravel(sigla)) return false;
         Curso original = new CursoBLL().procurarCursoCompleto(sigla);
         if (original == null) return false;
-        Departamento dep = DepartamentoDAL.procurarDepartamento(siglaDep, PASTA_BD);
+        Departamento dep = departamentoDAL.procurarPorSigla(siglaDep);
         Curso atualizado = new Curso(sigla, novoNome, dep, novaPropina);
         atualizado.setEstado(original.getEstado());
         CursoDAL.atualizarCurso(atualizado, PASTA_BD);
@@ -388,12 +400,12 @@ public class GestorBLL {
 
     /** @return Array "SIGLA - Nome" de todos os departamentos. */
     public String[] obterListaDepartamentos() {
-        return DepartamentoDAL.obterListaDepartamentos(PASTA_BD);
+        return departamentoDAL.obterListaFormatada();
     }
 
     /** @return Array "SIGLA - Nome" de todos os docentes. */
     public String[] obterListaDocentes() {
-        return DocenteDAL.obterListaDocentes(PASTA_BD);
+        return docenteDAL.obterListaDocentes();
     }
 
     /** @return Lista de linhas do histórico académico para um dado ano letivo. */
@@ -410,9 +422,7 @@ public class GestorBLL {
      * @param novaPass Nova password em texto limpo.
      */
     public void alterarPasswordGestor(Gestor gestor, String novaPass) {
-        String hash = SegurancaPasswords.gerarCredencialMista(novaPass);
-        gestor.setPassword(hash);
-        CredencialDAL.atualizarPassword(gestor.getEmail(), hash, PASTA_BD);
+        loginController.atualizarPassword(gestor.getEmail(), novaPass);
     }
 
     /**
@@ -422,7 +432,8 @@ public class GestorBLL {
      * @return true se o NIF já existir.
      */
     public boolean isNifDuplicado(String nif) {
-        return estudanteDAL.existeNif(nif) || DocenteDAL.existeNif(nif, PASTA_BD);    }
+        return estudanteDAL.existeNif(nif) || docenteDAL.existeNif(nif);
+    }
 
     /**
      * Verifica se já existe um departamento com a sigla fornecida.
@@ -431,7 +442,7 @@ public class GestorBLL {
      * @return true se o departamento já existir.
      */
     public boolean isDepartamentoDuplicado(String sigla) {
-        return DepartamentoDAL.procurarDepartamento(sigla, PASTA_BD) != null;
+        return departamentoDAL.existe(sigla);
     }
 
     /**
@@ -441,7 +452,7 @@ public class GestorBLL {
      * @return true se o docente já existir.
      */
     public boolean existeDocente(String sigla) {
-        return DocenteDAL.existeSigla(sigla, PASTA_BD);
+        return docenteDAL.existeSigla(sigla);
     }
 
     // ─────────────────────────── UTILITÁRIOS ───────────────────────────
@@ -476,27 +487,27 @@ public class GestorBLL {
 
         String candidata = base.toString().substring(0, 3);
 
-        if (!DocenteDAL.existeSigla(candidata, PASTA_BD)) return candidata;
+        if (!docenteDAL.existeSigla(candidata)) return candidata;
 
         String prefixo           = candidata.substring(0, 2);
         String todasLetrasDoNome = nomeLimpo.replace(" ", "");
 
         for (int i = 0; i < todasLetrasDoNome.length(); i++) {
             String tentativa = prefixo + todasLetrasDoNome.charAt(i);
-            if (!tentativa.equals(candidata) && !DocenteDAL.existeSigla(tentativa, PASTA_BD))
+            if (!tentativa.equals(candidata) && !docenteDAL.existeSigla(tentativa))
                 return tentativa;
         }
 
         for (char c = 'A'; c <= 'Z'; c++) {
             String tentativa = prefixo + c;
-            if (!DocenteDAL.existeSigla(tentativa, PASTA_BD)) return tentativa;
+            if (!docenteDAL.existeSigla(tentativa)) return tentativa;
         }
 
         String primeiraLetra = candidata.substring(0, 1);
         for (char c2 = 'A'; c2 <= 'Z'; c2++) {
             for (char c3 = 'A'; c3 <= 'Z'; c3++) {
                 String tentativa = primeiraLetra + c2 + c3;
-                if (!DocenteDAL.existeSigla(tentativa, PASTA_BD)) return tentativa;
+                if (!docenteDAL.existeSigla(tentativa)) return tentativa;
             }
         }
 

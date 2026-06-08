@@ -132,8 +132,8 @@ public class CursoDAL {
             catch (NumberFormatException ignored) {}
         }
 
-        Departamento dep = DepartamentoDAL.procurarDepartamento(
-                dados.length >= 3 ? dados[2].trim() : "N/A", pastaBase);
+        Departamento dep = new DepartamentoDALFile().procurarPorSigla(
+                dados.length >= 3 ? dados[2].trim() : "N/A");
 
         Curso curso = new Curso(dados[0].trim(), dados[1].trim(), dep, propina);
 
@@ -262,7 +262,7 @@ public class CursoDAL {
                     try { propina = Double.parseDouble(dados[3].trim()); }
                     catch (NumberFormatException ignored) {}
                 }
-                Departamento dep = DepartamentoDAL.procurarDepartamento(dados[2].trim(), pastaBase);
+                Departamento dep = new DepartamentoDALFile().procurarPorSigla(dados[2].trim());
                 Curso c = new Curso(dados[0].trim(), dados[1].trim(), dep, propina);
                 if (dados.length >= 5 && !dados[4].trim().isEmpty())
                     c.setEstado(dados[4].trim());

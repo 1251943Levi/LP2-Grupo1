@@ -6,113 +6,100 @@ import java.util.List;
 
 /**
  * Acesso aos dados de autenticação armazenados em credenciais.csv.
- * Cada linha contém o email, o hash PBKDF2 e o tipo de utilizador
- * (ESTUDANTE, DOCENTE ou GESTOR).
+ *
+ * Formato do ficheiro (5 colunas):
+ *   email;passwordSalt;passwordHash;tipo;ativo
+ *
+ * A API pública mantém compatibilidade com as BLLs existentes:
+ * {@link #obterCredenciais} devolve [salt:hash combinado, tipo] para que as BLLs
+ * não precisem de ser alteradas neste sprint. Quando forem migradas para delegar
+ * no LoginController, esta classe pode ser removida.
  */
 public class CredencialDAL {
+
     private static final String NOME_FICHEIRO = "credenciais.csv";
-    private static final String CABECALHO = "email;password_hash;tipo";
+    private static final String CABECALHO = "email;passwordSalt;passwordHash;tipo;ativo";
 
     /**
      * Obtém as credenciais de um utilizador pelo email.
-     * @param email     Email a pesquisar.
-     * @param pastaBase Caminho da pasta de dados.
-     * @return Array [hash, tipo] se encontrado; null caso contrário.
+     * @return Array [salt:hash combinado, tipo] se encontrado; null caso contrário.
      */
     public static String[] obterCredenciais(String email, String pastaBase) {
         String caminho = pastaBase + File.separator + NOME_FICHEIRO;
-        List<String> linhas = DALUtil.lerFicheiro(caminho);
-
-        for (String linha : linhas) {
-            String[] dados = linha.split(";", -1);
-            if (dados.length >= 3 && dados[0].trim().equalsIgnoreCase(email)) {
-                return new String[]{dados[1].trim(), dados[2].trim().toUpperCase()};
+        for (String linha : DALUtil.lerFicheiro(caminho)) {
+            if (linha.equalsIgnoreCase(CABECALHO)) continue;
+            String[] d = linha.split(";", -1);
+            if (d.length >= 4 && d[0].trim().equalsIgnoreCase(email)) {
+                String combinado = d[1].trim() + ":" + d[2].trim();
+                return new String[]{combinado, d[3].trim().toUpperCase()};
             }
         }
         return null;
     }
 
     /**
-     * Regista uma nova credencial no ficheiro.
-     * @param email        Email institucional.
-     * @param passwordHash Hash PBKDF2 da palavra-chave.
-     * @param tipo         Tipo de utilizador (ESTUDANTE, DOCENTE ou GESTOR).
-     * @param pastaBase    Caminho da pasta de dados.
+     * Regista uma nova credencial.
+     * @param passwordHash Hash no formato salt:hash (produzido por SegurancaPasswords).
      */
     public static void adicionarCredencial(String email, String passwordHash, String tipo, String pastaBase) {
         if (email == null || passwordHash == null) return;
-
         String caminho = pastaBase + File.separator + NOME_FICHEIRO;
         DALUtil.garantirFicheiroECabecalho(caminho, CABECALHO);
 
-        String novaLinha = email + ";" + passwordHash + ";" + tipo;
-        DALUtil.adicionarLinhaCSV(caminho, novaLinha);
+        int colon = passwordHash.indexOf(':');
+        String salt = colon >= 0 ? passwordHash.substring(0, colon) : "";
+        String hash = colon >= 0 ? passwordHash.substring(colon + 1) : passwordHash;
+
+        DALUtil.adicionarLinhaCSV(caminho, email + ";" + salt + ";" + hash + ";" + tipo + ";true");
     }
 
     /**
-     * Atualiza o hash da palavra-chave de um utilizador existente.
-     * @param email            Email do utilizador a atualizar.
-     * @param novaPasswordHash Novo hash PBKDF2.
-     * @param pastaBase        Caminho da pasta de dados.
+     * Atualiza o hash da password de um utilizador existente.
+     * @param novaPasswordHash Novo hash no formato salt:hash.
      */
     public static void atualizarPassword(String email, String novaPasswordHash, String pastaBase) {
         if (email == null || novaPasswordHash == null) return;
-
         String caminho = pastaBase + File.separator + NOME_FICHEIRO;
-        List<String> linhasAntigas = DALUtil.lerFicheiro(caminho);
+        List<String> linhas = DALUtil.lerFicheiro(caminho);
+        if (linhas.isEmpty()) return;
 
-        if (linhasAntigas.isEmpty()) return;
+        int colon = novaPasswordHash.indexOf(':');
+        String novoSalt = colon >= 0 ? novaPasswordHash.substring(0, colon) : "";
+        String novoHash = colon >= 0 ? novaPasswordHash.substring(colon + 1) : novaPasswordHash;
 
-        List<String> linhasAtualizadas = new ArrayList<>();
+        List<String> novas = new ArrayList<>();
         boolean atualizado = false;
-
-        for (String linha : linhasAntigas) {
-            String[] dados = linha.split(";", -1);
-
-            if (linha.equalsIgnoreCase(CABECALHO)) {
-                linhasAtualizadas.add(linha);
-                continue;
-            }
-
-            if (dados.length >= 3 && dados[0].trim().equalsIgnoreCase(email)) {
-                linhasAtualizadas.add(dados[0] + ";" + novaPasswordHash + ";" + dados[2]);
+        for (String linha : linhas) {
+            if (linha.equalsIgnoreCase(CABECALHO)) { novas.add(linha); continue; }
+            String[] d = linha.split(";", -1);
+            if (d.length >= 4 && d[0].trim().equalsIgnoreCase(email)) {
+                String ativo = d.length >= 5 ? d[4].trim() : "true";
+                novas.add(d[0].trim() + ";" + novoSalt + ";" + novoHash + ";" + d[3].trim() + ";" + ativo);
                 atualizado = true;
             } else {
-                linhasAtualizadas.add(linha);
+                novas.add(linha);
             }
         }
-
-        if (atualizado) {
-            DALUtil.reescreverFicheiro(caminho, linhasAtualizadas);
-        }
+        if (atualizado) DALUtil.reescreverFicheiro(caminho, novas);
     }
 
     /**
-     * Remove a credencial de um utilizador pelo seu email.
-     * @param email Email do utilizador.
-     * @param pastaBase Caminho da pasta de dados.
+     * Remove a credencial de um utilizador pelo email.
      */
     public static void removerCredencial(String email, String pastaBase) {
         String caminho = pastaBase + File.separator + NOME_FICHEIRO;
         List<String> linhas = DALUtil.lerFicheiro(caminho);
         List<String> novas = new ArrayList<>();
         boolean encontrou = false;
-
         for (String linha : linhas) {
-            if (linha.equalsIgnoreCase(CABECALHO)) {
-                novas.add(linha);
-                continue;
-            }
-            String[] dados = linha.split(";", -1);
-            if (dados.length >= 1 && dados[0].trim().equalsIgnoreCase(email)) {
+            if (linha.equalsIgnoreCase(CABECALHO)) { novas.add(linha); continue; }
+            String[] d = linha.split(";", -1);
+            if (d.length >= 1 && d[0].trim().equalsIgnoreCase(email)) {
                 encontrou = true;
-                continue; // salta esta linha (remove)
+            } else {
+                novas.add(linha);
             }
-            novas.add(linha);
         }
-
-        if (encontrou) {
-            DALUtil.reescreverFicheiro(caminho, novas);
-        }
+        if (encontrou) DALUtil.reescreverFicheiro(caminho, novas);
     }
 }

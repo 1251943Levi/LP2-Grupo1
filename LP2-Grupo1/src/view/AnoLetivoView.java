@@ -36,6 +36,35 @@ public class AnoLetivoView {
         return Consola.lerInt(mensagem);
     }
 
+    /**
+     * Mostra a lista de anos existentes com estado e pede ao gestor para selecionar um.
+     * @return O ano letivo selecionado, ou null se a lista estiver vazia.
+     */
+    public AnoLetivo pedirSelecaoAno(List<AnoLetivo> anos) {
+        Consola.imprimirTitulo("Anos Letivos Disponíveis");
+        if (anos == null || anos.isEmpty()) {
+            Consola.imprimirInfo("Não existem anos letivos em PLANEAMENTO para iniciar.");
+            Consola.pausar();
+            return null;
+        }
+        System.out.printf("  %-4s  %-8s  %s%n", "Nº", "Ano", "Estado");
+        Consola.imprimirLinha();
+        for (int i = 0; i < anos.size(); i++) {
+            AnoLetivo a = anos.get(i);
+            System.out.printf("  [%d]  %-8d  %s%n", i + 1, a.getAno(), a.getEstado());
+        }
+        Consola.imprimirLinha();
+        while (true) {
+            try {
+                int op = Consola.lerInt("Selecione o número do ano");
+                if (op >= 1 && op <= anos.size()) return anos.get(op - 1);
+                Consola.imprimirErro("Opção fora do intervalo (1-" + anos.size() + ").");
+            } catch (utils.CancelamentoException e) {
+                throw e;
+            }
+        }
+    }
+
     public String pedirSiglaUc(String mensagem) {
         return Consola.lerString(mensagem).toUpperCase().trim();
     }
