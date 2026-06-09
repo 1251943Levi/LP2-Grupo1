@@ -1,8 +1,8 @@
 package dal;
 
 import common.ConfigApp;
-import common.PasswordHasher;
 import model.LoginModel;
+import utils.SegurancaPasswords;
 
 import java.util.List;
 
@@ -44,23 +44,15 @@ public interface LoginDAL {
     int contar();
 
     /**
-     * Constrói o registo do administrador de arranque a partir de config.properties.
-     * Partilhado pelas duas implementações para garantir o mesmo seed.
+     * Constrói o registo do administrador de arranque usando PBKDF2 (algoritmo do projeto).
+     * A password vem de admin.password no config.properties (por omissão "admin123").
      */
     static LoginModel adminPorOmissao() {
-        String combinado = ConfigApp.ADMIN_PASSWORD_HASH;
-        String salt;
-        String hash;
-        String[] partes = combinado.split(":", 2);
-        if (partes.length == 2 && !partes[0].isBlank() && !partes[1].isBlank()) {
-            salt = partes[0];
-            hash = partes[1];
-        } else {
-            System.err.println(">> AVISO: admin.password.hash em falta/inválido. A usar password por omissão \"admin123\".");
-            PasswordHasher.Credencial c = PasswordHasher.criar("admin123");
-            salt = c.salt();
-            hash = c.hash();
-        }
+        String passwordLimpa = ConfigApp.get("admin.password", "admin123");
+        String credencial = SegurancaPasswords.gerarCredencialMista(passwordLimpa);
+        int colon = credencial.indexOf(':');
+        String salt = credencial.substring(0, colon);
+        String hash = credencial.substring(colon + 1);
         return new LoginModel(ConfigApp.ADMIN_EMAIL, hash, salt, "GESTOR", true);
     }
 }

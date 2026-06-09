@@ -54,9 +54,15 @@ public class LoginDALSql implements LoginDAL {
             cm.executarScript(lerSchema());
         }
         if (contar() == 0) {
-            if (!importarDeCsv()) {
-                criar(LoginDAL.adminPorOmissao());
-            }
+            importarDeCsv();
+        }
+        // Garante sempre que o admin existe com hash PBKDF2 correto.
+        // O upsert permite corrigir registos criados com algoritmo diferente (ex: SHA-256).
+        LoginModel admin = LoginDAL.adminPorOmissao();
+        if (!existe(admin.getEmail())) {
+            criar(admin);
+        } else {
+            atualizar(admin);
         }
     }
 
