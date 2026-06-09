@@ -1,8 +1,9 @@
 package model;
 
+import common.ConfigApp;
 import dal.AnoLetivoDAL;
-import utils.Config;
-
+import dal.AnoLetivoDALFile;
+import dal.AnoLetivoDALSql;
 
 /**
  * Repositório de estado da sessão em curso.
@@ -22,12 +23,15 @@ public class RepositorioDados {
     public RepositorioDados() {
         this.utilizadorLogado = null;
 
-        AnoLetivo ativo = AnoLetivoDAL.obterAnoAtivo(Config.PASTA_BD);
+        AnoLetivoDAL dal = ConfigApp.isModoSql() ? new AnoLetivoDALSql() : new AnoLetivoDALFile();
+        dal.inicializar();
+
+        AnoLetivo ativo = dal.obterAnoAtivo();
         if (ativo == null) {
-            ativo = AnoLetivoDAL.procurarPorAno(2026, Config.PASTA_BD);
+            ativo = dal.procurarPorAno(2026);
             if (ativo == null) {
                 ativo = new AnoLetivo(2026);
-                AnoLetivoDAL.adicionar(ativo, Config.PASTA_BD);
+                dal.adicionar(ativo);
             }
         }
         this.anoAtual = ativo.getAno();
@@ -40,7 +44,7 @@ public class RepositorioDados {
     public void setUtilizadorLogado(Utilizador u) { this.utilizadorLogado = u; }
 
     /** @return Ano letivo ativo no sistema. */
-    public int  getAnoAtual() { return anoAtual; }
+    public int getAnoAtual() { return anoAtual; }
 
     /**
      * Atualiza o ano letivo após avançar o ciclo académico.
