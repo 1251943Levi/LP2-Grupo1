@@ -7,6 +7,8 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,6 +19,25 @@ import java.util.List;
  */
 public class DALUtil {
     private DALUtil() {}
+
+    /** Caminhos onde o ficheiro de schema SQL do AnoLetivo pode estar. */
+    public static final String[] SCHEMA_ANO_LETIVO_CAMINHOS = {
+            "sql/schema_ano_letivo.sql",
+            "LP2-Grupo1/sql/schema_ano_letivo.sql",
+            "../sql/schema_ano_letivo.sql"
+    };
+
+    /** SQL de fallback caso o ficheiro de schema não exista em nenhum caminho. */
+    public static final String SCHEMA_ANO_LETIVO_FALLBACK =
+            "CREATE TABLE [anoLetivo] (\n"
+            + "    ano    INT          NOT NULL PRIMARY KEY,\n"
+            + "    estado NVARCHAR(20) NOT NULL DEFAULT 'PLANEAMENTO'\n"
+            + ");\n"
+            + "CREATE TABLE [anoLetivoHistorico] (\n"
+            + "    ano          INT          NOT NULL PRIMARY KEY,\n"
+            + "    estado       NVARCHAR(20) NOT NULL,\n"
+            + "    dataArquivo  NVARCHAR(30)\n"
+            + ");\n";
 
     /**
      * Garante que o ficheiro CSV existe com o cabeçalho correto.
@@ -85,6 +106,27 @@ public class DALUtil {
         linhas.add(linha);
 
         reescreverFicheiro(caminhoCompleto, linhas);
+    }
+
+    /**
+     * Lê um ficheiro de schema SQL procurando nos caminhos fornecidos por ordem.
+     * Se nenhum ficheiro for encontrado, devolve o fallback embutido.
+     *
+     * @param caminhos Caminhos a tentar, por ordem de preferência.
+     * @param fallback SQL a usar caso nenhum ficheiro exista.
+     * @return Conteúdo do schema SQL.
+     */
+    public static String lerSchema(String[] caminhos, String fallback) {
+        for (String c : caminhos) {
+            Path p = Path.of(c);
+            if (Files.exists(p)) {
+                try { return Files.readString(p); }
+                catch (IOException e) {
+                    throw new dal.db.DataAccessException("Falha ao ler schema: " + p, e);
+                }
+            }
+        }
+        return fallback;
     }
 
     /**

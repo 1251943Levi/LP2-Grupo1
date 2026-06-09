@@ -1,6 +1,9 @@
 package utils;
 
+import common.ConfigApp;
 import dal.AnoLetivoDAL;
+import dal.AnoLetivoDALFile;
+import dal.AnoLetivoDALSql;
 import model.AnoLetivo;
 
 import java.util.List;
@@ -14,9 +17,9 @@ public final class Config {
 
     /**
      * Pasta onde estão guardados todos os ficheiros CSV da aplicação.
-     * Valor centralizado em {@link common.ConfigApp#PASTA_BD} (lê config.properties).
+     * Valor centralizado em {@link ConfigApp#PASTA_BD} (lê config.properties).
      */
-    public static final String PASTA_BD = common.ConfigApp.PASTA_BD;
+    public static final String PASTA_BD = ConfigApp.PASTA_BD;
 
     /**
      * Devolve o ano letivo ativo segundo AnoLetivoDAL.
@@ -26,10 +29,12 @@ public final class Config {
      *         devolve o mais recente registado; em último caso 2026.
      */
     public static int getAnoAtual() {
-        AnoLetivo ativo = AnoLetivoDAL.obterAnoAtivo(PASTA_BD);
+        AnoLetivoDAL dal = ConfigApp.isModoSql() ? new AnoLetivoDALSql() : new AnoLetivoDALFile();
+
+        AnoLetivo ativo = dal.obterAnoAtivo();
         if (ativo != null) return ativo.getAno();
 
-        List<AnoLetivo> todos = AnoLetivoDAL.listarTodos(PASTA_BD);
+        List<AnoLetivo> todos = dal.listarTodos();
         int max = 0;
         for (AnoLetivo a : todos) {
             if (a.getAno() > max) max = a.getAno();
