@@ -130,24 +130,54 @@ public class DocenteController {
             int anoAtivo = repo.getAnoAtual();
             System.out.println("  Ano Letivo: " + anoAtivo + " (Assumido pelo sistema)");
 
-            double notaMomento = -1;
-            boolean notaValida = false;
-            while (!notaValida) {
-                notaMomento = view.pedirNotaMomento();
-                if ((notaMomento >= 0 && notaMomento <= 20) || notaMomento == -1) {
-                    notaValida = true;
-                    break;
-                } else {
-                    System.out.println("  [ERRO] Nota inválida. Insira um valor entre 0 e 20 (ou -1 para falta).");
+            // Obter e mostrar o número de momentos da UC
+            int numMomentos = docenteBll.obterNumMomentosDaUC(siglaUc);
+            view.mostrarNumMomentosDaUC(siglaUc, numMomentos);
+
+            if (numMomentos > 1) {
+                // UC com múltiplos momentos: pedir N notas e calcular a média
+                List<Double> notas = new ArrayList<>();
+                for (int momento = 1; momento <= numMomentos; momento++) {
+                    double notaMomento = -1;
+                    boolean notaValida = false;
+                    while (!notaValida) {
+                        notaMomento = view.pedirNotaPorMomento(momento, numMomentos);
+                        if ((notaMomento >= 0 && notaMomento <= 20) || notaMomento == -1) {
+                            notaValida = true;
+                        } else {
+                            System.out.println("  [ERRO] Nota inválida. Insira um valor entre 0 e 20 (ou -1 para falta).");
+                        }
+                    }
+                    String erro = docenteBll.lancarNota(numMec, siglaUc, anoAtivo, notaMomento, docente);
+                    if (erro != null) {
+                        System.out.println("  >> " + erro);
+                        break;
+                    }
+                    notas.add(notaMomento);
                 }
-            }
-
-            String erro = docenteBll.lancarNota(numMec, siglaUc, anoAtivo, notaMomento, docente);
-
-            if (erro != null) {
-                System.out.println("  >> " + erro);
+                if (notas.size() == numMomentos) {
+                    double notaFinal = docenteBll.calcularNotaFinal(notas);
+                    view.mostrarNotaFinalCalculada(notaFinal);
+                    view.mostrarSucessoLancamento();
+                }
             } else {
-                view.mostrarSucessoLancamento();
+                // UC com 1 momento: comportamento original
+                double notaMomento = -1;
+                boolean notaValida = false;
+                while (!notaValida) {
+                    notaMomento = view.pedirNotaMomento();
+                    if ((notaMomento >= 0 && notaMomento <= 20) || notaMomento == -1) {
+                        notaValida = true;
+                    } else {
+                        System.out.println("  [ERRO] Nota inválida. Insira um valor entre 0 e 20 (ou -1 para falta).");
+                    }
+                }
+                String erro = docenteBll.lancarNota(numMec, siglaUc, anoAtivo, notaMomento, docente);
+                if (erro != null) {
+                    System.out.println("  >> " + erro);
+                } else {
+                    view.mostrarSucessoLancamento();
+                }
             }
 
         } catch (utils.CancelamentoException e) {
