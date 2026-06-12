@@ -187,9 +187,29 @@ public class AnoLetivoBLL {
 
         new GestorBLL().avancarAnoLetivo(repo, view);
 
+        // Reset dos momentos de avaliação: cada novo ano começa sem
+        // configurações herdadas. Feito após a transição dos alunos e
+        // antes de criar o novo ano letivo em PLANEAMENTO.
+        resetarMomentosUcs();
+
         int proximo = atual.getAno() + 1;
         if (dal.procurarPorAno(proximo) == null)
             dal.adicionar(new AnoLetivo(proximo));
+    }
+
+    /**
+     * Repõe numMomentos = 1 em todas as UCs ativas, persistindo em ucs.csv
+     * através do UcDAL. Garante que cada ano letivo arranca sem momentos
+     * herdados do ano anterior.
+     */
+    private void resetarMomentosUcs() {
+        String[] ucs = UcDAL.obterListaUcs(ConfigApp.PASTA_BD);
+        for (String entrada : ucs) {
+            // entrada tem o formato "SIGLA - Nome"
+            String sigla = entrada.split(" - ")[0].trim();
+            UcDAL.atualizarMomentos(sigla, 1, ConfigApp.PASTA_BD);
+        }
+        System.out.println("Momentos de avaliação resetados para todas as UCs.");
     }
 
     // ============================================================
