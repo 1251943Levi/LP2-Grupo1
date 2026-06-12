@@ -17,6 +17,8 @@ public class UnidadeCurricular {
     private int anoCurricular;
     private int ects;
     private Docente docenteResponsavel;
+    /** Número de momentos de avaliação (1 = comportamento original; 2 = média de 2 notas). */
+    private int numMomentos;
 
     private final Curso[] cursos;
     private int totalCursos;
@@ -37,6 +39,7 @@ public class UnidadeCurricular {
         this.anoCurricular      = anoCurricular;
         this.docenteResponsavel = docenteResponsavel;
         this.ects               = ects;
+        this.numMomentos        = 1;
         this.cursos             = new Curso[10];
         this.totalCursos        = 0;
     }
@@ -71,6 +74,9 @@ public class UnidadeCurricular {
     /** @return Docente responsável pela UC. */
     public Docente getDocenteResponsavel(){ return docenteResponsavel; }
 
+    /** @return Número de momentos de avaliação configurados para esta UC (1 por omissão). */
+    public int getNumMomentos(){ return numMomentos; }
+
     /** @return Array dos cursos aos quais a UC está associada. */
     public Curso[] getCursos(){ return cursos; }
 
@@ -87,6 +93,9 @@ public class UnidadeCurricular {
 
     /** @param ects Novo valor de ECTS. */
     public void setEcts(int ects)                   { this.ects = ects; }
+
+    /** @param numMomentos Número de momentos de avaliação (mínimo 1). */
+    public void setNumMomentos(int numMomentos)      { this.numMomentos = Math.max(1, numMomentos); }
 
     // ---------- MÉTODOS DE LÓGICA E AÇÃO ----------
 

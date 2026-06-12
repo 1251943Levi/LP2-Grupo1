@@ -43,6 +43,14 @@ public class UcBLL {
                 if (curso != null) uc.adicionarCurso(curso);
             }
 
+            // Ler número de momentos (coluna 6, retrocompatível)
+            if (dados.length >= 7 && !dados[6].trim().isEmpty()) {
+                try {
+                    int momentos = Integer.parseInt(dados[6].trim());
+                    if (momentos > 1) uc.setNumMomentos(momentos);
+                } catch (NumberFormatException ignored) {}
+            }
+
             return uc;
 
         } catch (NumberFormatException e) {

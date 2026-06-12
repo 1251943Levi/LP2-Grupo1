@@ -1,5 +1,6 @@
 package controller;
 
+import common.ConfigApp;
 import bll.EstudanteBLL;
 import bll.PagamentoBLL;
 import model.Estudante;
@@ -145,7 +146,7 @@ public class EstudanteController {
 
             int ano = utils.Consola.lerInt("Introduza o Ano Letivo que deseja consultar");
 
-            java.util.List<String> historico = dal.HistoricoDAL.consultarHistoricoPorAluno(estudanteAtivo.getNumeroMecanografico(), "bd");
+            java.util.List<String> historico = dal.HistoricoDAL.consultarHistoricoPorAluno(estudanteAtivo.getNumeroMecanografico(), ConfigApp.PASTA_BD);
 
             boolean encontrou = false;
             for (String registo : historico) {
