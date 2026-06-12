@@ -86,10 +86,39 @@ public class DocenteView {
 
     public int    pedirNumeroAluno()  { return Consola.lerInt("Nº Mecanográfico do Aluno"); }
     public String pedirSiglaUc()      { return Consola.lerString("Sigla da UC"); }
-    public int    pedirAnoLetivo()    { return Consola.lerInt("Ano Letivo (ex: 2026)"); }public double pedirNotaNormal()   { return Consola.lerNota("Nota Normal"); }
+    public int    pedirAnoLetivo()    { return Consola.lerInt("Ano Letivo (ex: 2026)"); }
+    public double pedirNotaNormal()   { return Consola.lerNota("Nota Normal"); }
     public double pedirNotaRecurso()  { return Consola.lerNota("Nota Recurso"); }
     public double pedirNotaEspecial() { return Consola.lerNota("Nota Especial"); }
     public double pedirNotaMomento()  { return Consola.lerNota("Nota do momento de avaliação (0 a 20)"); }
+
+    /**
+     * Mostra o número de momentos de avaliação configurados para a UC selecionada.
+     * @param siglaUc     Sigla da UC.
+     * @param numMomentos Número de momentos.
+     */
+    public void mostrarNumMomentosDaUC(String siglaUc, int numMomentos) {
+        Consola.imprimirInfo("UC " + siglaUc.toUpperCase()
+                + " tem " + numMomentos + " momento(s) de avaliação.");
+    }
+
+    /**
+     * Pede a nota de um momento específico (ex.: "Momento 1 de 2").
+     * @param momentoAtual Índice do momento atual (1-based).
+     * @param totalMomentos Total de momentos da UC.
+     * @return Nota introduzida.
+     */
+    public double pedirNotaPorMomento(int momentoAtual, int totalMomentos) {
+        return Consola.lerNota("Nota do Momento " + momentoAtual + " de " + totalMomentos + " (0 a 20)");
+    }
+
+    /**
+     * Mostra a nota final calculada (média dos momentos lançados).
+     * @param notaFinal Valor da média.
+     */
+    public void mostrarNotaFinalCalculada(double notaFinal) {
+        Consola.imprimirInfo(String.format("Nota final calculada (média): %.2f", notaFinal));
+    }
 
     // ---------- PASSWORD ----------
 

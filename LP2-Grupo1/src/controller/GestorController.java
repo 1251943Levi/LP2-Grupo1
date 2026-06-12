@@ -1,5 +1,6 @@
 package controller;
 
+import common.ConfigApp;
 import model.*;
 import utils.*;
 import view.GestorView;
@@ -485,9 +486,9 @@ public class GestorController {
             for (String cursoStr : todosCursos) {
                 String sigla = cursoStr.split(" - ")[0];
 
-                boolean temAno1 = dal.UcDAL.contarUcsPorCursoEAno(sigla, 1, "bd") > 0;
-                boolean temAno2 = dal.UcDAL.contarUcsPorCursoEAno(sigla, 2, "bd") > 0;
-                boolean temAno3 = dal.UcDAL.contarUcsPorCursoEAno(sigla, 3, "bd") > 0;
+                boolean temAno1 = dal.UcDAL.contarUcsPorCursoEAno(sigla, 1, ConfigApp.PASTA_BD) > 0;
+                boolean temAno2 = dal.UcDAL.contarUcsPorCursoEAno(sigla, 2, ConfigApp.PASTA_BD) > 0;
+                boolean temAno3 = dal.UcDAL.contarUcsPorCursoEAno(sigla, 3, ConfigApp.PASTA_BD) > 0;
 
                 if (temAno1 && temAno2 && temAno3) {
                     cursosAptos.add(cursoStr);
@@ -976,7 +977,7 @@ public class GestorController {
         String siglaUc = ucs[escolha - 1].split(" - ")[0];
 
         // Obter cursos associados antes de tentar remover
-        List<String> cursosAssociados = UcDAL.obterCursosPorUc(siglaUc, "bd");
+        List<String> cursosAssociados = UcDAL.obterCursosPorUc(siglaUc, ConfigApp.PASTA_BD);
 
         if (view.confirmarRemocaoBoolean(siglaUc)) {
             if (gestorBll.removerUc(siglaUc)) {
@@ -1000,7 +1001,7 @@ public class GestorController {
             String siglaUc = ucs[escolhaUc - 1].split(" - ")[0];
 
             // Obter cursos associados a esta UC
-            List<String> cursosAssociados = UcDAL.obterCursosPorUc(siglaUc, "bd");
+            List<String> cursosAssociados = UcDAL.obterCursosPorUc(siglaUc, ConfigApp.PASTA_BD);
             if (cursosAssociados.isEmpty()) {
                 view.mostrarMensagem("Esta UC não está associada a nenhum curso.");
                 return;
@@ -1015,7 +1016,7 @@ public class GestorController {
             if (escolhaCurso == -1 || escolhaCurso == 0) return;
             String siglaCurso = cursosAssociados.get(escolhaCurso - 1);
 
-            if (UcDAL.removerAssociacaoUcCurso(siglaUc, siglaCurso, "bd")) {
+            if (UcDAL.removerAssociacaoUcCurso(siglaUc, siglaCurso, ConfigApp.PASTA_BD)) {
                 view.mostrarSucessoAssociacaoRemovida();
             } else {
                 view.mostrarErroAssociacaoRemovida();
