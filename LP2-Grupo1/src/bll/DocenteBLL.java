@@ -65,11 +65,14 @@ public class DocenteBLL {
         if (uc == null)
             return "ERRO: A UC '" + siglaUc + "' não foi encontrada no sistema.";
 
+        int numMomentos = uc.getNumMomentos(); // 1 por omissão; >1 se configurado
+
         Avaliacao avaliacaoExistente = AvaliacaoDAL.obterAvaliacao(numMec, siglaUc, ano, PASTA_BD);
 
         if (avaliacaoExistente != null) {
-            if (avaliacaoExistente.getTotalAvaliacoesLancadas() >= 3) {
-                return "ERRO: O aluno já tem as 3 notas máximas lançadas para esta UC.";
+            if (avaliacaoExistente.getTotalAvaliacoesLancadas() >= numMomentos) {
+                return "ERRO: O aluno já tem as " + numMomentos
+                        + " nota(s) máxima(s) lançadas para esta UC.";
             }
             avaliacaoExistente.adicionarResultado(notaMomento);
             AvaliacaoDAL.atualizarAvaliacao(avaliacaoExistente, numMec, PASTA_BD);
@@ -78,10 +81,31 @@ public class DocenteBLL {
         } else {
             Avaliacao novaAvaliacao = new Avaliacao(uc, ano);
             novaAvaliacao.adicionarResultado(notaMomento);
-            // FIX: era "adicionarAvaliacao(novaAvaliacao)" — faltavam numMec e PASTA_BD
             AvaliacaoDAL.adicionarAvaliacao(novaAvaliacao, numMec, PASTA_BD);
             return null;
         }
+    }
+
+    /**
+     * Calcula a nota final de uma UC como média simples dos momentos lançados.
+     * @param notas Lista com as notas de cada momento.
+     * @return Média aritmética simples, ou 0.0 se a lista estiver vazia.
+     */
+    public double calcularNotaFinal(List<Double> notas) {
+        if (notas == null || notas.isEmpty()) return 0.0;
+        double soma = 0;
+        for (double nota : notas) soma += nota;
+        return soma / notas.size();
+    }
+
+    /**
+     * Devolve o número de momentos de avaliação configurados para uma UC.
+     * @param siglaUc Sigla da UC.
+     * @return Número de momentos (mínimo 1).
+     */
+    public int obterNumMomentosDaUC(String siglaUc) {
+        UnidadeCurricular uc = new UcBLL().procurarUCCompleta(siglaUc);
+        return (uc != null) ? uc.getNumMomentos() : 1;
     }
 
     /**

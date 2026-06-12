@@ -24,12 +24,11 @@ public class MainController {
 
     private final MainView view;
     private final RepositorioDados repositorio;
-    private final AutenticacaoBLL bll;
+    private AutenticacaoBLL bll;
 
     public MainController(MainView view) {
         this.view        = view;
         this.repositorio = new RepositorioDados();
-        this.bll         = new AutenticacaoBLL();
     }
 
     /**
@@ -38,6 +37,10 @@ public class MainController {
     public void iniciar() {
         int modo = view.pedirModoPersistencia();
         ConfigApp.definirModo(modo == 2 ? "sql" : "file");
+        // AutenticacaoBLL só pode ser criada DEPOIS de definirModo(), pois os
+        // seus DALs (LoginController, GestorDAL, DocenteDAL) são escolhidos
+        // no momento da construção, consoante ConfigApp.isModoSql().
+        this.bll = new AutenticacaoBLL();
         iniciarSistema();
         view.mostrarBemVindo();
 
