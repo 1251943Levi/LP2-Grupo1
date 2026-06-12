@@ -55,13 +55,26 @@ public class GestorBLL {
         int anoLetivoCorrente = repo.getAnoAtual();
         int proximoAnoLetivo  = anoLetivoCorrente + 1;
 
+        // ── Verificar se existem alunos com propinas em dívida ─────────
+        List<Estudante> todosEstudantes = estudanteDAL.carregarTodos();
+        List<Estudante> devedores = new ArrayList<>();
+        for (Estudante e : todosEstudantes) {
+            if (e != null && e.getSaldoDevedor() > 0) {
+                devedores.add(e);
+            }
+        }
+        if (!devedores.isEmpty()) {
+            view.mostrarErroAvancoBloqueadoPorDividas(devedores);
+            return; // interrompe o avanço
+        }
+
+        // ── Verificação de quórum ──────────────────────────────────────
         String[] cursos = CursoDAL.obterListaCursos(PASTA_BD);
         if (cursos.length == 0) {
             view.mostrarErroCarregarDados("Cursos");
             return;
         }
 
-        // ── Verificação de quórum ──────────────────────────────────────
         view.mostrarVerificacaoQuorum();
         CursoBLL cursoBll = new CursoBLL();
         for (String c : cursos) {
@@ -146,6 +159,13 @@ public class GestorBLL {
      */
     public String registarEstudante(String nome, String nif, String morada,
                                     String dataNasc, String siglaCurso, int anoInscricao) {
+
+        AnoLetivoBLL anoBll = new AnoLetivoBLL();
+        EstadoAnoLetivo estado = anoBll.getEstadoAnoAtual();
+        if (estado != EstadoAnoLetivo.PLANEAMENTO) {
+            System.err.println(">> Registo de estudante bloqueado: ano letivo não está em PLANEAMENTO (estado atual: " + estado + ").");
+            return null;
+        }
 
         // Chamada atualizada usando a instância estudanteDAL
         int    numMec    = estudanteDAL.obterProximoNumeroMecanografico(anoInscricao);

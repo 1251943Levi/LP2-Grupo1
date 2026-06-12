@@ -27,7 +27,8 @@ public class DocenteView {
                 "Alterar Password",
                 "Ver Dados Pessoais",
                 "Ver as Minhas Unidades Curriculares",
-                "Consultar Histórico de um Aluno"
+                "Consultar Histórico de um Aluno",
+                "Definir Momentos de Avaliação"
         }, "Sair / Logout");
         return Consola.lerOpcaoMenu();
     }
@@ -160,6 +161,31 @@ public class DocenteView {
         Consola.imprimirTitulo("Lançar nota para " + nome + " (" + numMec + ")");
         Consola.imprimirDicaFormulario();
     }
+    public void mostrarCabecalhoDefinirMomentos() {
+        Consola.imprimirCabecalho("Definir Momentos de Avaliação");
+        Consola.imprimirDicaFormulario();
+    }
 
+    public void mostrarUcsParaDefinicao(Docente docente) {
+        Consola.imprimirTitulo("Suas Unidades Curriculares");
+        if (docente.getTotalUcsLecionadas() == 0) {
+            Consola.imprimirInfo("Não leciona nenhuma UC.");
+            return;
+        }
+        UnidadeCurricular[] ucs = docente.getUcsLecionadas();
+        for (int i = 0; i < docente.getTotalUcsLecionadas(); i++) {
+            System.out.printf("  [%d] %s - %s%n", i + 1, ucs[i].getSigla(), ucs[i].getNome());
+        }
+        Consola.imprimirLinha();
+    }
+
+    public int pedirNumeroMomentos() {
+        return Consola.lerInt("Número de momentos (1 a 3)");
+    }
+
+    public void mostrarSucessoMomentos(String siglaUc, int momentos) {
+        Consola.imprimirSucesso(String.format("UC %s: momentos definidos para %d.", siglaUc, momentos));
+        Consola.pausar();
+    }
 }
 

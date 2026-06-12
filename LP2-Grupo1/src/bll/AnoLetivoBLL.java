@@ -14,12 +14,7 @@ import dal.HistoricoAnoLetivoDALSql;
 import dal.HistoricoDAL;
 import dal.InscricaoDAL;
 import dal.UcDAL;
-import model.AnoLetivo;
-import model.Avaliacao;
-import model.Curso;
-import model.EstadoAnoLetivo;
-import model.Estudante;
-import model.RepositorioDados;
+import model.*;
 import view.AnoLetivoView;
 import view.GestorView;
 
@@ -96,6 +91,9 @@ public class AnoLetivoBLL {
 
         List<String> errosMomentos = validarMomentosUcs();
         if (!errosMomentos.isEmpty()) {
+            List<String> pendentes = listarMomentosUcPendentes();
+            view.mostrarPendenciasMomentosUc(pendentes);   // <-- NOVO
+
             StringBuilder msg = new StringBuilder("Bloqueado para iniciar — momentos de avaliação em falta:");
             for (String e : errosMomentos) msg.append("\n  - ").append(e);
             throw new EstadoInvalidoException(msg.toString());
@@ -320,5 +318,36 @@ public class AnoLetivoBLL {
         if (siglaUc == null) return true;
         if (siglaUc.equalsIgnoreCase("TESTE99")) return false;
         return true;
+    }
+
+    /**
+     * Obtém o estado do ano letivo ativo (mais recente).
+     */
+    public EstadoAnoLetivo getEstadoAnoAtual() {
+        AnoLetivo atual = dal.obterAnoAtivo();
+        return atual == null ? null : atual.getEstado();
+    }
+
+    /**
+     * Lista as UCs que não têm momentos de avaliação definidos,
+     * incluindo o nome/sigla do docente responsável.
+     */
+    private List<String> listarMomentosUcPendentes() {
+        List<String> pendentes = new ArrayList<>();
+        String[] ucs = UcDAL.obterListaUcs(ConfigApp.PASTA_BD);
+        for (String linha : ucs) {
+            String sigla = linha.split(" - ")[0];
+            if (!mockTemMomentosDefinidos(sigla)) {
+                UnidadeCurricular uc = new UcBLL().procurarUCCompleta(sigla);
+                String docenteInfo;
+                if (uc != null && uc.getDocenteResponsavel() != null) {
+                    docenteInfo = uc.getDocenteResponsavel().getNome() + " (" + uc.getDocenteResponsavel().getSigla() + ")";
+                } else {
+                    docenteInfo = "Docente não atribuído";
+                }
+                pendentes.add("UC " + sigla + " — Docente: " + docenteInfo);
+            }
+        }
+        return pendentes;
     }
 }
