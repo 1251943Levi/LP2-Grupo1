@@ -45,6 +45,7 @@ public class DocenteController {
                     case 5: verDadosPessoais(); break;
                     case 6: verMinhasUcs(); break;
                     case 7: consultarHistoricoAluno(); break;
+                    case 8: definirMomentosAvaliacao(); break;
                     case 0:
                         view.mostrarDespedida();
                         repo.limparSessao();
@@ -289,6 +290,36 @@ public class DocenteController {
             }
             utils.Consola.pausar();
         } catch (utils.CancelamentoException e) {
+            view.mostrarOperacaoCancelada();
+        }
+    }
+
+    /**
+     * Permite ao docente definir o número de momentos de avaliação
+     * para uma das suas UCs, apenas se o ano letivo estiver em PLANEAMENTO.
+     */
+    private void definirMomentosAvaliacao() {
+        view.mostrarCabecalhoDefinirMomentos();
+        if (docente.getTotalUcsLecionadas() == 0) {
+            view.mostrarErro("Não leciona nenhuma UC.");
+            return;
+        }
+        view.mostrarUcsParaDefinicao(docente);
+        try {
+            int escolha = Consola.lerInt("Selecione o número da UC");
+            if (escolha < 1 || escolha > docente.getTotalUcsLecionadas()) {
+                view.mostrarErro("Opção inválida.");
+                return;
+            }
+            UnidadeCurricular uc = docente.getUcsLecionadas()[escolha - 1];
+            int momentos = view.pedirNumeroMomentos();
+            String erro = docenteBll.definirMomentosAvaliacao(docente, uc.getSigla(), momentos);
+            if (erro == null) {
+                view.mostrarSucessoMomentos(uc.getSigla(), momentos);
+            } else {
+                view.mostrarErro(erro);
+            }
+        } catch (CancelamentoException e) {
             view.mostrarOperacaoCancelada();
         }
     }

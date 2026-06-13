@@ -195,6 +195,17 @@ public class AnoLetivoView {
         Consola.pausar();
     }
 
+    /**
+     * Mostra a lista de UCs que não têm momentos de avaliação definidos.
+     */
+    public void mostrarPendenciasMomentosUc(List<String> pendentes) {
+        Consola.imprimirTitulo("UCs sem momentos de avaliação definidos");
+        for (String p : pendentes) {
+            System.out.println("  - " + p);
+        }
+        Consola.imprimirLinha();
+    }
+
     // ---------- MENSAGENS ----------
 
     public void mostrarSucesso(String msg)  { Consola.imprimirSucesso(msg); Consola.pausar(); }

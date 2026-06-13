@@ -7,6 +7,7 @@ import dal.EstudanteDAL;
 import dal.InscricaoDAL;
 import dal.UcDAL;
 import model.Curso;
+import model.EstadoAnoLetivo;
 import model.Estudante;
 import controller.LoginController;
 import utils.EmailGenerator;
@@ -37,6 +38,13 @@ public class MatriculaBLL {
      */
     public String[] realizarAutoMatricula(String nome, String nif, String morada,
                                           String dataNasc, String siglaCurso, int anoAtual) {
+
+        AnoLetivoBLL anoBll = new AnoLetivoBLL();
+        EstadoAnoLetivo estado = anoBll.getEstadoAnoAtual();
+        if (estado != EstadoAnoLetivo.PLANEAMENTO) {
+            System.err.println(">> Auto‑matrícula bloqueada: o ano letivo não está em PLANEAMENTO (estado atual: " + estado + ").");
+            return null;
+        }
 
         if (UcDAL.contarUcsPorCursoEAno(siglaCurso, 1, PASTA_BD) == 0) {
             return null;

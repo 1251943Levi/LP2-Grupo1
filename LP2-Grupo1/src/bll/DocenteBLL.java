@@ -9,10 +9,7 @@ import dal.DocenteDALSql;
 import dal.EstudanteDAL;
 import dal.UcDAL;
 import dal.InscricaoDAL;
-import model.Avaliacao;
-import model.Docente;
-import model.Estudante;
-import model.UnidadeCurricular;
+import model.*;
 import controller.LoginController;
 import utils.Config;
 import java.util.ArrayList;
@@ -54,6 +51,11 @@ public class DocenteBLL {
      */
     public String lancarNota(int numMec, String siglaUc, int ano, double notaMomento, Docente d) {
         Estudante aluno = estudanteDAL.procurarPorNumMec(numMec);
+
+        AnoLetivoBLL anoBll = new AnoLetivoBLL();
+        if (anoBll.getEstadoAnoAtual() == EstadoAnoLetivo.PLANEAMENTO) {
+            return "ERRO: Não é possível lançar notas enquanto o ano letivo está em PLANEAMENTO.";
+        }
 
         if (aluno == null)
             return "ERRO: Aluno com nº " + numMec + " não encontrado.";
@@ -224,6 +226,12 @@ public class DocenteBLL {
      */
     public String lancarNotasEmLote(String siglaUc, int anoLetivo, Docente docente,
                                     java.util.function.Function<Integer, Double> obterNota) {
+
+        AnoLetivoBLL anoBll = new AnoLetivoBLL();
+        if (anoBll.getEstadoAnoAtual() == EstadoAnoLetivo.PLANEAMENTO) {
+            return "ERRO: Não é possível lançar notas enquanto o ano letivo está em PLANEAMENTO.";
+        }
+
         if (!lecionaEstaUC(docente, siglaUc)) {
             return "ERRO: Não lecciona a UC " + siglaUc;
         }
@@ -301,5 +309,24 @@ public class DocenteBLL {
                 aluno.getPercurso().registarAvaliacao(av);
             }
         }
+    }
+
+    /**
+     * Define o número de momentos de avaliação para uma unidade curricular.
+     * Apenas permitido quando o ano letivo ativo está em PLANEAMENTO.
+     */
+    public String definirMomentosAvaliacao(Docente docente, String siglaUc, int numMomentos) {
+        AnoLetivoBLL anoBll = new AnoLetivoBLL();
+        if (anoBll.getEstadoAnoAtual() != EstadoAnoLetivo.PLANEAMENTO) {
+            return "Apenas é permitido definir momentos de avaliação quando o ano letivo está em PLANEAMENTO.";
+        }
+        if (!lecionaEstaUC(docente, siglaUc)) {
+            return "Não leciona a UC " + siglaUc;
+        }
+        if (numMomentos < 1 || numMomentos > 3) {
+            return "Número de momentos inválido. Deve ser 1, 2 ou 3.";
+        }
+        UcDAL.atualizarMomentos(siglaUc, numMomentos, PASTA_BD);
+        return null;
     }
 }

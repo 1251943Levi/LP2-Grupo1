@@ -498,6 +498,20 @@ public class GestorView {
         Consola.imprimirErro("Não é possível remover a UC " + siglaUc + " pois está associada aos cursos:");
         for (String curso : cursos) System.out.println("    - " + curso);
     }
+    /**
+     * Mostra uma mensagem de erro quando o avanço do ano letivo é bloqueado
+     * devido a alunos com propinas em dívida.
+     */
+    public void mostrarErroAvancoBloqueadoPorDividas(List<Estudante> devedores) {
+        Consola.imprimirErro("Não é possível avançar o ano letivo: existem alunos com propinas em dívida.");
+        Consola.imprimirTitulo("Lista de Alunos Devedores");
+        for (Estudante e : devedores) {
+            System.out.printf("  %d - %s | Dívida: %.2f€%n",
+                    e.getNumeroMecanografico(), e.getNome(), e.getSaldoDevedor());
+        }
+        Consola.imprimirLinha();
+        Consola.pausar();
+    }
 
     // ---------- CAMPOS OPCIONAIS DE EDIÇÃO ----------
 
