@@ -329,4 +329,29 @@ public class DocenteBLL {
         UcDAL.atualizarMomentos(siglaUc, numMomentos, PASTA_BD);
         return null;
     }
+
+    /**
+     * Devolve a lista de UCs do docente que ainda não têm momentos definidos
+     * (momentos == 0). Usado para mostrar alerta no login quando o ano está
+     * em PLANEAMENTO.
+     */
+    public List<String> obterUcsSemMomentos(Docente docente) {
+        List<String> pendentes = new java.util.ArrayList<>();
+        UnidadeCurricular[] ucs = docente.getUcsLecionadas();
+        for (int i = 0; i < docente.getTotalUcsLecionadas(); i++) {
+            UnidadeCurricular uc = ucs[i];
+            if (uc != null && UcDAL.obterMomentos(uc.getSigla(), PASTA_BD) == 0) {
+                pendentes.add(uc.getSigla() + " - " + uc.getNome());
+            }
+        }
+        return pendentes;
+    }
+
+    /**
+     * Devolve o número de momentos atualmente definidos para a UC.
+     * 0 = ainda não definido.
+     */
+    public int obterMomentosUc(String siglaUc) {
+        return UcDAL.obterMomentos(siglaUc, PASTA_BD);
+    }
 }

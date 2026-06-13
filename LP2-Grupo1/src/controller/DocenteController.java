@@ -33,6 +33,7 @@ public class DocenteController {
     }
 
     public void iniciar() {
+        verificarMomentosPendentes();
         boolean correr = true;
         while (correr) {
             try {
@@ -295,6 +296,20 @@ public class DocenteController {
     }
 
     /**
+     * Mostra alerta no login se o ano está em PLANEAMENTO e o docente
+     * tem UCs sem momentos de avaliação definidos.
+     */
+    private void verificarMomentosPendentes() {
+        bll.AnoLetivoBLL anoBll = new bll.AnoLetivoBLL();
+        if (anoBll.getEstadoAnoAtual() == model.EstadoAnoLetivo.PLANEAMENTO) {
+            java.util.List<String> pendentes = docenteBll.obterUcsSemMomentos(docente);
+            if (!pendentes.isEmpty()) {
+                view.mostrarAlertaMomentosPendentes(pendentes);
+            }
+        }
+    }
+
+    /**
      * Permite ao docente definir o número de momentos de avaliação
      * para uma das suas UCs, apenas se o ano letivo estiver em PLANEAMENTO.
      */
@@ -312,6 +327,8 @@ public class DocenteController {
                 return;
             }
             UnidadeCurricular uc = docente.getUcsLecionadas()[escolha - 1];
+            int momentosAtuais = docenteBll.obterMomentosUc(uc.getSigla());
+            view.mostrarMomentosAtuais(uc.getSigla(), momentosAtuais);
             int momentos = view.pedirNumeroMomentos();
             String erro = docenteBll.definirMomentosAvaliacao(docente, uc.getSigla(), momentos);
             if (erro == null) {

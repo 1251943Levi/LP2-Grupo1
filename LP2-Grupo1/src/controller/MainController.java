@@ -104,6 +104,7 @@ public class MainController {
         gestorDAL.inicializar();
         DocenteDAL docenteDAL = ConfigApp.isModoSql() ? new DocenteDALSql() : new DocenteDALFile();
         docenteDAL.inicializar();
+        new bll.AnoLetivoBLL();
     }
 
     /**
