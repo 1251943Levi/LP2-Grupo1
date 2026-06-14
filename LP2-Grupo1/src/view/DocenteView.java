@@ -216,5 +216,29 @@ public class DocenteView {
         Consola.imprimirSucesso(String.format("UC %s: momentos definidos para %d.", siglaUc, momentos));
         Consola.pausar();
     }
+
+    /**
+     * Alerta mostrado ao docente no login quando o ano está em PLANEAMENTO
+     * e existem UCs suas sem momentos de avaliação definidos.
+     */
+    public void mostrarAlertaMomentosPendentes(java.util.List<String> ucs) {
+        Consola.imprimirLinha();
+        System.out.println("  ⚠  ATENÇÃO — Momentos de avaliação por definir:");
+        for (String uc : ucs) {
+            System.out.println("     ► " + uc);
+        }
+        System.out.println("  Aceda à opção 8 — Definir Momentos de Avaliação.");
+        Consola.imprimirLinha();
+        Consola.pausar();
+    }
+
+    /** Mostra o valor atual de momentos antes de pedir o novo. */
+    public void mostrarMomentosAtuais(String siglaUc, int momentosAtuais) {
+        if (momentosAtuais == 0) {
+            Consola.imprimirInfo("UC " + siglaUc + ": momentos ainda não definidos.");
+        } else {
+            Consola.imprimirInfo("UC " + siglaUc + ": momentos atuais = " + momentosAtuais + ".");
+        }
+    }
 }
 

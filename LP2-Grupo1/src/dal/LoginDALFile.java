@@ -2,7 +2,6 @@ package dal;
 
 import common.ConfigApp;
 import model.LoginModel;
-import utils.SegurancaPasswords;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -30,13 +29,8 @@ public class LoginDALFile implements LoginDAL {
     @Override
     public void inicializar() {
         DALUtil.garantirFicheiroECabecalho(caminho(), CABECALHO);
-        if (contar() == 0) {
-            LoginModel admin = LoginDAL.adminPorOmissao();
-            // Garantir que o admin usa PBKDF2 para consistência com o ficheiro
-            String credencial = SegurancaPasswords.gerarCredencialMista("admin123");
-            int colon = credencial.indexOf(':');
-            admin.setPasswordSalt(credencial.substring(0, colon));
-            admin.setPasswordHash(credencial.substring(colon + 1));
+        LoginModel admin = LoginDAL.adminPorOmissao();
+        if (!existe(admin.getEmail())) {
             criar(admin);
         }
     }

@@ -198,18 +198,17 @@ public class AnoLetivoBLL {
     }
 
     /**
-     * Repõe numMomentos = 1 em todas as UCs ativas, persistindo em ucs.csv
-     * através do UcDAL. Garante que cada ano letivo arranca sem momentos
-     * herdados do ano anterior.
+     * Repõe numMomentos = 0 em todas as UCs (não definido).
+     * Chamado após avançar o ano letivo para que os docentes definam
+     * os momentos para o novo ano antes de o iniciar.
      */
     private void resetarMomentosUcs() {
         String[] ucs = UcDAL.obterListaUcs(ConfigApp.PASTA_BD);
         for (String entrada : ucs) {
-            // entrada tem o formato "SIGLA - Nome"
             String sigla = entrada.split(" - ")[0].trim();
-            UcDAL.atualizarMomentos(sigla, 1, ConfigApp.PASTA_BD);
+            UcDAL.atualizarMomentos(sigla, 0, ConfigApp.PASTA_BD);
         }
-        System.out.println("Momentos de avaliação resetados para todas as UCs.");
+        System.out.println("Momentos de avaliação resetados (0 = por definir) para todas as UCs.");
     }
 
     // ============================================================
@@ -262,8 +261,7 @@ public class AnoLetivoBLL {
     }
 
     public int obterMomentosUc(String siglaUc) {
-        // TODO: substituir por leitura real da tabela de momentos quando disponível
-        return 3;
+        return UcDAL.obterMomentos(siglaUc, ConfigApp.PASTA_BD);
     }
 
     public void alterarMomentosUc(String siglaUc, int momentos) {
@@ -271,7 +269,7 @@ public class AnoLetivoBLL {
             throw new EstadoInvalidoException("Sigla de UC inválida.");
         if (momentos < 1 || momentos > 3)
             throw new EstadoInvalidoException("O número de momentos deve estar entre 1 e 3.");
-        // TODO: persistir quando a tabela de momentos estiver implementada
+        UcDAL.atualizarMomentos(siglaUc, momentos, ConfigApp.PASTA_BD);
     }
 
     // ============================================================
@@ -295,7 +293,7 @@ public class AnoLetivoBLL {
         String[] ucs = UcDAL.obterListaUcs(ConfigApp.PASTA_BD);
         for (String linha : ucs) {
             String sigla = linha.split(" - ")[0];
-            if (!mockTemMomentosDefinidos(sigla))
+            if (UcDAL.obterMomentos(sigla, ConfigApp.PASTA_BD) == 0)
                 erros.add("UC " + sigla + " — momentos de avaliação não definidos.");
         }
         return erros;
@@ -330,16 +328,6 @@ public class AnoLetivoBLL {
         return pendentes;
     }
 
-    // ============================================================
-    // MOCK — Momentos de Avaliação
-    // ============================================================
-
-    private boolean mockTemMomentosDefinidos(String siglaUc) {
-        if (siglaUc == null) return true;
-        if (siglaUc.equalsIgnoreCase("TESTE99")) return false;
-        return true;
-    }
-
     /**
      * Obtém o estado do ano letivo ativo (mais recente).
      */
@@ -349,7 +337,7 @@ public class AnoLetivoBLL {
     }
 
     /**
-     * Lista as UCs que não têm momentos de avaliação definidos,
+     * Lista as UCs que não têm momentos de avaliação definidos (momentos == 0),
      * incluindo o nome/sigla do docente responsável.
      */
     private List<String> listarMomentosUcPendentes() {
@@ -357,7 +345,7 @@ public class AnoLetivoBLL {
         String[] ucs = UcDAL.obterListaUcs(ConfigApp.PASTA_BD);
         for (String linha : ucs) {
             String sigla = linha.split(" - ")[0];
-            if (!mockTemMomentosDefinidos(sigla)) {
+            if (UcDAL.obterMomentos(sigla, ConfigApp.PASTA_BD) == 0) {
                 UnidadeCurricular uc = new UcBLL().procurarUCCompleta(sigla);
                 String docenteInfo;
                 if (uc != null && uc.getDocenteResponsavel() != null) {
