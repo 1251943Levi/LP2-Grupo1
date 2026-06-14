@@ -1,5 +1,6 @@
 package dal;
 
+import common.ConfigApp;
 import model.Curso;
 import model.Departamento;
 import utils.Consola;
@@ -15,6 +16,16 @@ import java.util.List;
 public class CursoDAL {
     private static final String NOME_FICHEIRO = "cursos.csv";
     private static final String CABECALHO = "sigla;nome;siglaDepartamento;propina;estado";
+
+    private static InscricaoDAL inscricaoDALInstance;
+
+    private static InscricaoDAL inscricaoDAL() {
+        if (inscricaoDALInstance == null) {
+            inscricaoDALInstance = ConfigApp.isModoSql() ? new InscricaoDALSql() : new InscricaoDALFile();
+            inscricaoDALInstance.inicializar();
+        }
+        return inscricaoDALInstance;
+    }
 
 
     // --- ESCRITA ---
@@ -205,7 +216,7 @@ public class CursoDAL {
 
                 for (String siglaUc : siglasUcs) {
 
-                    List<Integer> alunosUc = InscricaoDAL.obterAlunosPorUc(siglaUc, anoLetivoAtual, pastaBase);
+                    List<Integer> alunosUc = inscricaoDAL().obterAlunosPorUc(siglaUc, anoLetivoAtual);
                     for (Integer num : alunosUc) {
 
                         if (!alunosUnicos.contains(num)) {

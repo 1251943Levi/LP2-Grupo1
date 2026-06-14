@@ -11,6 +11,9 @@ import java.util.ArrayList;
 import java.util.List;
 import dal.InscricaoDAL;
 import dal.EstudanteDAL;
+import dal.HistoricoDAL;
+import dal.HistoricoDALFile;
+import dal.HistoricoDALSql;
 import model.Estudante;
 
 /**
@@ -24,12 +27,15 @@ public class DocenteController {
     private final DocenteView view;
     private final DocenteBLL docenteBll;
     private final EstudanteDAL estudanteDAL = new EstudanteDAL(ConfigApp.PASTA_BD);
+    private final HistoricoDAL historicoDAL =
+            ConfigApp.isModoSql() ? new HistoricoDALSql() : new HistoricoDALFile();
 
     public DocenteController(RepositorioDados repo, Docente docente) {
         this.repo        = repo;
         this.docente     = docente;
         this.view        = new DocenteView();
         this.docenteBll  = new DocenteBLL();
+        this.historicoDAL.inicializar();
     }
 
     public void iniciar() {
@@ -273,7 +279,7 @@ public class DocenteController {
             // Pede também o ano ao Docente
             int ano = utils.Consola.lerInt("Introduza o Ano Letivo que deseja consultar");
 
-            java.util.List<String> historico = dal.HistoricoDAL.consultarHistoricoPorAluno(numMec, ConfigApp.PASTA_BD);
+            java.util.List<String> historico = historicoDAL.consultarHistoricoPorAluno(numMec);
 
             view.mostrarLinha("--- Histórico do Aluno " + numMec + " no Ano " + ano + " ---");
             boolean encontrou = false;

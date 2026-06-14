@@ -33,6 +33,15 @@ public class GestorBLL {
             ConfigApp.isModoSql() ? new DepartamentoDALSql() : new DepartamentoDALFile();
     private final DocenteDAL docenteDAL =
             ConfigApp.isModoSql() ? new DocenteDALSql() : new DocenteDALFile();
+    private final InscricaoDAL inscricaoDAL =
+            ConfigApp.isModoSql() ? new InscricaoDALSql() : new InscricaoDALFile();
+    private final HistoricoDAL historicoDAL =
+            ConfigApp.isModoSql() ? new HistoricoDALSql() : new HistoricoDALFile();
+
+    public GestorBLL() {
+        inscricaoDAL.inicializar();
+        historicoDAL.inicializar();
+    }
 
     // ─────────────────────────── ANO LETIVO ────────────────────────────
 
@@ -182,7 +191,7 @@ public class GestorBLL {
         estudanteDAL.adicionarEstudante(novo, siglaCurso);
 
         for (String siglaUc : UcDAL.obterSiglasUcsPorCursoEAno(siglaCurso, 1, PASTA_BD)) {
-            InscricaoDAL.adicionarInscricao(numMec, siglaUc, anoInscricao, PASTA_BD);
+            inscricaoDAL.adicionarInscricao(numMec, siglaUc, anoInscricao);
         }
         return email;
     }
@@ -430,7 +439,7 @@ public class GestorBLL {
 
     /** @return Lista de linhas do histórico académico para um dado ano letivo. */
     public List<String> obterHistoricoPorAno(int ano) {
-        return dal.HistoricoDAL.consultarHistoricoPorAno(ano, PASTA_BD);
+        return historicoDAL.consultarHistoricoPorAno(ano);
     }
 
     // ─────────────────────── SEGURANÇA E VALIDAÇÃO ─────────────────────

@@ -6,13 +6,19 @@ import dal.AnoLetivoDAL;
 import dal.AnoLetivoDALFile;
 import dal.AnoLetivoDALSql;
 import dal.AvaliacaoDAL;
+import dal.AvaliacaoDALFile;
+import dal.AvaliacaoDALSql;
 import dal.CursoDAL;
 import dal.EstudanteDAL;
 import dal.HistoricoAnoLetivoDAL;
 import dal.HistoricoAnoLetivoDALFile;
 import dal.HistoricoAnoLetivoDALSql;
 import dal.HistoricoDAL;
+import dal.HistoricoDALFile;
+import dal.HistoricoDALSql;
 import dal.InscricaoDAL;
+import dal.InscricaoDALFile;
+import dal.InscricaoDALSql;
 import dal.UcDAL;
 import model.*;
 import view.AnoLetivoView;
@@ -31,13 +37,22 @@ public class AnoLetivoBLL {
     private final AnoLetivoDAL dal;
     private final HistoricoAnoLetivoDAL historicoDAL;
     private final EstudanteDAL estudanteDAL;
+    private final InscricaoDAL inscricaoDAL;
+    private final AvaliacaoDAL avaliacaoDAL;
+    private final HistoricoDAL historicoAcademicoDAL;
 
     public AnoLetivoBLL() {
         this.dal         = ConfigApp.isModoSql() ? new AnoLetivoDALSql()         : new AnoLetivoDALFile();
         this.historicoDAL = ConfigApp.isModoSql() ? new HistoricoAnoLetivoDALSql() : new HistoricoAnoLetivoDALFile();
         this.estudanteDAL = new EstudanteDAL(ConfigApp.PASTA_BD);
+        this.inscricaoDAL = ConfigApp.isModoSql() ? new InscricaoDALSql() : new InscricaoDALFile();
+        this.avaliacaoDAL = ConfigApp.isModoSql() ? new AvaliacaoDALSql() : new AvaliacaoDALFile();
+        this.historicoAcademicoDAL = ConfigApp.isModoSql() ? new HistoricoDALSql() : new HistoricoDALFile();
         dal.inicializar();
         historicoDAL.inicializar();
+        inscricaoDAL.inicializar();
+        avaliacaoDAL.inicializar();
+        historicoAcademicoDAL.inicializar();
     }
 
     // ============================================================
@@ -168,9 +183,9 @@ public class AnoLetivoBLL {
                         notas += av.getResultados()[n] + " ";
                     }
                     String estado = av.isAprovado() ? "APROVADO" : "REPROVADO";
-                    HistoricoDAL.guardarRegistoHistorico(
+                    historicoAcademicoDAL.guardarRegistoHistorico(
                             ano, e.getNumeroMecanografico(),
-                            av.getUc().getSigla(), notas.trim(), estado, ConfigApp.PASTA_BD);
+                            av.getUc().getSigla(), notas.trim(), estado);
                 }
             }
         }
@@ -304,11 +319,11 @@ public class AnoLetivoBLL {
         List<Estudante> estudantes = estudanteDAL.carregarTodos();
         for (Estudante e : estudantes) {
             if (e == null || e.getAnoCurricular() > 3) continue;
-            List<String> siglasInscritas = InscricaoDAL.obterSiglasUcsPorAluno(
-                    e.getNumeroMecanografico(), anoLetivo, ConfigApp.PASTA_BD);
+            List<String> siglasInscritas = inscricaoDAL.obterSiglasUcsPorAluno(
+                    e.getNumeroMecanografico(), anoLetivo);
             for (String siglaUc : siglasInscritas) {
-                Avaliacao av = AvaliacaoDAL.obterAvaliacao(
-                        e.getNumeroMecanografico(), siglaUc, anoLetivo, ConfigApp.PASTA_BD);
+                Avaliacao av = avaliacaoDAL.obterAvaliacao(
+                        e.getNumeroMecanografico(), siglaUc, anoLetivo);
                 if (av == null || av.getTotalAvaliacoesLancadas() == 0)
                     pendentes.add(String.format("Aluno %d (%s) — UC %s sem nota lançada.",
                             e.getNumeroMecanografico(), e.getNome(), siglaUc));

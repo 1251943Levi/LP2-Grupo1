@@ -3,6 +3,9 @@ package controller;
 import common.ConfigApp;
 import bll.EstudanteBLL;
 import bll.PagamentoBLL;
+import dal.HistoricoDAL;
+import dal.HistoricoDALFile;
+import dal.HistoricoDALSql;
 import model.Estudante;
 import model.RepositorioDados;
 import utils.Consola;
@@ -22,6 +25,8 @@ public class EstudanteController {
     private final EstudanteView view;
     private final EstudanteBLL estudanteBll;
     private final PagamentoBLL pagamentoBll;
+    private final HistoricoDAL historicoDAL =
+            ConfigApp.isModoSql() ? new HistoricoDALSql() : new HistoricoDALFile();
 
     public EstudanteController(RepositorioDados repositorio, Estudante estudanteAtivo) {
         this.repositorio = repositorio;
@@ -29,6 +34,7 @@ public class EstudanteController {
         this.view = new EstudanteView();
         this.estudanteBll = new EstudanteBLL();
         this.pagamentoBll = new PagamentoBLL();
+        this.historicoDAL.inicializar();
     }
 
     public void iniciar() {
@@ -146,7 +152,7 @@ public class EstudanteController {
 
             int ano = utils.Consola.lerInt("Introduza o Ano Letivo que deseja consultar");
 
-            java.util.List<String> historico = dal.HistoricoDAL.consultarHistoricoPorAluno(estudanteAtivo.getNumeroMecanografico(), ConfigApp.PASTA_BD);
+            java.util.List<String> historico = historicoDAL.consultarHistoricoPorAluno(estudanteAtivo.getNumeroMecanografico());
 
             boolean encontrou = false;
             for (String registo : historico) {

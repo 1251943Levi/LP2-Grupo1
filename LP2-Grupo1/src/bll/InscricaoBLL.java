@@ -1,5 +1,6 @@
 package bll;
 
+import common.ConfigApp;
 import dal.*;
 import model.*;
 import utils.Config;
@@ -11,6 +12,15 @@ public class InscricaoBLL {
     private static final double NOTA_MINIMA_APROVACAO = 9.5;
 
     private final EstudanteDAL estudanteDAL = new EstudanteDAL(PASTA_BD);
+    private final InscricaoDAL inscricaoDAL =
+            ConfigApp.isModoSql() ? new InscricaoDALSql() : new InscricaoDALFile();
+    private final AvaliacaoDAL avaliacaoDAL =
+            ConfigApp.isModoSql() ? new AvaliacaoDALSql() : new AvaliacaoDALFile();
+
+    public InscricaoBLL() {
+        inscricaoDAL.inicializar();
+        avaliacaoDAL.inicializar();
+    }
 
     public OperationResult transitarAlunos(AnoLetivo anoAtual, AnoLetivo anoSeguinte) {
         List<Estudante> todos = new EstudanteBLL().carregarTodosCompleto();
@@ -27,13 +37,13 @@ public class InscricaoBLL {
 
             int anoAtualCurricular = e.getAnoCurricular();
 
-            List<String> ucsInscritas = InscricaoDAL.obterSiglasUcsPorAluno(
-                    e.getNumeroMecanografico(), anoAtual.getAno(), PASTA_BD);
+            List<String> ucsInscritas = inscricaoDAL.obterSiglasUcsPorAluno(
+                    e.getNumeroMecanografico(), anoAtual.getAno());
 
             List<String> aprovadas = new ArrayList<>();
             List<String> reprovadas = new ArrayList<>();
             for (String sigla : ucsInscritas) {
-                Avaliacao av = AvaliacaoDAL.obterAvaliacao(e.getNumeroMecanografico(), sigla, anoAtual.getAno(), PASTA_BD);
+                Avaliacao av = avaliacaoDAL.obterAvaliacao(e.getNumeroMecanografico(), sigla, anoAtual.getAno());
                 if (av != null && av.isAprovado()) {
                     aprovadas.add(sigla);
                 } else {
@@ -95,9 +105,9 @@ public class InscricaoBLL {
 
                 estudanteDAL.atualizarEstudante(e);
 
-                InscricaoDAL.removerInscricoesPorAluno(e.getNumeroMecanografico(), PASTA_BD);
+                inscricaoDAL.removerInscricoesPorAluno(e.getNumeroMecanografico());
                 for (String sigla : ucs) {
-                    InscricaoDAL.adicionarInscricao(e.getNumeroMecanografico(), sigla, anoSeguinte.getAno(), PASTA_BD);
+                    inscricaoDAL.adicionarInscricao(e.getNumeroMecanografico(), sigla, anoSeguinte.getAno());
                 }
             }
             return OperationResult.sucesso("Transição concluída para " + novasInscricoesMap.size() + " alunos.");
