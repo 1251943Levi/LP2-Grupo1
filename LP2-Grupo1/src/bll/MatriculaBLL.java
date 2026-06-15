@@ -5,6 +5,8 @@ import common.ConfigApp;
 import dal.CursoDAL;
 import dal.EstudanteDAL;
 import dal.InscricaoDAL;
+import dal.InscricaoDALFile;
+import dal.InscricaoDALSql;
 import dal.UcDAL;
 import model.Curso;
 import model.EstadoAnoLetivo;
@@ -25,6 +27,12 @@ public class MatriculaBLL {
     private static final String PASTA_BD = ConfigApp.PASTA_BD;
     private final EstudanteDAL estudanteDAL = new EstudanteDAL(PASTA_BD);
     private final LoginController loginController = new LoginController();
+    private final InscricaoDAL inscricaoDAL =
+            ConfigApp.isModoSql() ? new InscricaoDALSql() : new InscricaoDALFile();
+
+    public MatriculaBLL() {
+        inscricaoDAL.inicializar();
+    }
 
     /**
      * Realiza o processo completo de auto-matrícula de um novo estudante.
@@ -65,7 +73,7 @@ public class MatriculaBLL {
 
         loginController.criarCredencial(emailInst, passLimpa, "ESTUDANTE");
         for (String siglaUc : UcDAL.obterSiglasUcsPorCursoEAno(siglaCurso, 1, PASTA_BD)) {
-            InscricaoDAL.adicionarInscricao(numMec, siglaUc, anoAtual, PASTA_BD);
+            inscricaoDAL.adicionarInscricao(numMec, siglaUc, anoAtual);
         }
         EmailService.enviarCredenciaisTodos(nome, emailInst, passLimpa);
 

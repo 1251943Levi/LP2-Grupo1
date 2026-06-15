@@ -1,5 +1,6 @@
 package dal;
 
+import common.ConfigApp;
 import model.UnidadeCurricular;
 import model.Docente;
 import model.Curso;
@@ -25,6 +26,16 @@ public class UcDAL {
     // Cabeçalho actualizado com a coluna momentos (Sprint 6)
     private static final String CABECALHO =
             "sigla;nome;anoCurricular;siglaDocenteResponsavel;siglaCurso;ects;momentos";
+
+    private static InscricaoDAL inscricaoDALInstance;
+
+    private static InscricaoDAL inscricaoDAL() {
+        if (inscricaoDALInstance == null) {
+            inscricaoDALInstance = ConfigApp.isModoSql() ? new InscricaoDALSql() : new InscricaoDALFile();
+            inscricaoDALInstance.inicializar();
+        }
+        return inscricaoDALInstance;
+    }
 
     // ================================================================
     // LEITURA
@@ -332,7 +343,7 @@ public class UcDAL {
             catch (NumberFormatException e) { continue; }
             String docente       = dados[3].trim();
 
-            int qtdAlunos    = InscricaoDAL.obterAlunosPorUc(siglaUc, anoLetivoAtual, pastaBase).size();
+            int qtdAlunos    = inscricaoDAL().obterAlunosPorUc(siglaUc, anoLetivoAtual).size();
             int qtdMomentos  = obterMomentos(siglaUc, pastaBase);
 
             List<String> cursosAssociados = new ArrayList<>();

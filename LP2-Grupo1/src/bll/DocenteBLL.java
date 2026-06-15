@@ -3,12 +3,16 @@ package bll;
 import common.ConfigApp;
 
 import dal.AvaliacaoDAL;
+import dal.AvaliacaoDALFile;
+import dal.AvaliacaoDALSql;
 import dal.DocenteDAL;
 import dal.DocenteDALFile;
 import dal.DocenteDALSql;
 import dal.EstudanteDAL;
 import dal.UcDAL;
 import dal.InscricaoDAL;
+import dal.InscricaoDALFile;
+import dal.InscricaoDALSql;
 import model.*;
 import controller.LoginController;
 import utils.Config;
@@ -28,6 +32,15 @@ public class DocenteBLL {
     private final EstudanteDAL estudanteDAL = new EstudanteDAL(PASTA_BD);
     private final DocenteDAL docenteDAL =
             ConfigApp.isModoSql() ? new DocenteDALSql() : new DocenteDALFile();
+    private final InscricaoDAL inscricaoDAL =
+            ConfigApp.isModoSql() ? new InscricaoDALSql() : new InscricaoDALFile();
+    private final AvaliacaoDAL avaliacaoDAL =
+            ConfigApp.isModoSql() ? new AvaliacaoDALSql() : new AvaliacaoDALFile();
+
+    public DocenteBLL() {
+        inscricaoDAL.inicializar();
+        avaliacaoDAL.inicializar();
+    }
 
     /**
      * Verifica se uma UC pertence ao plano de lecionação do docente.
@@ -69,7 +82,7 @@ public class DocenteBLL {
 
         int numMomentos = uc.getNumMomentos(); // 1 por omissão; >1 se configurado
 
-        Avaliacao avaliacaoExistente = AvaliacaoDAL.obterAvaliacao(numMec, siglaUc, ano, PASTA_BD);
+        Avaliacao avaliacaoExistente = avaliacaoDAL.obterAvaliacao(numMec, siglaUc, ano);
 
         if (avaliacaoExistente != null) {
             if (avaliacaoExistente.getTotalAvaliacoesLancadas() >= numMomentos) {
@@ -77,13 +90,13 @@ public class DocenteBLL {
                         + " nota(s) máxima(s) lançadas para esta UC.";
             }
             avaliacaoExistente.adicionarResultado(notaMomento);
-            AvaliacaoDAL.atualizarAvaliacao(avaliacaoExistente, numMec, PASTA_BD);
+            avaliacaoDAL.atualizarAvaliacao(avaliacaoExistente, numMec);
             return null;
 
         } else {
             Avaliacao novaAvaliacao = new Avaliacao(uc, ano);
             novaAvaliacao.adicionarResultado(notaMomento);
-            AvaliacaoDAL.adicionarAvaliacao(novaAvaliacao, numMec, PASTA_BD);
+            avaliacaoDAL.adicionarAvaliacao(novaAvaliacao, numMec);
             return null;
         }
     }
@@ -141,7 +154,7 @@ public class DocenteBLL {
             UnidadeCurricular uc = docente.getUcsLecionadas()[i];
             if (uc == null) continue;
 
-            List<Integer> numsMec = InscricaoDAL.obterAlunosPorUc(uc.getSigla(), anoAtual, PASTA_BD);
+            List<Integer> numsMec = inscricaoDAL.obterAlunosPorUc(uc.getSigla(), anoAtual);
             for (int numMec : numsMec) {
                 if (contemAluno(alunosAdicionados, numMec)) continue;
 
@@ -152,7 +165,7 @@ public class DocenteBLL {
 
                 // par[2]: string das UCs em que o aluno está inscrito (usada em .contains())
                 List<String> siglasInscritas =
-                        InscricaoDAL.obterSiglasUcsPorAluno(numMec, anoAtual, PASTA_BD);
+                        inscricaoDAL.obterSiglasUcsPorAluno(numMec, anoAtual);
                 String ucs = String.join(", ", siglasInscritas);
 
                 resultado.add(new Object[]{aluno, media, ucs});
@@ -174,7 +187,7 @@ public class DocenteBLL {
      * Devolve a lista de alunos inscritos numa UC no ano corrente.
      */
     public List<String> obterAlunosInscritosNaUc(String siglaUc) {
-        List<Integer> nums = InscricaoDAL.obterAlunosPorUc(siglaUc, Config.getAnoAtual(), PASTA_BD);
+        List<Integer> nums = inscricaoDAL.obterAlunosPorUc(siglaUc, Config.getAnoAtual());
         List<String> alunosFormatados = new ArrayList<>();
         for (int num : nums) {
             Estudante e = estudanteDAL.procurarPorNumMec(num);            String nome = (e != null) ? e.getNome() : "Desconhecido";
@@ -238,7 +251,7 @@ public class DocenteBLL {
         UnidadeCurricular uc = new UcBLL().procurarUCCompleta(siglaUc);
         if (uc == null) return "ERRO: UC não encontrada.";
 
-        List<Integer> alunosInscritos = InscricaoDAL.obterAlunosPorUc(siglaUc, anoLetivo, PASTA_BD);
+        List<Integer> alunosInscritos = inscricaoDAL.obterAlunosPorUc(siglaUc, anoLetivo);
         StringBuilder relatorio = new StringBuilder();
         int sucessos = 0, erros = 0;
 
@@ -270,7 +283,7 @@ public class DocenteBLL {
      * Retorna uma lista de strings "numMec - nome" para os alunos inscritos numa UC.
      */
     public List<String> obterAlunosFormatados(String siglaUc, int anoLetivo) {
-        List<Integer> nums = InscricaoDAL.obterAlunosPorUc(siglaUc, anoLetivo, PASTA_BD);
+        List<Integer> nums = inscricaoDAL.obterAlunosPorUc(siglaUc, anoLetivo);
         List<String> formatados = new ArrayList<>();
         for (int num : nums) {
             Estudante e = estudanteDAL.procurarPorNumMec(num);
@@ -303,8 +316,8 @@ public class DocenteBLL {
     private void carregarAvaliacoesSeNecessario(Estudante aluno) {
         if (aluno.getPercurso().getTotalAvaliacoes() == 0) {
             // FIX: nome correto do método na DAL é obterAvaliacoesPorAluno
-            List<Avaliacao> avaliacoes = AvaliacaoDAL.obterAvaliacoesPorAluno(
-                    aluno.getNumeroMecanografico(), PASTA_BD);
+            List<Avaliacao> avaliacoes = avaliacaoDAL.obterAvaliacoesPorAluno(
+                    aluno.getNumeroMecanografico());
             for (Avaliacao av : avaliacoes) {
                 aluno.getPercurso().registarAvaliacao(av);
             }
@@ -328,5 +341,30 @@ public class DocenteBLL {
         }
         UcDAL.atualizarMomentos(siglaUc, numMomentos, PASTA_BD);
         return null;
+    }
+
+    /**
+     * Devolve a lista de UCs do docente que ainda não têm momentos definidos
+     * (momentos == 0). Usado para mostrar alerta no login quando o ano está
+     * em PLANEAMENTO.
+     */
+    public List<String> obterUcsSemMomentos(Docente docente) {
+        List<String> pendentes = new java.util.ArrayList<>();
+        UnidadeCurricular[] ucs = docente.getUcsLecionadas();
+        for (int i = 0; i < docente.getTotalUcsLecionadas(); i++) {
+            UnidadeCurricular uc = ucs[i];
+            if (uc != null && UcDAL.obterMomentos(uc.getSigla(), PASTA_BD) == 0) {
+                pendentes.add(uc.getSigla() + " - " + uc.getNome());
+            }
+        }
+        return pendentes;
+    }
+
+    /**
+     * Devolve o número de momentos atualmente definidos para a UC.
+     * 0 = ainda não definido.
+     */
+    public int obterMomentosUc(String siglaUc) {
+        return UcDAL.obterMomentos(siglaUc, PASTA_BD);
     }
 }
