@@ -99,6 +99,15 @@ public class AnoLetivoBLL {
             throw new EstadoInvalidoException(msg.toString());
         }
 
+        // Pré-condição (igual aos momentos): a propina anual tem de estar definida
+        // (>0) em todos os cursos com alunos antes de o ano poder iniciar.
+        List<String> errosPropinas = validarPropinasCursos();
+        if (!errosPropinas.isEmpty()) {
+            StringBuilder msgPropinas = new StringBuilder("Bloqueado para iniciar — propinas por definir:");
+            for (String e : errosPropinas) msgPropinas.append("\n  - ").append(e);
+            throw new EstadoInvalidoException(msgPropinas.toString());
+        }
+
         List<String> cursosInativados = new ArrayList<>();
         CursoBLL cursoBll = new CursoBLL();
         String[] cursos = CursoDAL.obterListaCursos(ConfigApp.PASTA_BD);
@@ -231,6 +240,7 @@ public class AnoLetivoBLL {
                 List<String> errosInicio = new ArrayList<>();
                 errosInicio.addAll(validarQuorumCursos());
                 errosInicio.addAll(validarMomentosUcs());
+                errosInicio.addAll(validarPropinasCursos());
                 if (errosInicio.isEmpty()) linhas.add("[INICIAR] Pronto para iniciar.");
                 else for (String e : errosInicio) linhas.add("[INICIAR - BLOQUEIO] " + e);
                 break;
@@ -295,6 +305,28 @@ public class AnoLetivoBLL {
             String sigla = linha.split(" - ")[0];
             if (UcDAL.obterMomentos(sigla, ConfigApp.PASTA_BD) == 0)
                 erros.add("UC " + sigla + " — momentos de avaliação não definidos.");
+        }
+        return erros;
+    }
+
+    /**
+     * Valida que todos os cursos COM alunos têm a propina anual definida (>0).
+     * Pré-condição para iniciar o ano letivo, à semelhança dos momentos das UCs.
+     */
+    private List<String> validarPropinasCursos() {
+        List<String> erros = new ArrayList<>();
+        CursoBLL cursoBll = new CursoBLL();
+        String[] cursos = CursoDAL.obterListaCursos(ConfigApp.PASTA_BD);
+        for (String c : cursos) {
+            String sigla = c.split(" - ")[0];
+            int totalAlunos = estudanteDAL.contarEstudantesPorCursoEAno(sigla, 1)
+                    + estudanteDAL.contarEstudantesPorCursoEAno(sigla, 2)
+                    + estudanteDAL.contarEstudantesPorCursoEAno(sigla, 3);
+            if (totalAlunos == 0) continue; // só interessam cursos com alunos
+            Curso curso = cursoBll.procurarCursoCompleto(sigla);
+            if (curso != null && curso.getValorPropinaAnual() <= 0) {
+                erros.add("Curso " + sigla + " — propina anual não definida (está a 0).");
+            }
         }
         return erros;
     }

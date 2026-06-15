@@ -20,7 +20,6 @@ public class InscricaoBLL {
 
         Map<Estudante, Integer> novoAnoMap = new HashMap<>();
         Map<Estudante, List<String>> novasInscricoesMap = new HashMap<>();
-        List<String> alunosBloqueados = new ArrayList<>();
 
         for (Estudante e : todos) {
             if (e.getAnoCurricular() > 3) continue;
@@ -76,15 +75,6 @@ public class InscricaoBLL {
             novasInscricoesMap.put(e, semDuplicados);
         }
 
-        if (!alunosBloqueados.isEmpty()) {
-            StringBuilder msg = new StringBuilder("Existem alunos sem aproveitamento mínimo (60%):\n");
-            for (String bloco : alunosBloqueados) {
-                msg.append("  - ").append(bloco).append("\n");
-            }
-            msg.append("Transição cancelada. Corrija as notas dos alunos ou remova os bloqueios.");
-            return OperationResult.falha(msg.toString());
-        }
-
         try {
             for (Map.Entry<Estudante, List<String>> entry : novasInscricoesMap.entrySet()) {
                 Estudante e = entry.getKey();
@@ -92,6 +82,17 @@ public class InscricaoBLL {
                 List<String> ucs = entry.getValue();
 
                 e.setAnoCurricular(novoAno);
+
+                // v1.1: a propina é anual e definida para o ano corrente. Ao transitar
+                // para o novo ano letivo, redefine-se a propina de cada aluno que
+                // continua a estudar (anos 1-3). Quem concluiu o curso (novoAno > 3)
+                // não paga nova propina.
+                if (novoAno <= 3) {
+                    Curso curso = CursoDAL.procurarCurso(e.getSiglaCurso(), PASTA_BD);
+                    if (curso != null) {
+                        e.setSaldoDevedor(curso.getValorPropinaAnual());
+                    }
+                }
 
                 estudanteDAL.atualizarEstudante(e);
 
