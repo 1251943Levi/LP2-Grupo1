@@ -11,6 +11,8 @@ import java.util.ArrayList;
 import java.util.List;
 import dal.InscricaoDAL;
 import dal.EstudanteDAL;
+import dal.EstudanteDALFile;
+import dal.EstudanteDALSql;
 import dal.HistoricoDAL;
 import dal.HistoricoDALFile;
 import dal.HistoricoDALSql;
@@ -26,7 +28,7 @@ public class DocenteController {
     private final Docente docente;
     private final DocenteView view;
     private final DocenteBLL docenteBll;
-    private final EstudanteDAL estudanteDAL = new EstudanteDAL(ConfigApp.PASTA_BD);
+    private final EstudanteDAL estudanteDAL = ConfigApp.isModoSql() ? new EstudanteDALSql() : new EstudanteDALFile();
     private final HistoricoDAL historicoDAL =
             ConfigApp.isModoSql() ? new HistoricoDALSql() : new HistoricoDALFile();
 

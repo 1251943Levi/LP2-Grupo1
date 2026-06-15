@@ -22,7 +22,7 @@ import java.util.List;
 public class AutenticacaoBLL {
 
     private static final String PASTA_BD = ConfigApp.PASTA_BD;
-    private final EstudanteDAL estudanteDAL = new EstudanteDAL(PASTA_BD);
+    private final EstudanteDAL estudanteDAL = ConfigApp.isModoSql() ? new EstudanteDALSql() : new EstudanteDALFile();
     private final GestorDAL gestorDAL =
             ConfigApp.isModoSql() ? new GestorDALSql() : new GestorDALFile();
     private final DocenteDAL docenteDAL =

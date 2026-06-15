@@ -27,7 +27,7 @@ import java.util.List;
 public class GestorBLL {
 
     private static final String PASTA_BD = ConfigApp.PASTA_BD;
-    private final EstudanteDAL estudanteDAL = new EstudanteDAL(PASTA_BD);
+    private final EstudanteDAL estudanteDAL = ConfigApp.isModoSql() ? new EstudanteDALSql() : new EstudanteDALFile();
     private final LoginController loginController = new LoginController();
     private final DepartamentoDAL departamentoDAL =
             ConfigApp.isModoSql() ? new DepartamentoDALSql() : new DepartamentoDALFile();

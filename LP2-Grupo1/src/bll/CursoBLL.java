@@ -6,6 +6,8 @@ import dal.DepartamentoDAL;
 import dal.DepartamentoDALFile;
 import dal.DepartamentoDALSql;
 import dal.EstudanteDAL;
+import dal.EstudanteDALFile;
+import dal.EstudanteDALSql;
 import model.Curso;
 import model.Departamento;
 import dal.CursoDAL;
@@ -21,7 +23,7 @@ import java.util.List;
 public class CursoBLL {
 
     private static final String PASTA_BD = ConfigApp.PASTA_BD;
-    private final EstudanteDAL estudanteDAL = new EstudanteDAL(PASTA_BD);
+    private final EstudanteDAL estudanteDAL = ConfigApp.isModoSql() ? new EstudanteDALSql() : new EstudanteDALFile();
     private final DepartamentoDAL departamentoDAL =
             ConfigApp.isModoSql() ? new DepartamentoDALSql() : new DepartamentoDALFile();
 

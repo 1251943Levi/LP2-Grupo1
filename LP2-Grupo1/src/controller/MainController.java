@@ -6,6 +6,9 @@ import common.ConfigApp;
 import dal.DocenteDAL;
 import dal.DocenteDALFile;
 import dal.DocenteDALSql;
+import dal.EstudanteDAL;
+import dal.EstudanteDALFile;
+import dal.EstudanteDALSql;
 import dal.GestorDAL;
 import dal.GestorDALFile;
 import dal.GestorDALSql;
@@ -104,6 +107,8 @@ public class MainController {
         gestorDAL.inicializar();
         DocenteDAL docenteDAL = ConfigApp.isModoSql() ? new DocenteDALSql() : new DocenteDALFile();
         docenteDAL.inicializar();
+        EstudanteDAL estudanteDAL = ConfigApp.isModoSql() ? new EstudanteDALSql() : new EstudanteDALFile();
+        estudanteDAL.inicializar();
         new bll.AnoLetivoBLL();
     }
 
