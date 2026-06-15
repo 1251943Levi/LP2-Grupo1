@@ -7,6 +7,8 @@ import dal.AvaliacaoDALFile;
 import dal.AvaliacaoDALSql;
 import dal.CredencialDAL;
 import dal.EstudanteDAL;
+import dal.EstudanteDALFile;
+import dal.EstudanteDALSql;
 import dal.InscricaoDAL;
 import dal.InscricaoDALFile;
 import dal.InscricaoDALSql;
@@ -32,7 +34,7 @@ public class EstudanteBLL {
     private final LoginController loginController = new LoginController();
 
     // Instanciação da DAL com o caminho estipulado
-    private final EstudanteDAL dal = new EstudanteDAL(PASTA_BD);
+    private final EstudanteDAL dal = ConfigApp.isModoSql() ? new EstudanteDALSql() : new EstudanteDALFile();
 
     private final InscricaoDAL inscricaoDAL =
             ConfigApp.isModoSql() ? new InscricaoDALSql() : new InscricaoDALFile();

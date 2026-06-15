@@ -4,6 +4,8 @@ import common.ConfigApp;
 
 import dal.CursoDAL;
 import dal.EstudanteDAL;
+import dal.EstudanteDALFile;
+import dal.EstudanteDALSql;
 import dal.InscricaoDAL;
 import dal.InscricaoDALFile;
 import dal.InscricaoDALSql;
@@ -25,7 +27,7 @@ import utils.PasswordGenerator;
 public class MatriculaBLL {
 
     private static final String PASTA_BD = ConfigApp.PASTA_BD;
-    private final EstudanteDAL estudanteDAL = new EstudanteDAL(PASTA_BD);
+    private final EstudanteDAL estudanteDAL = ConfigApp.isModoSql() ? new EstudanteDALSql() : new EstudanteDALFile();
     private final LoginController loginController = new LoginController();
     private final InscricaoDAL inscricaoDAL =
             ConfigApp.isModoSql() ? new InscricaoDALSql() : new InscricaoDALFile();

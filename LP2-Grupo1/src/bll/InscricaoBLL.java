@@ -11,7 +11,7 @@ public class InscricaoBLL {
     private static final String PASTA_BD = Config.PASTA_BD;
     private static final double NOTA_MINIMA_APROVACAO = 9.5;
 
-    private final EstudanteDAL estudanteDAL = new EstudanteDAL(PASTA_BD);
+    private final EstudanteDAL estudanteDAL = ConfigApp.isModoSql() ? new EstudanteDALSql() : new EstudanteDALFile();
     private final InscricaoDAL inscricaoDAL =
             ConfigApp.isModoSql() ? new InscricaoDALSql() : new InscricaoDALFile();
     private final AvaliacaoDAL avaliacaoDAL =

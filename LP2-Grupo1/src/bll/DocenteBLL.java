@@ -9,6 +9,8 @@ import dal.DocenteDAL;
 import dal.DocenteDALFile;
 import dal.DocenteDALSql;
 import dal.EstudanteDAL;
+import dal.EstudanteDALFile;
+import dal.EstudanteDALSql;
 import dal.UcDAL;
 import dal.InscricaoDAL;
 import dal.InscricaoDALFile;
@@ -29,7 +31,7 @@ public class DocenteBLL {
 
     private static final String PASTA_BD = ConfigApp.PASTA_BD;
     private final LoginController loginController = new LoginController();
-    private final EstudanteDAL estudanteDAL = new EstudanteDAL(PASTA_BD);
+    private final EstudanteDAL estudanteDAL = ConfigApp.isModoSql() ? new EstudanteDALSql() : new EstudanteDALFile();
     private final DocenteDAL docenteDAL =
             ConfigApp.isModoSql() ? new DocenteDALSql() : new DocenteDALFile();
     private final InscricaoDAL inscricaoDAL =

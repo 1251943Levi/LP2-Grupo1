@@ -10,6 +10,8 @@ import dal.AvaliacaoDALFile;
 import dal.AvaliacaoDALSql;
 import dal.CursoDAL;
 import dal.EstudanteDAL;
+import dal.EstudanteDALFile;
+import dal.EstudanteDALSql;
 import dal.HistoricoAnoLetivoDAL;
 import dal.HistoricoAnoLetivoDALFile;
 import dal.HistoricoAnoLetivoDALSql;
@@ -44,7 +46,7 @@ public class AnoLetivoBLL {
     public AnoLetivoBLL() {
         this.dal         = ConfigApp.isModoSql() ? new AnoLetivoDALSql()         : new AnoLetivoDALFile();
         this.historicoDAL = ConfigApp.isModoSql() ? new HistoricoAnoLetivoDALSql() : new HistoricoAnoLetivoDALFile();
-        this.estudanteDAL = new EstudanteDAL(ConfigApp.PASTA_BD);
+        this.estudanteDAL = ConfigApp.isModoSql() ? new EstudanteDALSql() : new EstudanteDALFile();
         this.inscricaoDAL = ConfigApp.isModoSql() ? new InscricaoDALSql() : new InscricaoDALFile();
         this.avaliacaoDAL = ConfigApp.isModoSql() ? new AvaliacaoDALSql() : new AvaliacaoDALFile();
         this.historicoAcademicoDAL = ConfigApp.isModoSql() ? new HistoricoDALSql() : new HistoricoDALFile();
