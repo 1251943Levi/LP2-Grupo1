@@ -1,6 +1,10 @@
 package bll;
 
 import common.ConfigApp;
+import dal.CursoDALFile;
+import dal.CursoDALSql;
+import dal.UcDALFile;
+import dal.UcDALSql;
 
 import dal.CursoDAL;
 import dal.EstudanteDAL;
@@ -27,6 +31,8 @@ import utils.PasswordGenerator;
 public class MatriculaBLL {
 
     private static final String PASTA_BD = ConfigApp.PASTA_BD;
+    private final CursoDAL cursoDAL = ConfigApp.isModoSql() ? new CursoDALSql() : new CursoDALFile();
+    private final UcDAL ucDAL = ConfigApp.isModoSql() ? new UcDALSql() : new UcDALFile();
     private final EstudanteDAL estudanteDAL = ConfigApp.isModoSql() ? new EstudanteDALSql() : new EstudanteDALFile();
     private final LoginController loginController = new LoginController();
     private final InscricaoDAL inscricaoDAL =
@@ -56,7 +62,7 @@ public class MatriculaBLL {
             return null;
         }
 
-        if (UcDAL.contarUcsPorCursoEAno(siglaCurso, 1, PASTA_BD) == 0) {
+        if (ucDAL.contarUcsPorCursoEAno(siglaCurso, 1, PASTA_BD) == 0) {
             return null;
         }
         int numMec = estudanteDAL.obterProximoNumeroMecanografico(anoAtual);
@@ -65,7 +71,7 @@ public class MatriculaBLL {
 
         Estudante novo = new Estudante(numMec, emailInst, "", nome, nif, morada, dataNasc, anoAtual);
 
-        Curso curso = CursoDAL.procurarCurso(siglaCurso, PASTA_BD);
+        Curso curso = cursoDAL.procurarCurso(siglaCurso, PASTA_BD);
         if (curso != null) {
             novo.setSaldoDevedor(curso.getValorPropinaAnual());
         }
@@ -74,7 +80,7 @@ public class MatriculaBLL {
         estudanteDAL.adicionarEstudante(novo, siglaCurso);
 
         loginController.criarCredencial(emailInst, passLimpa, "ESTUDANTE");
-        for (String siglaUc : UcDAL.obterSiglasUcsPorCursoEAno(siglaCurso, 1, PASTA_BD)) {
+        for (String siglaUc : ucDAL.obterSiglasUcsPorCursoEAno(siglaCurso, 1, PASTA_BD)) {
             inscricaoDAL.adicionarInscricao(numMec, siglaUc, anoAtual);
         }
         EmailService.enviarCredenciaisTodos(nome, emailInst, passLimpa);

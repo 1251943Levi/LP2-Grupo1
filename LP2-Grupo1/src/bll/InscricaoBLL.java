@@ -9,6 +9,7 @@ import java.util.*;
 public class InscricaoBLL {
 
     private static final String PASTA_BD = Config.PASTA_BD;
+    private final UcDAL ucDAL = ConfigApp.isModoSql() ? new UcDALSql() : new UcDALFile();
     private static final double NOTA_MINIMA_APROVACAO = 9.5;
 
     private final EstudanteDAL estudanteDAL = ConfigApp.isModoSql() ? new EstudanteDALSql() : new EstudanteDALFile();
@@ -59,10 +60,10 @@ public class InscricaoBLL {
             if (percentagem >= 0.6) {
                 if (anoAtualCurricular < 3) {
                     novoAno = anoAtualCurricular + 1;
-                    ucsParaInscrever.addAll(UcDAL.obterSiglasUcsPorCursoEAno(e.getSiglaCurso(), novoAno, PASTA_BD));
+                    ucsParaInscrever.addAll(ucDAL.obterSiglasUcsPorCursoEAno(e.getSiglaCurso(), novoAno, PASTA_BD));
                     ucsParaInscrever.addAll(reprovadas);
                 } else {
-                    List<String> ucsTerceiroAno = UcDAL.obterSiglasUcsPorCursoEAno(e.getSiglaCurso(), 3, PASTA_BD);
+                    List<String> ucsTerceiroAno = ucDAL.obterSiglasUcsPorCursoEAno(e.getSiglaCurso(), 3, PASTA_BD);
                     boolean aprovouTodas = !ucsTerceiroAno.isEmpty() && ucsTerceiroAno.stream().allMatch(aprovadas::contains);
                     if (aprovouTodas) {
                         novoAno = 4;

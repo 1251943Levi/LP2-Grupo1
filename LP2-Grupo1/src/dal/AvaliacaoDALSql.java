@@ -25,6 +25,13 @@ import java.util.List;
  */
 public class AvaliacaoDALSql implements AvaliacaoDAL {
 
+    private UcDAL ucDALInstance;
+    private UcDAL ucDAL() {
+        if (ucDALInstance == null)
+            ucDALInstance = ConfigApp.isModoSql() ? new UcDALSql() : new UcDALFile();
+        return ucDALInstance;
+    }
+
     private static final String TABELA = "avaliacao";
     private static final String[] CAMINHOS_SCHEMA = {
             "sql/schema_avaliacao.sql",
@@ -117,7 +124,7 @@ public class AvaliacaoDALSql implements AvaliacaoDAL {
         for (Object[] dados : linhas) {
             String siglaUC = (String) dados[0];
             int ano = (Integer) dados[1];
-            UnidadeCurricular uc = UcDAL.procurarUC(siglaUC, ConfigApp.PASTA_BD);
+            UnidadeCurricular uc = ucDAL().procurarUC(siglaUC, ConfigApp.PASTA_BD);
             if (uc == null) continue;
 
             Avaliacao av = new Avaliacao(uc, ano);
@@ -137,7 +144,7 @@ public class AvaliacaoDALSql implements AvaliacaoDAL {
                 ROW_NOTAS, numMec, siglaUc, ano);
         if (linhas.isEmpty()) return null;
 
-        UnidadeCurricular uc = UcDAL.procurarUC(siglaUc, ConfigApp.PASTA_BD);
+        UnidadeCurricular uc = ucDAL().procurarUC(siglaUc, ConfigApp.PASTA_BD);
         if (uc == null) uc = new UnidadeCurricular(siglaUc, "", ano, null);
 
         Avaliacao av = new Avaliacao(uc, ano);

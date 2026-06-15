@@ -1,6 +1,10 @@
 package bll;
 
 import common.ConfigApp;
+import dal.CursoDALFile;
+import dal.CursoDALSql;
+import dal.UcDALFile;
+import dal.UcDALSql;
 
 import dal.DepartamentoDAL;
 import dal.DepartamentoDALFile;
@@ -23,6 +27,8 @@ import java.util.List;
 public class CursoBLL {
 
     private static final String PASTA_BD = ConfigApp.PASTA_BD;
+    private final CursoDAL cursoDAL = ConfigApp.isModoSql() ? new CursoDALSql() : new CursoDALFile();
+    private final UcDAL ucDAL = ConfigApp.isModoSql() ? new UcDALSql() : new UcDALFile();
     private final EstudanteDAL estudanteDAL = ConfigApp.isModoSql() ? new EstudanteDALSql() : new EstudanteDALFile();
     private final DepartamentoDAL departamentoDAL =
             ConfigApp.isModoSql() ? new DepartamentoDALSql() : new DepartamentoDALFile();
@@ -33,7 +39,7 @@ public class CursoBLL {
      * @return O Curso com departamento associado, ou null se não existir.
      */
     public Curso procurarCursoCompleto(String sigla) {
-        String[] dados = CursoDAL.obterDadosBrutosCurso(sigla, PASTA_BD);
+        String[] dados = cursoDAL.obterDadosBrutosCurso(sigla, PASTA_BD);
 
         if (dados == null) return null;
 
@@ -66,7 +72,7 @@ public class CursoBLL {
      * @return true se tiver pelo menos 1 UC no 1º ano.
      */
     public boolean verificarCursoTemUcs(String siglaCurso) {
-        return dal.UcDAL.contarUcsPorCursoEAno(siglaCurso, 1, PASTA_BD) > 0;
+        return ucDAL.contarUcsPorCursoEAno(siglaCurso, 1, PASTA_BD) > 0;
     }
 
     /**
@@ -82,7 +88,7 @@ public class CursoBLL {
      * Lista todos os cursos (dados básicos).
      */
     public List<Curso> listarTodos() {
-        return CursoDAL.carregarTodos(PASTA_BD);
+        return cursoDAL.carregarTodos(PASTA_BD);
     }
 
     /**
@@ -110,7 +116,7 @@ public class CursoBLL {
 
         Curso curso = new Curso(sigla, nome, dep, propina);
         curso.setEstado("Inativo"); // estado inicial
-        CursoDAL.adicionarCurso(curso, PASTA_BD);
+        cursoDAL.adicionarCurso(curso, PASTA_BD);
         return true;
     }
 
@@ -144,7 +150,7 @@ public class CursoBLL {
         Curso cursoAtualizado = new Curso(sigla, nomeFinal, depFinal, propinaFinal);
         cursoAtualizado.setEstado(existente.getEstado());
 
-        CursoDAL.atualizarCurso(cursoAtualizado, PASTA_BD);
+        cursoDAL.atualizarCurso(cursoAtualizado, PASTA_BD);
         return true;
     }
 
@@ -155,7 +161,7 @@ public class CursoBLL {
      */
     public boolean removerCurso(String sigla) {
         if (!isAlteravel(sigla)) return false;
-        return CursoDAL.removerCurso(sigla, PASTA_BD);
+        return cursoDAL.removerCurso(sigla, PASTA_BD);
     }
 
     /**
@@ -168,9 +174,9 @@ public class CursoBLL {
         int totalAlunos = estudanteDAL.contarEstudantesPorCursoEAno(sigla, 1)
                 + estudanteDAL.contarEstudantesPorCursoEAno(sigla, 2)
                 + estudanteDAL.contarEstudantesPorCursoEAno(sigla, 3);
-        int totalUcs = UcDAL.contarUcsPorCursoEAno(sigla, 1, PASTA_BD)
-                + UcDAL.contarUcsPorCursoEAno(sigla, 2, PASTA_BD)
-                + UcDAL.contarUcsPorCursoEAno(sigla, 3, PASTA_BD);
+        int totalUcs = ucDAL.contarUcsPorCursoEAno(sigla, 1, PASTA_BD)
+                + ucDAL.contarUcsPorCursoEAno(sigla, 2, PASTA_BD)
+                + ucDAL.contarUcsPorCursoEAno(sigla, 3, PASTA_BD);
         return totalAlunos == 0 && totalUcs == 0;
     }
 }

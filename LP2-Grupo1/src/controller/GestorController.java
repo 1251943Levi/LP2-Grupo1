@@ -5,6 +5,8 @@ import model.*;
 import utils.*;
 import view.GestorView;
 import dal.UcDAL;
+import dal.UcDALFile;
+import dal.UcDALSql;
 import bll.GestorBLL;
 import bll.EstudanteBLL;
 import bll.UcBLL;
@@ -28,6 +30,7 @@ public class GestorController {
     private final EstudanteBLL estudanteBll;
     private final UcBLL ucBll;
     private final DocenteBLL docenteBll = new DocenteBLL();
+    private final UcDAL ucDAL = ConfigApp.isModoSql() ? new UcDALSql() : new UcDALFile();
 
     public GestorController(RepositorioDados repo, Gestor gestor) {
         this.repo = repo;
@@ -486,9 +489,9 @@ public class GestorController {
             for (String cursoStr : todosCursos) {
                 String sigla = cursoStr.split(" - ")[0];
 
-                boolean temAno1 = dal.UcDAL.contarUcsPorCursoEAno(sigla, 1, ConfigApp.PASTA_BD) > 0;
-                boolean temAno2 = dal.UcDAL.contarUcsPorCursoEAno(sigla, 2, ConfigApp.PASTA_BD) > 0;
-                boolean temAno3 = dal.UcDAL.contarUcsPorCursoEAno(sigla, 3, ConfigApp.PASTA_BD) > 0;
+                boolean temAno1 = ucDAL.contarUcsPorCursoEAno(sigla, 1, ConfigApp.PASTA_BD) > 0;
+                boolean temAno2 = ucDAL.contarUcsPorCursoEAno(sigla, 2, ConfigApp.PASTA_BD) > 0;
+                boolean temAno3 = ucDAL.contarUcsPorCursoEAno(sigla, 3, ConfigApp.PASTA_BD) > 0;
 
                 if (temAno1 && temAno2 && temAno3) {
                     cursosAptos.add(cursoStr);
@@ -977,7 +980,7 @@ public class GestorController {
         String siglaUc = ucs[escolha - 1].split(" - ")[0];
 
         // Obter cursos associados antes de tentar remover
-        List<String> cursosAssociados = UcDAL.obterCursosPorUc(siglaUc, ConfigApp.PASTA_BD);
+        List<String> cursosAssociados = ucDAL.obterCursosPorUc(siglaUc, ConfigApp.PASTA_BD);
 
         if (view.confirmarRemocaoBoolean(siglaUc)) {
             if (gestorBll.removerUc(siglaUc)) {
@@ -1001,7 +1004,7 @@ public class GestorController {
             String siglaUc = ucs[escolhaUc - 1].split(" - ")[0];
 
             // Obter cursos associados a esta UC
-            List<String> cursosAssociados = UcDAL.obterCursosPorUc(siglaUc, ConfigApp.PASTA_BD);
+            List<String> cursosAssociados = ucDAL.obterCursosPorUc(siglaUc, ConfigApp.PASTA_BD);
             if (cursosAssociados.isEmpty()) {
                 view.mostrarMensagem("Esta UC não está associada a nenhum curso.");
                 return;
@@ -1016,7 +1019,7 @@ public class GestorController {
             if (escolhaCurso == -1 || escolhaCurso == 0) return;
             String siglaCurso = cursosAssociados.get(escolhaCurso - 1);
 
-            if (UcDAL.removerAssociacaoUcCurso(siglaUc, siglaCurso, ConfigApp.PASTA_BD)) {
+            if (ucDAL.removerAssociacaoUcCurso(siglaUc, siglaCurso, ConfigApp.PASTA_BD)) {
                 view.mostrarSucessoAssociacaoRemovida();
             } else {
                 view.mostrarErroAssociacaoRemovida();
