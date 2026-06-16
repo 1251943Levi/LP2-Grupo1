@@ -1,274 +1,36 @@
 package dal;
 
 import model.Curso;
-import model.Departamento;
-import utils.Consola;
-
-import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Acesso aos dados de cursos armazenados em cursos.csv.
- * Formato das colunas: sigla; nome; siglaDepartamento; propina; estado.
+ * Contrato de acesso aos dados de cursos.
+ * Implementado por {@link CursoDALFile} (CSV) e {@link CursoDALSql} (SQL Server).
+ *
+ * A escolha da implementação é feita pelos chamadores através de
+ * {@code ConfigApp.isModoSql() ? new CursoDALSql() : new CursoDALFile()}.
+ *
+ * Os parâmetros {@code pastaBase} são mantidos por compatibilidade com os
+ * call sites existentes; a implementação SQL ignora-os nas queries.
  */
-public class CursoDAL {
-    private static final String NOME_FICHEIRO = "cursos.csv";
-    private static final String CABECALHO = "sigla;nome;siglaDepartamento;propina;estado";
+public interface CursoDAL {
 
+    /** Garante o suporte de dados (cria tabela e migra cursos.csv se necessário). */
+    void inicializar();
 
-    // --- ESCRITA ---
+    void adicionarCurso(Curso curso, String pastaBase);
 
-    /**
-     * Persiste um novo curso no ficheiro CSV.
-     * @param curso     Curso a adicionar.
-     * @param pastaBase Caminho da pasta de dados.
-     */
-    public static void adicionarCurso(Curso curso, String pastaBase) {
-        if (curso == null) return;
-        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
-        DALUtil.garantirFicheiroECabecalho(caminho, CABECALHO);
+    void atualizarCurso(Curso cursoAtualizado, String pastaBase);
 
-        String siglaDep = (curso.getDepartamento() != null)
-                ? curso.getDepartamento().getSigla() : "N/A";
-        String linha = curso.getSigla() + ";" + curso.getNome() + ";" + siglaDep + ";"
-                + curso.getValorPropinaAnual() + ";" + curso.getEstado();
+    boolean removerCurso(String sigla, String pastaBase);
 
-        DALUtil.adicionarLinhaCSV(caminho, linha);
-    }
+    String[] obterDadosBrutosCurso(String sigla, String pastaBase);
 
+    Curso procurarCurso(String sigla, String pastaBase);
 
-    /**
-     * Atualiza o registo de um curso existente.
-     * A sigla é usada como chave de pesquisa.
-     * @param cursoAtualizado Curso com os dados novos.
-     * @param pastaBase       Caminho da pasta de dados.
-     */
-    public static void atualizarCurso(Curso cursoAtualizado, String pastaBase) {
-        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
-        List<String> linhasAntigas = DALUtil.lerFicheiro(caminho);
-        if (linhasAntigas.isEmpty()) return;
+    String[] obterListaCursos(String pastaBase);
 
-        List<String> linhasAtualizadas = new ArrayList<>();
-        boolean atualizado = false;
+    String listarCursosDetalhados(String pastaBase, int anoLetivoAtual);
 
-        for (String linha : linhasAntigas) {
-            if (linha.equalsIgnoreCase(CABECALHO)) { linhasAtualizadas.add(linha); continue; }
-            String[] dados = linha.split(";", -1);
-            if (dados.length > 0 && dados[0].trim().equalsIgnoreCase(cursoAtualizado.getSigla())) {
-                String siglaDep = (cursoAtualizado.getDepartamento() != null)
-                        ? cursoAtualizado.getDepartamento().getSigla() : "N/A";
-                linhasAtualizadas.add(cursoAtualizado.getSigla() + ";" + cursoAtualizado.getNome() + ";"
-                        + siglaDep + ";" + cursoAtualizado.getValorPropinaAnual() + ";"
-                        + cursoAtualizado.getEstado());
-                atualizado = true;
-            } else {
-                linhasAtualizadas.add(linha);
-            }
-        }
-        if (atualizado) DALUtil.reescreverFicheiro(caminho, linhasAtualizadas);
-    }
-
-    /**
-     * Remove um curso pelo sua sigla.
-     * @param sigla     Sigla do curso a eliminar.
-     * @param pastaBase Caminho da pasta de dados.
-     * @return true se o curso foi encontrado e removido.
-     */
-    public static boolean removerCurso(String sigla, String pastaBase) {
-        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
-        List<String> linhasAntigas = DALUtil.lerFicheiro(caminho);
-        if (linhasAntigas.isEmpty()) return false;
-
-        List<String> linhasAtualizadas = new ArrayList<>();
-        boolean encontrou = false;
-
-        for (String linha : linhasAntigas) {
-            if (linha.equalsIgnoreCase(CABECALHO)) { linhasAtualizadas.add(linha); continue; }
-            String[] dados = linha.split(";", -1);
-            if (dados.length > 0 && dados[0].trim().equalsIgnoreCase(sigla)) {
-                encontrou = true;
-            } else {
-                linhasAtualizadas.add(linha);
-            }
-        }
-        if (encontrou) DALUtil.reescreverFicheiro(caminho, linhasAtualizadas);
-        return encontrou;
-    }
-
-    /**
-     * Devolve os campos em bruto de um curso para construção na BLL.
-     * @param sigla     Sigla do curso a pesquisar.
-     * @param pastaBase Caminho da pasta de dados.
-     * @return Array de campos CSV, ou null se não existir.
-     */
-    public static String[] obterDadosBrutosCurso(String sigla, String pastaBase) {
-        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
-        List<String> linhas = DALUtil.lerFicheiro(caminho);
-
-        for (String linha : linhas) {
-            if (linha.equalsIgnoreCase(CABECALHO)) continue;
-            String[] dados = linha.split(";", -1);
-            if (dados.length >= 3 && dados[0].trim().equalsIgnoreCase(sigla)) {
-                return dados;
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Constrói e devolve um objeto Curso com o departamento associado.
-     * @param sigla     Sigla do curso.
-     * @param pastaBase Caminho da pasta de dados.
-     * @return O Curso completo, ou null se não existir.
-     */
-    public static Curso procurarCurso(String sigla, String pastaBase) {
-        String[] dados = obterDadosBrutosCurso(sigla, pastaBase);
-        if (dados == null) return null;
-
-        double propina = 0.0;
-        if (dados.length >= 4) {
-            try { propina = Double.parseDouble(dados[3].trim()); }
-            catch (NumberFormatException ignored) {}
-        }
-
-        Departamento dep = new DepartamentoDALFile().procurarPorSigla(
-                dados.length >= 3 ? dados[2].trim() : "N/A");
-
-        Curso curso = new Curso(dados[0].trim(), dados[1].trim(), dep, propina);
-
-        if (dados.length >= 5 && !dados[4].trim().isEmpty())
-            curso.setEstado(dados[4].trim());
-
-        return curso;
-    }
-
-    /**
-     * Devolve um array "SIGLA - Nome" de todos os cursos para menus de seleção.
-     * @param pastaBase Caminho da pasta de dados.
-     * @return Array de strings.
-     */
-    public static String[] obterListaCursos(String pastaBase) {
-        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
-        List<String> linhas = DALUtil.lerFicheiro(caminho);
-        List<String> listaCursos = new ArrayList<>();
-
-        for (String linha : linhas) {
-            String[] dados = linha.split(";", -1);
-
-            if (dados.length < 2 || dados[0].trim().equalsIgnoreCase("sigla")) continue;
-
-            listaCursos.add(dados[0].trim() + " - " + dados[1].trim());
-        }
-        return listaCursos.toArray(new String[0]);
-    }
-
-    /**
-     * Devolve uma listagem formatada de todos os cursos para exibição em consola.
-     * @param pastaBase Caminho da pasta de dados.
-     * @return String com todos os cursos.
-     */
-    public static String listarCursosDetalhados(String pastaBase, int anoLetivoAtual) {
-
-        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
-
-        List<String> linhas = DALUtil.lerFicheiro(caminho);
-
-        StringBuilder sb = new StringBuilder();
-
-        Consola.imprimirTitulo("PAINEL DE CURSOS");
-
-        for (String linha : linhas) {
-
-            if (linha.equalsIgnoreCase(CABECALHO)) continue;
-
-            String[] dados = linha.split(";", -1);
-
-            if (dados.length < 3) continue;
-
-            String siglaCurso = dados[0].trim();
-            String nomeCurso = dados[1].trim();
-            String departamento = dados[2].trim();
-
-            for (int ano = 1; ano <= 3; ano++) {
-
-                // quantidade de UCs do ano
-                int qtdUcs = UcDAL.contarUcsPorCursoEAno(siglaCurso, ano, pastaBase);
-
-                // alunos inscritos nas UCs desse ano
-                int qtdAlunos = 0;
-
-                List<String> siglasUcs =
-                        UcDAL.obterSiglasUcsPorCursoEAno(siglaCurso, ano, pastaBase);
-
-                List<Integer> alunosUnicos = new ArrayList<>();
-
-                for (String siglaUc : siglasUcs) {
-
-                    List<Integer> alunosUc = InscricaoDAL.obterAlunosPorUc(siglaUc, anoLetivoAtual, pastaBase);
-                    for (Integer num : alunosUc) {
-
-                        if (!alunosUnicos.contains(num)) {
-                            alunosUnicos.add(num);
-                        }
-                    }
-                }
-
-                qtdAlunos = alunosUnicos.size();
-
-                double propina = 0.0;
-                try {
-                    propina = Double.parseDouble(dados[3].trim());
-                } catch (NumberFormatException ignored) {}
-
-                sb.append(anoLetivoAtual)
-                        .append(" | ")
-                        .append(siglaCurso)
-                        .append(" | ")
-                        .append(nomeCurso)
-                        .append(" | ")
-                        .append(departamento)
-                        .append(" | ")
-                        .append(String.format("%.0f€", propina))
-                        .append(" | ")
-                        .append(qtdAlunos)
-                        .append(" | ")
-                        .append(qtdUcs)
-                        .append(" | ")
-                        .append(ano)
-                        .append("º Ano\n");
-            }
-        }
-
-        return sb.toString();
-    }
-
-    /**
-     * Carrega todos os cursos (dados básicos) a partir do ficheiro CSV.
-     * @param pastaBase Caminho da pasta de dados.
-     * @return Lista de objetos Curso.
-     */
-    public static List<Curso> carregarTodos(String pastaBase) {
-        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
-        List<String> linhas = DALUtil.lerFicheiro(caminho);
-        List<Curso> cursos = new ArrayList<>();
-
-        for (String linha : linhas) {
-            if (linha.equalsIgnoreCase(CABECALHO)) continue;
-            String[] dados = linha.split(";", -1);
-            if (dados.length >= 3) {
-                double propina = 0.0;
-                if (dados.length >= 4) {
-                    try { propina = Double.parseDouble(dados[3].trim()); }
-                    catch (NumberFormatException ignored) {}
-                }
-                Departamento dep = new DepartamentoDALFile().procurarPorSigla(dados[2].trim());
-                Curso c = new Curso(dados[0].trim(), dados[1].trim(), dep, propina);
-                if (dados.length >= 5 && !dados[4].trim().isEmpty())
-                    c.setEstado(dados[4].trim());
-                cursos.add(c);
-            }
-        }
-        return cursos;
-    }
+    List<Curso> carregarTodos(String pastaBase);
 }

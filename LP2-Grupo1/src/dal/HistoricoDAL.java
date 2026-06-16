@@ -1,57 +1,28 @@
 package dal;
 
-import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Contrato de acesso ao histórico académico dos estudantes.
+ * Cada registo guarda o resultado de um aluno numa UC, num ano letivo.
+ * Duas implementações intermutáveis, escolhidas em runtime via
+ * {@link common.ConfigApp#isModoSql()}:
+ * <ul>
+ *     <li>{@link HistoricoDALFile} — persiste em historico_academico.csv</li>
+ *     <li>{@link HistoricoDALSql} — persiste na tabela [historicoAcademico]</li>
+ * </ul>
+ */
+public interface HistoricoDAL {
 
-public class HistoricoDAL {
+    /** Garante que a tabela/ficheiro existe (e importa dados do CSV se necessário em modo SQL). */
+    void inicializar();
 
-    private static final String NOME_FICHEIRO = "historico_academico.csv";
-    private static final String CABECALHO = "anoLetivo;numMec;siglaUC;notas;estado";
+    /** Regista um registo de histórico académico (resultado de um aluno numa UC, num ano). */
+    void guardarRegistoHistorico(int anoLetivo, int numMec, String siglaUC, String notas, String estado);
 
-    public static void guardarRegistoHistorico(int anoLetivo, int numMec, String siglaUC, String notas, String estado, String pastaBase) {
-        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
-        DALUtil.garantirFicheiroECabecalho(caminho, CABECALHO);
-        String linha = anoLetivo + ";" + numMec + ";" + siglaUC + ";" + notas + ";" + estado;
-        DALUtil.adicionarLinhaCSV(caminho, linha);
-    }
+    /** Devolve todos os registos de histórico para um dado ano letivo. */
+    List<String> consultarHistoricoPorAno(int anoLetivo);
 
-    public static List<String> consultarHistoricoPorAno(int anoLetivo, String pastaBase) {
-        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
-        List<String> linhas = DALUtil.lerFicheiro(caminho);
-        List<String> resultados = new ArrayList<>();
-
-        for (String linha : linhas) {
-            if (linha.equalsIgnoreCase(CABECALHO)) continue;
-            String[] dados = linha.split(";", -1);
-            if (dados.length >= 1) {
-                try {
-                    if (Integer.parseInt(dados[0].trim()) == anoLetivo) {
-                        resultados.add(linha);
-                    }
-                } catch (NumberFormatException ignored) {}
-            }
-        }
-        return resultados;
-    }
-
-    public static List<String> consultarHistoricoPorAluno(int numMec, String pastaBase) {
-        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
-        List<String> linhas = DALUtil.lerFicheiro(caminho);
-        List<String> resultados = new ArrayList<>();
-
-        for (String linha : linhas) {
-            if (linha.equalsIgnoreCase(CABECALHO)) continue;
-            String[] dados = linha.split(";", -1);
-            if (dados.length >= 2) {
-                try {
-                    if (Integer.parseInt(dados[1].trim()) == numMec) {
-                        resultados.add(linha);
-                    }
-                } catch (NumberFormatException ignored) {}
-            }
-        }
-        return resultados;
-    }
+    /** Devolve todos os registos de histórico de um aluno (todos os anos). */
+    List<String> consultarHistoricoPorAluno(int numMec);
 }

@@ -3,7 +3,11 @@ package bll;
 import common.ConfigApp;
 
 import dal.EstudanteDAL;
+import dal.EstudanteDALFile;
+import dal.EstudanteDALSql;
 import dal.PagamentoDAL;
+import dal.PagamentoDALFile;
+import dal.PagamentoDALSql;
 import model.Estudante;
 import model.Pagamento;
 
@@ -21,7 +25,13 @@ public class PagamentoBLL {
     private static final DateTimeFormatter FORMATO_DATA = DateTimeFormatter.ofPattern("dd-MM-yyyy");
 
     // Instância da DAL criada aqui
-    private final EstudanteDAL estudanteDAL = new EstudanteDAL(PASTA_BD);
+    private final EstudanteDAL estudanteDAL = ConfigApp.isModoSql() ? new EstudanteDALSql() : new EstudanteDALFile();
+    private final PagamentoDAL pagamentoDAL =
+            ConfigApp.isModoSql() ? new PagamentoDALSql() : new PagamentoDALFile();
+
+    public PagamentoBLL() {
+        pagamentoDAL.inicializar();
+    }
 
     /**
      * Processa um pagamento de propina total ou parcial.
@@ -43,7 +53,7 @@ public class PagamentoBLL {
         estudante.adicionarPagamento(registo);
 
         estudanteDAL.atualizarEstudante(estudante);
-        PagamentoDAL.adicionarPagamento(estudante.getNumeroMecanografico(), valor, dataHoje, PASTA_BD);
+        pagamentoDAL.adicionarPagamento(estudante.getNumeroMecanografico(), valor, dataHoje);
 
         return true;
     }
