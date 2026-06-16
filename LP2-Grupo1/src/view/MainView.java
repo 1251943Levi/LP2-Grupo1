@@ -14,6 +14,12 @@ public class MainView {
      * Cria o MainController, passa-se a si própria, e delega o arranque.
      */
     public void iniciar() {
+        // O modo de persistência é escolhido AQUI, antes de instanciar o
+        // MainController. Assim, todos os DALs e o RepositorioDados criados
+        // na construção do controlador já respeitam o modo selecionado —
+        // evita ligar ao SQL Server antes de o utilizador o escolher.
+        int modo = pedirModoPersistencia();
+        common.ConfigApp.definirModo(modo == 2 ? "sql" : "file");
         new MainController(this).iniciar();
     }
 

@@ -27,12 +27,23 @@ import java.util.List;
 public class GestorBLL {
 
     private static final String PASTA_BD = ConfigApp.PASTA_BD;
-    private final EstudanteDAL estudanteDAL = new EstudanteDAL(PASTA_BD);
+    private final CursoDAL cursoDAL = ConfigApp.isModoSql() ? new CursoDALSql() : new CursoDALFile();
+    private final UcDAL ucDAL = ConfigApp.isModoSql() ? new UcDALSql() : new UcDALFile();
+    private final EstudanteDAL estudanteDAL = ConfigApp.isModoSql() ? new EstudanteDALSql() : new EstudanteDALFile();
     private final LoginController loginController = new LoginController();
     private final DepartamentoDAL departamentoDAL =
             ConfigApp.isModoSql() ? new DepartamentoDALSql() : new DepartamentoDALFile();
     private final DocenteDAL docenteDAL =
             ConfigApp.isModoSql() ? new DocenteDALSql() : new DocenteDALFile();
+    private final InscricaoDAL inscricaoDAL =
+            ConfigApp.isModoSql() ? new InscricaoDALSql() : new InscricaoDALFile();
+    private final HistoricoDAL historicoDAL =
+            ConfigApp.isModoSql() ? new HistoricoDALSql() : new HistoricoDALFile();
+
+    public GestorBLL() {
+        inscricaoDAL.inicializar();
+        historicoDAL.inicializar();
+    }
 
     // ─────────────────────────── ANO LETIVO ────────────────────────────
 
@@ -69,7 +80,7 @@ public class GestorBLL {
         }
 
         // ── Verificação de quórum ──────────────────────────────────────
-        String[] cursos = CursoDAL.obterListaCursos(PASTA_BD);
+        String[] cursos = cursoDAL.obterListaCursos(PASTA_BD);
         if (cursos.length == 0) {
             view.mostrarErroCarregarDados("Cursos");
             return;
@@ -96,7 +107,7 @@ public class GestorBLL {
             } else {
                 curso.setEstado("Inativo");
             }
-            CursoDAL.atualizarCurso(curso, PASTA_BD);
+            cursoDAL.atualizarCurso(curso, PASTA_BD);
         }
 
         // ── Transição dos alunos ───────────────────────────────────────
@@ -181,8 +192,8 @@ public class GestorBLL {
         loginController.criarCredencial(email, passLimpa, "ESTUDANTE");
         estudanteDAL.adicionarEstudante(novo, siglaCurso);
 
-        for (String siglaUc : UcDAL.obterSiglasUcsPorCursoEAno(siglaCurso, 1, PASTA_BD)) {
-            InscricaoDAL.adicionarInscricao(numMec, siglaUc, anoInscricao, PASTA_BD);
+        for (String siglaUc : ucDAL.obterSiglasUcsPorCursoEAno(siglaCurso, 1, PASTA_BD)) {
+            inscricaoDAL.adicionarInscricao(numMec, siglaUc, anoInscricao);
         }
         return email;
     }
@@ -213,13 +224,13 @@ public class GestorBLL {
     public boolean adicionarUc(String siglaCurso, int anoUc, String siglaUc,
                                String nomeUc, String siglaDocente) {
         if (siglaCurso != null && !siglaCurso.equals("N/A")) {
-            if (UcDAL.contarUcsPorCursoEAno(siglaCurso, anoUc, PASTA_BD) >= 5) {
+            if (ucDAL.contarUcsPorCursoEAno(siglaCurso, anoUc, PASTA_BD) >= 5) {
                 return false;
             }
         }
         Docente doc = docenteDAL.procurarPorSigla(siglaDocente);
         String cursoParaGuardar = (siglaCurso == null || siglaCurso.isEmpty()) ? "N/A" : siglaCurso;
-        UcDAL.adicionarUC(new UnidadeCurricular(siglaUc, nomeUc, anoUc, doc), cursoParaGuardar, PASTA_BD);
+        ucDAL.adicionarUC(new UnidadeCurricular(siglaUc, nomeUc, anoUc, doc), cursoParaGuardar, PASTA_BD);
         return true;
     }
 
@@ -242,10 +253,10 @@ public class GestorBLL {
             return false;
         }
 
-        if (!UcDAL.removerUC(siglaAntiga, PASTA_BD)) return false;
+        if (!ucDAL.removerUC(siglaAntiga, PASTA_BD)) return false;
 
         Docente doc = docenteDAL.procurarPorSigla(siglaDocente);
-        UcDAL.adicionarUC(new UnidadeCurricular(novaSigla, nome, anoInt, doc), siglaCurso, PASTA_BD);
+        ucDAL.adicionarUC(new UnidadeCurricular(novaSigla, nome, anoInt, doc), siglaCurso, PASTA_BD);
         return true;
     }
 
@@ -256,10 +267,10 @@ public class GestorBLL {
      * @return true se a UC existia e foi removida.
      */
     public boolean removerUc(String siglaUc) {
-        if (UcDAL.temCursoAssociado(siglaUc, PASTA_BD)) {
+        if (ucDAL.temCursoAssociado(siglaUc, PASTA_BD)) {
             return false;
         }
-        return UcDAL.removerUC(siglaUc, PASTA_BD);
+        return ucDAL.removerUC(siglaUc, PASTA_BD);
     }
 
     /**
@@ -268,14 +279,14 @@ public class GestorBLL {
      * @return true se associada com sucesso; false se o limite de 5 UCs for atingido.
      */
     public boolean associarUcExistente(String siglaUc, String siglaCurso, int ano) {
-        if (UcDAL.contarUcsPorCursoEAno(siglaCurso, ano, PASTA_BD) >= 5) return false;
+        if (ucDAL.contarUcsPorCursoEAno(siglaCurso, ano, PASTA_BD) >= 5) return false;
 
-        UnidadeCurricular uc = UcDAL.procurarUC(siglaUc, PASTA_BD);
+        UnidadeCurricular uc = ucDAL.procurarUC(siglaUc, PASTA_BD);
         if (uc == null) return false;
 
         UnidadeCurricular novaAssociacao = new UnidadeCurricular(
                 uc.getSigla(), uc.getNome(), ano, uc.getDocenteResponsavel(), uc.getEcts());
-        UcDAL.adicionarUC(novaAssociacao, siglaCurso, PASTA_BD);
+        ucDAL.adicionarUC(novaAssociacao, siglaCurso, PASTA_BD);
         return true;
     }
 
@@ -291,7 +302,7 @@ public class GestorBLL {
         Departamento dep = departamentoDAL.procurarPorSigla(siglaDep);
         Curso c = new Curso(sigla, nome, dep, propina);
         c.setEstado("Inativo");
-        CursoDAL.adicionarCurso(c, PASTA_BD);
+        cursoDAL.adicionarCurso(c, PASTA_BD);
     }
 
     /**
@@ -302,15 +313,8 @@ public class GestorBLL {
      * @return true se o curso não tiver alocações.
      */
     public boolean isCursoAlteravel(String sigla) {
-        int totalAlunos =
-                estudanteDAL.contarEstudantesPorCursoEAno(sigla, 1)
-                        + estudanteDAL.contarEstudantesPorCursoEAno(sigla, 2)
-                        + estudanteDAL.contarEstudantesPorCursoEAno(sigla, 3);
-        int totalUcs =
-                UcDAL.contarUcsPorCursoEAno(sigla, 1, PASTA_BD)
-                        + UcDAL.contarUcsPorCursoEAno(sigla, 2, PASTA_BD)
-                        + UcDAL.contarUcsPorCursoEAno(sigla, 3, PASTA_BD);
-        return totalAlunos == 0 && totalUcs == 0;
+        // Fonte única da regra de alterabilidade do curso: CursoBLL.
+        return new CursoBLL().isAlteravel(sigla);
     }
 
     /**
@@ -325,7 +329,7 @@ public class GestorBLL {
         Departamento dep = departamentoDAL.procurarPorSigla(siglaDep);
         Curso atualizado = new Curso(sigla, novoNome, dep, novaPropina);
         atualizado.setEstado(original.getEstado());
-        CursoDAL.atualizarCurso(atualizado, PASTA_BD);
+        cursoDAL.atualizarCurso(atualizado, PASTA_BD);
         return true;
     }
 
@@ -335,8 +339,8 @@ public class GestorBLL {
      * @return false se o curso tiver alocações.
      */
     public boolean removerCurso(String sigla) {
-        if (!isCursoAlteravel(sigla)) return false;
-        return CursoDAL.removerCurso(sigla, PASTA_BD);
+        // Delega na fonte única (CursoBLL), que valida alterabilidade e remove.
+        return new CursoBLL().removerCurso(sigla);
     }
 
     // ─────────────────────────── ESTATÍSTICAS ──────────────────────────
@@ -365,7 +369,7 @@ public class GestorBLL {
      * @return Array "SIGLA - Nome" de todos os cursos.
      */
     public String[] obterListaCursos() {
-        return CursoDAL.obterListaCursos(PASTA_BD);
+        return cursoDAL.obterListaCursos(PASTA_BD);
     }
 
     /**
@@ -384,26 +388,26 @@ public class GestorBLL {
      * @return Painel formatado com todas as UCs (texto multi-linha, não um array).
      *
      * PATCH (Bug 2): O Javadoc e o nome do método sugeriam um array (String[]),
-     * mas o método sempre devolveu uma String formatada de UcDAL.listarTodasUc().
+     * mas o método sempre devolveu uma String formatada de ucDAL.listarTodasUc().
      * O comentário "Removed the []" foi removido; o contrato está agora correto.
      */
     public String listarTodasUcs() {
-        return UcDAL.listarTodasUc(PASTA_BD);
+        return ucDAL.listarTodasUc(PASTA_BD);
     }
 
     /** @return Painel detalhado de cursos com estado e ano letivo atual. */
     public String obterPainelCursos() {
-        return CursoDAL.listarCursosDetalhados(PASTA_BD, Config.getAnoAtual());
+        return cursoDAL.listarCursosDetalhados(PASTA_BD, Config.getAnoAtual());
     }
 
     /** @return Painel detalhado de UCs com docentes, momentos e alunos inscritos. */
     public String obterPainelUcs() {
-        return UcDAL.listarUcsDetalhadas(PASTA_BD, Config.getAnoAtual());
+        return ucDAL.listarUcsDetalhadas(PASTA_BD, Config.getAnoAtual());
     }
 
     /** @return Texto formatado com as UCs de um curso agrupadas por ano curricular. */
     public String listarUcsPorCurso(String siglaCurso) {
-        return UcDAL.listarUcsPorCurso(siglaCurso, PASTA_BD);
+        return ucDAL.listarUcsPorCurso(siglaCurso, PASTA_BD);
     }
 
     /**
@@ -430,7 +434,7 @@ public class GestorBLL {
 
     /** @return Lista de linhas do histórico académico para um dado ano letivo. */
     public List<String> obterHistoricoPorAno(int ano) {
-        return dal.HistoricoDAL.consultarHistoricoPorAno(ano, PASTA_BD);
+        return historicoDAL.consultarHistoricoPorAno(ano);
     }
 
     // ─────────────────────── SEGURANÇA E VALIDAÇÃO ─────────────────────

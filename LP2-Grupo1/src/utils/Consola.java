@@ -278,7 +278,7 @@ public final class Consola {
      */
     public static String lerStringOpcional(String prompt) {
         System.out.print("  " + prompt + ": ");
-        String input = new java.util.Scanner(System.in).nextLine().trim();
+        String input = SCANNER.nextLine().trim();
         if (input.equalsIgnoreCase("sair")) {
             throw new CancelamentoException();
         }

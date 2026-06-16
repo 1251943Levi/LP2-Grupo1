@@ -1,18 +1,30 @@
 package bll;
 
 import common.ConfigApp;
+import dal.CursoDALFile;
+import dal.CursoDALSql;
+import dal.UcDALFile;
+import dal.UcDALSql;
 
 import dal.AnoLetivoDAL;
 import dal.AnoLetivoDALFile;
 import dal.AnoLetivoDALSql;
 import dal.AvaliacaoDAL;
+import dal.AvaliacaoDALFile;
+import dal.AvaliacaoDALSql;
 import dal.CursoDAL;
 import dal.EstudanteDAL;
+import dal.EstudanteDALFile;
+import dal.EstudanteDALSql;
 import dal.HistoricoAnoLetivoDAL;
 import dal.HistoricoAnoLetivoDALFile;
 import dal.HistoricoAnoLetivoDALSql;
 import dal.HistoricoDAL;
+import dal.HistoricoDALFile;
+import dal.HistoricoDALSql;
 import dal.InscricaoDAL;
+import dal.InscricaoDALFile;
+import dal.InscricaoDALSql;
 import dal.UcDAL;
 import model.*;
 import view.AnoLetivoView;
@@ -27,17 +39,28 @@ import java.util.List;
  * Em caso de violação de pré-condição é lançada EstadoInvalidoException.
  */
 public class AnoLetivoBLL {
+    private final CursoDAL cursoDAL = ConfigApp.isModoSql() ? new CursoDALSql() : new CursoDALFile();
+    private final UcDAL ucDAL = ConfigApp.isModoSql() ? new UcDALSql() : new UcDALFile();
 
     private final AnoLetivoDAL dal;
     private final HistoricoAnoLetivoDAL historicoDAL;
     private final EstudanteDAL estudanteDAL;
+    private final InscricaoDAL inscricaoDAL;
+    private final AvaliacaoDAL avaliacaoDAL;
+    private final HistoricoDAL historicoAcademicoDAL;
 
     public AnoLetivoBLL() {
         this.dal         = ConfigApp.isModoSql() ? new AnoLetivoDALSql()         : new AnoLetivoDALFile();
         this.historicoDAL = ConfigApp.isModoSql() ? new HistoricoAnoLetivoDALSql() : new HistoricoAnoLetivoDALFile();
-        this.estudanteDAL = new EstudanteDAL(ConfigApp.PASTA_BD);
+        this.estudanteDAL = ConfigApp.isModoSql() ? new EstudanteDALSql() : new EstudanteDALFile();
+        this.inscricaoDAL = ConfigApp.isModoSql() ? new InscricaoDALSql() : new InscricaoDALFile();
+        this.avaliacaoDAL = ConfigApp.isModoSql() ? new AvaliacaoDALSql() : new AvaliacaoDALFile();
+        this.historicoAcademicoDAL = ConfigApp.isModoSql() ? new HistoricoDALSql() : new HistoricoDALFile();
         dal.inicializar();
         historicoDAL.inicializar();
+        inscricaoDAL.inicializar();
+        avaliacaoDAL.inicializar();
+        historicoAcademicoDAL.inicializar();
     }
 
     // ============================================================
@@ -99,18 +122,9 @@ public class AnoLetivoBLL {
             throw new EstadoInvalidoException(msg.toString());
         }
 
-        // Pré-condição (igual aos momentos): a propina anual tem de estar definida
-        // (>0) em todos os cursos com alunos antes de o ano poder iniciar.
-        List<String> errosPropinas = validarPropinasCursos();
-        if (!errosPropinas.isEmpty()) {
-            StringBuilder msgPropinas = new StringBuilder("Bloqueado para iniciar — propinas por definir:");
-            for (String e : errosPropinas) msgPropinas.append("\n  - ").append(e);
-            throw new EstadoInvalidoException(msgPropinas.toString());
-        }
-
         List<String> cursosInativados = new ArrayList<>();
         CursoBLL cursoBll = new CursoBLL();
-        String[] cursos = CursoDAL.obterListaCursos(ConfigApp.PASTA_BD);
+        String[] cursos = cursoDAL.obterListaCursos(ConfigApp.PASTA_BD);
         for (String c : cursos) {
             String sigla = c.split(" - ")[0];
             int a1 = estudanteDAL.contarEstudantesPorCursoEAno(sigla, 1);
@@ -118,7 +132,7 @@ public class AnoLetivoBLL {
                 Curso curso = cursoBll.procurarCursoCompleto(sigla);
                 if (curso != null) {
                     curso.setEstado("Inativo");
-                    CursoDAL.atualizarCurso(curso, ConfigApp.PASTA_BD);
+                    cursoDAL.atualizarCurso(curso, ConfigApp.PASTA_BD);
                     cursosInativados.add(sigla);
                 }
             }
@@ -177,9 +191,9 @@ public class AnoLetivoBLL {
                         notas += av.getResultados()[n] + " ";
                     }
                     String estado = av.isAprovado() ? "APROVADO" : "REPROVADO";
-                    HistoricoDAL.guardarRegistoHistorico(
+                    historicoAcademicoDAL.guardarRegistoHistorico(
                             ano, e.getNumeroMecanografico(),
-                            av.getUc().getSigla(), notas.trim(), estado, ConfigApp.PASTA_BD);
+                            av.getUc().getSigla(), notas.trim(), estado);
                 }
             }
         }
@@ -212,10 +226,10 @@ public class AnoLetivoBLL {
      * os momentos para o novo ano antes de o iniciar.
      */
     private void resetarMomentosUcs() {
-        String[] ucs = UcDAL.obterListaUcs(ConfigApp.PASTA_BD);
+        String[] ucs = ucDAL.obterListaUcs(ConfigApp.PASTA_BD);
         for (String entrada : ucs) {
             String sigla = entrada.split(" - ")[0].trim();
-            UcDAL.atualizarMomentos(sigla, 0, ConfigApp.PASTA_BD);
+            ucDAL.atualizarMomentos(sigla, 0, ConfigApp.PASTA_BD);
         }
         System.out.println("Momentos de avaliação resetados (0 = por definir) para todas as UCs.");
     }
@@ -240,7 +254,6 @@ public class AnoLetivoBLL {
                 List<String> errosInicio = new ArrayList<>();
                 errosInicio.addAll(validarQuorumCursos());
                 errosInicio.addAll(validarMomentosUcs());
-                errosInicio.addAll(validarPropinasCursos());
                 if (errosInicio.isEmpty()) linhas.add("[INICIAR] Pronto para iniciar.");
                 else for (String e : errosInicio) linhas.add("[INICIAR - BLOQUEIO] " + e);
                 break;
@@ -271,7 +284,7 @@ public class AnoLetivoBLL {
     }
 
     public int obterMomentosUc(String siglaUc) {
-        return UcDAL.obterMomentos(siglaUc, ConfigApp.PASTA_BD);
+        return ucDAL.obterMomentos(siglaUc, ConfigApp.PASTA_BD);
     }
 
     public void alterarMomentosUc(String siglaUc, int momentos) {
@@ -279,7 +292,7 @@ public class AnoLetivoBLL {
             throw new EstadoInvalidoException("Sigla de UC inválida.");
         if (momentos < 1 || momentos > 3)
             throw new EstadoInvalidoException("O número de momentos deve estar entre 1 e 3.");
-        UcDAL.atualizarMomentos(siglaUc, momentos, ConfigApp.PASTA_BD);
+        ucDAL.atualizarMomentos(siglaUc, momentos, ConfigApp.PASTA_BD);
     }
 
     // ============================================================
@@ -288,7 +301,7 @@ public class AnoLetivoBLL {
 
     private List<String> validarQuorumCursos() {
         List<String> erros = new ArrayList<>();
-        String[] cursos = CursoDAL.obterListaCursos(ConfigApp.PASTA_BD);
+        String[] cursos = cursoDAL.obterListaCursos(ConfigApp.PASTA_BD);
         for (String c : cursos) {
             String sigla = c.split(" - ")[0];
             int a1 = estudanteDAL.contarEstudantesPorCursoEAno(sigla, 1);
@@ -300,33 +313,11 @@ public class AnoLetivoBLL {
 
     private List<String> validarMomentosUcs() {
         List<String> erros = new ArrayList<>();
-        String[] ucs = UcDAL.obterListaUcs(ConfigApp.PASTA_BD);
+        String[] ucs = ucDAL.obterListaUcs(ConfigApp.PASTA_BD);
         for (String linha : ucs) {
             String sigla = linha.split(" - ")[0];
-            if (UcDAL.obterMomentos(sigla, ConfigApp.PASTA_BD) == 0)
+            if (ucDAL.obterMomentos(sigla, ConfigApp.PASTA_BD) == 0)
                 erros.add("UC " + sigla + " — momentos de avaliação não definidos.");
-        }
-        return erros;
-    }
-
-    /**
-     * Valida que todos os cursos COM alunos têm a propina anual definida (>0).
-     * Pré-condição para iniciar o ano letivo, à semelhança dos momentos das UCs.
-     */
-    private List<String> validarPropinasCursos() {
-        List<String> erros = new ArrayList<>();
-        CursoBLL cursoBll = new CursoBLL();
-        String[] cursos = CursoDAL.obterListaCursos(ConfigApp.PASTA_BD);
-        for (String c : cursos) {
-            String sigla = c.split(" - ")[0];
-            int totalAlunos = estudanteDAL.contarEstudantesPorCursoEAno(sigla, 1)
-                    + estudanteDAL.contarEstudantesPorCursoEAno(sigla, 2)
-                    + estudanteDAL.contarEstudantesPorCursoEAno(sigla, 3);
-            if (totalAlunos == 0) continue; // só interessam cursos com alunos
-            Curso curso = cursoBll.procurarCursoCompleto(sigla);
-            if (curso != null && curso.getValorPropinaAnual() <= 0) {
-                erros.add("Curso " + sigla + " — propina anual não definida (está a 0).");
-            }
         }
         return erros;
     }
@@ -336,14 +327,17 @@ public class AnoLetivoBLL {
         List<Estudante> estudantes = estudanteDAL.carregarTodos();
         for (Estudante e : estudantes) {
             if (e == null || e.getAnoCurricular() > 3) continue;
-            List<String> siglasInscritas = InscricaoDAL.obterSiglasUcsPorAluno(
-                    e.getNumeroMecanografico(), anoLetivo, ConfigApp.PASTA_BD);
+            List<String> siglasInscritas = inscricaoDAL.obterSiglasUcsPorAluno(
+                    e.getNumeroMecanografico(), anoLetivo);
             for (String siglaUc : siglasInscritas) {
-                Avaliacao av = AvaliacaoDAL.obterAvaliacao(
-                        e.getNumeroMecanografico(), siglaUc, anoLetivo, ConfigApp.PASTA_BD);
-                if (av == null || av.getTotalAvaliacoesLancadas() == 0)
-                    pendentes.add(String.format("Aluno %d (%s) — UC %s sem nota lançada.",
-                            e.getNumeroMecanografico(), e.getNome(), siglaUc));
+                int momentos = ucDAL.obterMomentos(siglaUc, ConfigApp.PASTA_BD);
+                Avaliacao av = avaliacaoDAL.obterAvaliacao(
+                        e.getNumeroMecanografico(), siglaUc, anoLetivo);
+                int lancadas = (av == null) ? 0 : av.getTotalAvaliacoesLancadas();
+                if (lancadas < momentos)
+                    pendentes.add(String.format(
+                            "Aluno %d (%s) — UC %s: %d de %d momentos de avaliação lançados.",
+                            e.getNumeroMecanografico(), e.getNome(), siglaUc, lancadas, momentos));
             }
         }
         return pendentes;
@@ -374,10 +368,10 @@ public class AnoLetivoBLL {
      */
     private List<String> listarMomentosUcPendentes() {
         List<String> pendentes = new ArrayList<>();
-        String[] ucs = UcDAL.obterListaUcs(ConfigApp.PASTA_BD);
+        String[] ucs = ucDAL.obterListaUcs(ConfigApp.PASTA_BD);
         for (String linha : ucs) {
             String sigla = linha.split(" - ")[0];
-            if (UcDAL.obterMomentos(sigla, ConfigApp.PASTA_BD) == 0) {
+            if (ucDAL.obterMomentos(sigla, ConfigApp.PASTA_BD) == 0) {
                 UnidadeCurricular uc = new UcBLL().procurarUCCompleta(sigla);
                 String docenteInfo;
                 if (uc != null && uc.getDocenteResponsavel() != null) {

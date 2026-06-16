@@ -88,9 +88,6 @@ public class DocenteView {
     public int    pedirNumeroAluno()  { return Consola.lerInt("Nº Mecanográfico do Aluno"); }
     public String pedirSiglaUc()      { return Consola.lerString("Sigla da UC"); }
     public int    pedirAnoLetivo()    { return Consola.lerInt("Ano Letivo (ex: 2026)"); }
-    public double pedirNotaNormal()   { return Consola.lerNota("Nota Normal"); }
-    public double pedirNotaRecurso()  { return Consola.lerNota("Nota Recurso"); }
-    public double pedirNotaEspecial() { return Consola.lerNota("Nota Especial"); }
     public double pedirNotaMomento()  { return Consola.lerNota("Nota do momento de avaliação (0 a 20)"); }
 
     /**

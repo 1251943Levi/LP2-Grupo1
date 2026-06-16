@@ -39,7 +39,7 @@ public class UnidadeCurricular {
         this.anoCurricular      = anoCurricular;
         this.docenteResponsavel = docenteResponsavel;
         this.ects               = ects;
-        this.numMomentos        = 1;
+        this.numMomentos        = 0;   // 0 = momentos de avaliação ainda por definir
         this.cursos             = new Curso[10];
         this.totalCursos        = 0;
     }
@@ -74,7 +74,7 @@ public class UnidadeCurricular {
     /** @return Docente responsável pela UC. */
     public Docente getDocenteResponsavel(){ return docenteResponsavel; }
 
-    /** @return Número de momentos de avaliação configurados para esta UC (1 por omissão). */
+    /** @return Número de momentos de avaliação configurados para esta UC (0 = ainda por definir). */
     public int getNumMomentos(){ return numMomentos; }
 
     /** @return Array dos cursos aos quais a UC está associada. */

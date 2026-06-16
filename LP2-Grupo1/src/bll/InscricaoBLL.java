@@ -1,5 +1,6 @@
 package bll;
 
+import common.ConfigApp;
 import dal.*;
 import model.*;
 import utils.Config;
@@ -8,9 +9,20 @@ import java.util.*;
 public class InscricaoBLL {
 
     private static final String PASTA_BD = Config.PASTA_BD;
+    private final UcDAL ucDAL = ConfigApp.isModoSql() ? new UcDALSql() : new UcDALFile();
+    private final CursoDAL cursoDAL = ConfigApp.isModoSql() ? new CursoDALSql() : new CursoDALFile();
     private static final double NOTA_MINIMA_APROVACAO = 9.5;
 
-    private final EstudanteDAL estudanteDAL = new EstudanteDAL(PASTA_BD);
+    private final EstudanteDAL estudanteDAL = ConfigApp.isModoSql() ? new EstudanteDALSql() : new EstudanteDALFile();
+    private final InscricaoDAL inscricaoDAL =
+            ConfigApp.isModoSql() ? new InscricaoDALSql() : new InscricaoDALFile();
+    private final AvaliacaoDAL avaliacaoDAL =
+            ConfigApp.isModoSql() ? new AvaliacaoDALSql() : new AvaliacaoDALFile();
+
+    public InscricaoBLL() {
+        inscricaoDAL.inicializar();
+        avaliacaoDAL.inicializar();
+    }
 
     public OperationResult transitarAlunos(AnoLetivo anoAtual, AnoLetivo anoSeguinte) {
         List<Estudante> todos = new EstudanteBLL().carregarTodosCompleto();
@@ -26,13 +38,13 @@ public class InscricaoBLL {
 
             int anoAtualCurricular = e.getAnoCurricular();
 
-            List<String> ucsInscritas = InscricaoDAL.obterSiglasUcsPorAluno(
-                    e.getNumeroMecanografico(), anoAtual.getAno(), PASTA_BD);
+            List<String> ucsInscritas = inscricaoDAL.obterSiglasUcsPorAluno(
+                    e.getNumeroMecanografico(), anoAtual.getAno());
 
             List<String> aprovadas = new ArrayList<>();
             List<String> reprovadas = new ArrayList<>();
             for (String sigla : ucsInscritas) {
-                Avaliacao av = AvaliacaoDAL.obterAvaliacao(e.getNumeroMecanografico(), sigla, anoAtual.getAno(), PASTA_BD);
+                Avaliacao av = avaliacaoDAL.obterAvaliacao(e.getNumeroMecanografico(), sigla, anoAtual.getAno());
                 if (av != null && av.isAprovado()) {
                     aprovadas.add(sigla);
                 } else {
@@ -48,10 +60,10 @@ public class InscricaoBLL {
             if (percentagem >= 0.6) {
                 if (anoAtualCurricular < 3) {
                     novoAno = anoAtualCurricular + 1;
-                    ucsParaInscrever.addAll(UcDAL.obterSiglasUcsPorCursoEAno(e.getSiglaCurso(), novoAno, PASTA_BD));
+                    ucsParaInscrever.addAll(ucDAL.obterSiglasUcsPorCursoEAno(e.getSiglaCurso(), novoAno, PASTA_BD));
                     ucsParaInscrever.addAll(reprovadas);
                 } else {
-                    List<String> ucsTerceiroAno = UcDAL.obterSiglasUcsPorCursoEAno(e.getSiglaCurso(), 3, PASTA_BD);
+                    List<String> ucsTerceiroAno = ucDAL.obterSiglasUcsPorCursoEAno(e.getSiglaCurso(), 3, PASTA_BD);
                     boolean aprovouTodas = !ucsTerceiroAno.isEmpty() && ucsTerceiroAno.stream().allMatch(aprovadas::contains);
                     if (aprovouTodas) {
                         novoAno = 4;
@@ -83,22 +95,21 @@ public class InscricaoBLL {
 
                 e.setAnoCurricular(novoAno);
 
-                // v1.1: a propina é anual e definida para o ano corrente. Ao transitar
-                // para o novo ano letivo, redefine-se a propina de cada aluno que
-                // continua a estudar (anos 1-3). Quem concluiu o curso (novoAno > 3)
-                // não paga nova propina.
+                // Propina anual: cobra a propina do curso a cada novo ano letivo
+                // aos alunos que continuam matriculados (não graduados, ano <= 3).
+                // Neste ponto o saldo está a 0 (o fecho do ano exige propina paga).
                 if (novoAno <= 3) {
-                    Curso curso = CursoDAL.procurarCurso(e.getSiglaCurso(), PASTA_BD);
+                    Curso curso = cursoDAL.procurarCurso(e.getSiglaCurso(), PASTA_BD);
                     if (curso != null) {
-                        e.setSaldoDevedor(curso.getValorPropinaAnual());
+                        e.setSaldoDevedor(e.getSaldoDevedor() + curso.getValorPropinaAnual());
                     }
                 }
 
                 estudanteDAL.atualizarEstudante(e);
 
-                InscricaoDAL.removerInscricoesPorAluno(e.getNumeroMecanografico(), PASTA_BD);
+                inscricaoDAL.removerInscricoesPorAluno(e.getNumeroMecanografico());
                 for (String sigla : ucs) {
-                    InscricaoDAL.adicionarInscricao(e.getNumeroMecanografico(), sigla, anoSeguinte.getAno(), PASTA_BD);
+                    inscricaoDAL.adicionarInscricao(e.getNumeroMecanografico(), sigla, anoSeguinte.getAno());
                 }
             }
             return OperationResult.sucesso("Transição concluída para " + novasInscricoesMap.size() + " alunos.");

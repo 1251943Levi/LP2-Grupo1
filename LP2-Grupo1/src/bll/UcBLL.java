@@ -1,12 +1,17 @@
 package bll;
 
 import common.ConfigApp;
+import dal.CursoDALFile;
+import dal.CursoDALSql;
+import dal.UcDALFile;
+import dal.UcDALSql;
 
 import model.UnidadeCurricular;
 import model.Docente;
 import model.Curso;
 import dal.UcDAL;
 import dal.DocenteDALFile;
+import dal.DocenteDALSql;
 import dal.CursoDAL;
 
 /**
@@ -17,6 +22,8 @@ import dal.CursoDAL;
 public class UcBLL {
 
     private static final String PASTA_BD = ConfigApp.PASTA_BD;
+    private final CursoDAL cursoDAL = ConfigApp.isModoSql() ? new CursoDALSql() : new CursoDALFile();
+    private final UcDAL ucDAL = ConfigApp.isModoSql() ? new UcDALSql() : new UcDALFile();
 
     /**
      * Constrói e devolve uma UC com docente e cursos associados.
@@ -24,7 +31,7 @@ public class UcBLL {
      * @return A UC construída, ou null se não existir.
      */
     public UnidadeCurricular procurarUCCompleta(String sigla) {
-        String[] dados = UcDAL.obterDadosBrutosUC(sigla, PASTA_BD);
+        String[] dados = ucDAL.obterDadosBrutosUC(sigla, PASTA_BD);
         if (dados == null) return null;
 
         try {
@@ -33,13 +40,15 @@ public class UcBLL {
             int ano          = Integer.parseInt(dados[2].trim());
             String siglaDoc  = dados[3].trim();
 
-            Docente docResponsavel = new DocenteDALFile().procurarPorSigla(siglaDoc);
+            Docente docResponsavel =
+                    (ConfigApp.isModoSql() ? new DocenteDALSql() : new DocenteDALFile())
+                            .procurarPorSigla(siglaDoc);
             UnidadeCurricular uc = new UnidadeCurricular(siglaUc, nomeUc, ano, docResponsavel);
 
             if (dados.length >= 5
                     && !dados[4].trim().equalsIgnoreCase("N/A")
                     && !dados[4].trim().isEmpty()) {
-                Curso curso = CursoDAL.procurarCurso(dados[4].trim(), PASTA_BD);
+                Curso curso = cursoDAL.procurarCurso(dados[4].trim(), PASTA_BD);
                 if (curso != null) uc.adicionarCurso(curso);
             }
 
@@ -47,7 +56,7 @@ public class UcBLL {
             if (dados.length >= 7 && !dados[6].trim().isEmpty()) {
                 try {
                     int momentos = Integer.parseInt(dados[6].trim());
-                    if (momentos > 1) uc.setNumMomentos(momentos);
+                    if (momentos > 0) uc.setNumMomentos(momentos);
                 } catch (NumberFormatException ignored) {}
             }
 
@@ -64,6 +73,6 @@ public class UcBLL {
      * @return Array de strings.
      */
     public String[] obterListaUcs() {
-        return UcDAL.obterListaUcs(PASTA_BD);
+        return ucDAL.obterListaUcs(PASTA_BD);
     }
 }

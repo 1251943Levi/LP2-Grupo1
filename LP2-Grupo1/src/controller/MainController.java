@@ -3,9 +3,18 @@ package controller;
 import bll.AutenticacaoBLL;
 import bll.DepartamentoBLL;
 import common.ConfigApp;
+import dal.UcDAL;
+import dal.UcDALFile;
+import dal.UcDALSql;
+import dal.CursoDAL;
+import dal.CursoDALFile;
+import dal.CursoDALSql;
 import dal.DocenteDAL;
 import dal.DocenteDALFile;
 import dal.DocenteDALSql;
+import dal.EstudanteDAL;
+import dal.EstudanteDALFile;
+import dal.EstudanteDALSql;
 import dal.GestorDAL;
 import dal.GestorDALFile;
 import dal.GestorDALSql;
@@ -21,6 +30,7 @@ import utils.Validador;
 public class MainController {
 
     private static final String PASTA_BD = ConfigApp.PASTA_BD;
+    private final UcDAL ucDAL = ConfigApp.isModoSql() ? new UcDALSql() : new UcDALFile();
 
     private final MainView view;
     private final RepositorioDados repositorio;
@@ -35,11 +45,9 @@ public class MainController {
      * Ponto de entrada: arranca o sistema e entra no loop de menu principal.
      */
     public void iniciar() {
-        int modo = view.pedirModoPersistencia();
-        ConfigApp.definirModo(modo == 2 ? "sql" : "file");
-        // AutenticacaoBLL só pode ser criada DEPOIS de definirModo(), pois os
-        // seus DALs (LoginController, GestorDAL, DocenteDAL) são escolhidos
-        // no momento da construção, consoante ConfigApp.isModoSql().
+        // O modo de persistência já foi definido em MainView.iniciar(), ANTES
+        // de este controlador (e o seu RepositorioDados/DALs) ser construído.
+        // AutenticacaoBLL e os restantes DALs são criados já com o modo correto.
         this.bll = new AutenticacaoBLL();
         iniciarSistema();
         view.mostrarBemVindo();
@@ -104,6 +112,11 @@ public class MainController {
         gestorDAL.inicializar();
         DocenteDAL docenteDAL = ConfigApp.isModoSql() ? new DocenteDALSql() : new DocenteDALFile();
         docenteDAL.inicializar();
+        CursoDAL cursoDAL = ConfigApp.isModoSql() ? new CursoDALSql() : new CursoDALFile();
+        cursoDAL.inicializar();
+        ucDAL.inicializar();
+        EstudanteDAL estudanteDAL = ConfigApp.isModoSql() ? new EstudanteDALSql() : new EstudanteDALFile();
+        estudanteDAL.inicializar();
         new bll.AnoLetivoBLL();
     }
 
@@ -214,9 +227,9 @@ public class MainController {
             for (String cursoStr : todosCursos) {
                 String sigla = cursoStr.split(" - ")[0];
 
-                boolean temAno1 = dal.UcDAL.contarUcsPorCursoEAno(sigla, 1, PASTA_BD) > 0;
-                boolean temAno2 = dal.UcDAL.contarUcsPorCursoEAno(sigla, 2, PASTA_BD) > 0;
-                boolean temAno3 = dal.UcDAL.contarUcsPorCursoEAno(sigla, 3, PASTA_BD) > 0;
+                boolean temAno1 = ucDAL.contarUcsPorCursoEAno(sigla, 1, PASTA_BD) > 0;
+                boolean temAno2 = ucDAL.contarUcsPorCursoEAno(sigla, 2, PASTA_BD) > 0;
+                boolean temAno3 = ucDAL.contarUcsPorCursoEAno(sigla, 3, PASTA_BD) > 0;
 
                 if (temAno1 && temAno2 && temAno3) {
                     cursosValidos.add(cursoStr);

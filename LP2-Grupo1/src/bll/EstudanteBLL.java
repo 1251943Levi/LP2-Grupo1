@@ -3,10 +3,18 @@ package bll;
 import common.ConfigApp;
 
 import dal.AvaliacaoDAL;
+import dal.AvaliacaoDALFile;
+import dal.AvaliacaoDALSql;
 import dal.CredencialDAL;
 import dal.EstudanteDAL;
+import dal.EstudanteDALFile;
+import dal.EstudanteDALSql;
 import dal.InscricaoDAL;
+import dal.InscricaoDALFile;
+import dal.InscricaoDALSql;
 import dal.PagamentoDAL;
+import dal.PagamentoDALFile;
+import dal.PagamentoDALSql;
 import model.Avaliacao;
 import model.Estudante;
 import model.Pagamento;
@@ -26,7 +34,20 @@ public class EstudanteBLL {
     private final LoginController loginController = new LoginController();
 
     // Instanciação da DAL com o caminho estipulado
-    private final EstudanteDAL dal = new EstudanteDAL(PASTA_BD);
+    private final EstudanteDAL dal = ConfigApp.isModoSql() ? new EstudanteDALSql() : new EstudanteDALFile();
+
+    private final InscricaoDAL inscricaoDAL =
+            ConfigApp.isModoSql() ? new InscricaoDALSql() : new InscricaoDALFile();
+    private final AvaliacaoDAL avaliacaoDAL =
+            ConfigApp.isModoSql() ? new AvaliacaoDALSql() : new AvaliacaoDALFile();
+    private final PagamentoDAL pagamentoDAL =
+            ConfigApp.isModoSql() ? new PagamentoDALSql() : new PagamentoDALFile();
+
+    public EstudanteBLL() {
+        inscricaoDAL.inicializar();
+        avaliacaoDAL.inicializar();
+        pagamentoDAL.inicializar();
+    }
 
     /** Carrega o perfil completo de um estudante após login. */
     public Estudante obterPerfilCompleto(String email, String hash) {
@@ -99,11 +120,13 @@ public class EstudanteBLL {
         Estudante e = dal.procurarPorNumMec(numMec);
         if (e == null) return false;
 
-        // Remove apenas inscrições activas e credencial primeiro
-        InscricaoDAL.removerInscricoesPorAluno(numMec, PASTA_BD);
+        // Remove os dados associados antes de apagar o estudante, evitando
+        // registos órfãos: inscrições, avaliações, pagamentos e credencial.
+        inscricaoDAL.removerInscricoesPorAluno(numMec);
+        avaliacaoDAL.removerAvaliacoesPorAluno(numMec);
+        pagamentoDAL.removerPagamentosPorAluno(numMec);
         CredencialDAL.removerCredencial(e.getEmail(), PASTA_BD);
 
-        // Remove o estudante no ficheiro estudantes.csv
         return dal.removerEstudante(numMec);
     }
 
@@ -113,7 +136,7 @@ public class EstudanteBLL {
 
     private void carregarHistoricoPagamentos(Estudante e) {
         List<Pagamento> pagamentos =
-                PagamentoDAL.carregarPagamentosPorAluno(e.getNumeroMecanografico(), PASTA_BD);
+                pagamentoDAL.carregarPagamentosPorAluno(e.getNumeroMecanografico());
         for (Pagamento p : pagamentos) {
             e.adicionarPagamento(p);
         }
@@ -121,8 +144,8 @@ public class EstudanteBLL {
 
     private void carregarInscricoes(Estudante e) {
         int anoAtual = Config.getAnoAtual();
-        List<String> siglas = InscricaoDAL.obterSiglasUcsPorAluno(
-                e.getNumeroMecanografico(), anoAtual, PASTA_BD);
+        List<String> siglas = inscricaoDAL.obterSiglasUcsPorAluno(
+                e.getNumeroMecanografico(), anoAtual);
         for (String sigla : siglas) {
             UnidadeCurricular uc = new UcBLL().procurarUCCompleta(sigla);
             if (uc != null) e.getPercurso().inscreverEmUc(uc);
@@ -131,7 +154,7 @@ public class EstudanteBLL {
 
     private void carregarAvaliacoes(Estudante e) {
         List<Avaliacao> avaliacoes =
-                AvaliacaoDAL.obterAvaliacoesPorAluno(e.getNumeroMecanografico(), PASTA_BD);
+                avaliacaoDAL.obterAvaliacoesPorAluno(e.getNumeroMecanografico());
         for (Avaliacao av : avaliacoes) {
             e.getPercurso().registarAvaliacao(av);
         }
