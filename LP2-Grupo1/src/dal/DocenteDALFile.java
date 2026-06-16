@@ -13,6 +13,13 @@ import java.util.List;
  */
 public class DocenteDALFile implements DocenteDAL {
 
+    private UcDAL ucDALInstance;
+    private UcDAL ucDAL() {
+        if (ucDALInstance == null)
+            ucDALInstance = ConfigApp.isModoSql() ? new UcDALSql() : new UcDALFile();
+        return ucDALInstance;
+    }
+
     private static final String NOME_FICHEIRO = "docentes.csv";
     private static final String CABECALHO     = "sigla;email;nome;nif;morada;dataNascimento";
 
@@ -162,7 +169,7 @@ public class DocenteDALFile implements DocenteDAL {
 
     @Override
     public boolean temUcAtribuida(String sigla) {
-        return !UcDAL.obterSiglasUcsPorDocente(sigla, pastaBase).isEmpty();
+        return !ucDAL().obterSiglasUcsPorDocente(sigla, pastaBase).isEmpty();
     }
 
     @Override

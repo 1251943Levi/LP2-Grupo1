@@ -22,6 +22,8 @@ import java.util.List;
 public class AutenticacaoBLL {
 
     private static final String PASTA_BD = ConfigApp.PASTA_BD;
+    private final CursoDAL cursoDAL = ConfigApp.isModoSql() ? new CursoDALSql() : new CursoDALFile();
+    private final UcDAL ucDAL = ConfigApp.isModoSql() ? new UcDALSql() : new UcDALFile();
     private final EstudanteDAL estudanteDAL = ConfigApp.isModoSql() ? new EstudanteDALSql() : new EstudanteDALFile();
     private final GestorDAL gestorDAL =
             ConfigApp.isModoSql() ? new GestorDALSql() : new GestorDALFile();
@@ -46,7 +48,7 @@ public class AutenticacaoBLL {
             case "DOCENTE":
                 Docente d = docenteDAL.procurarPorEmail(email, hash);
                 if (d != null) {
-                    List<UnidadeCurricular> ucs = UcDAL.obterUcsPorDocente(d, PASTA_BD);
+                    List<UnidadeCurricular> ucs = ucDAL.obterUcsPorDocente(d, PASTA_BD);
                     ucs.forEach(d::adicionarUcLecionada);
                 }
                 return d;
@@ -100,6 +102,6 @@ public class AutenticacaoBLL {
      * @return Array "SIGLA - Nome" de todos os cursos.
      */
     public String[] obterListaCursos() {
-        return dal.CursoDAL.obterListaCursos(PASTA_BD);
+        return cursoDAL.obterListaCursos(PASTA_BD);
     }
 }

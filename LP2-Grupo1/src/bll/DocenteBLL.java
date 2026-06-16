@@ -1,6 +1,8 @@
 package bll;
 
 import common.ConfigApp;
+import dal.UcDALFile;
+import dal.UcDALSql;
 
 import dal.AvaliacaoDAL;
 import dal.AvaliacaoDALFile;
@@ -30,6 +32,7 @@ import java.util.List;
 public class DocenteBLL {
 
     private static final String PASTA_BD = ConfigApp.PASTA_BD;
+    private final UcDAL ucDAL = ConfigApp.isModoSql() ? new UcDALSql() : new UcDALFile();
     private final LoginController loginController = new LoginController();
     private final EstudanteDAL estudanteDAL = ConfigApp.isModoSql() ? new EstudanteDALSql() : new EstudanteDALFile();
     private final DocenteDAL docenteDAL =
@@ -341,7 +344,7 @@ public class DocenteBLL {
         if (numMomentos < 1 || numMomentos > 3) {
             return "Número de momentos inválido. Deve ser 1, 2 ou 3.";
         }
-        UcDAL.atualizarMomentos(siglaUc, numMomentos, PASTA_BD);
+        ucDAL.atualizarMomentos(siglaUc, numMomentos, PASTA_BD);
         return null;
     }
 
@@ -355,7 +358,7 @@ public class DocenteBLL {
         UnidadeCurricular[] ucs = docente.getUcsLecionadas();
         for (int i = 0; i < docente.getTotalUcsLecionadas(); i++) {
             UnidadeCurricular uc = ucs[i];
-            if (uc != null && UcDAL.obterMomentos(uc.getSigla(), PASTA_BD) == 0) {
+            if (uc != null && ucDAL.obterMomentos(uc.getSigla(), PASTA_BD) == 0) {
                 pendentes.add(uc.getSigla() + " - " + uc.getNome());
             }
         }
@@ -367,6 +370,6 @@ public class DocenteBLL {
      * 0 = ainda não definido.
      */
     public int obterMomentosUc(String siglaUc) {
-        return UcDAL.obterMomentos(siglaUc, PASTA_BD);
+        return ucDAL.obterMomentos(siglaUc, PASTA_BD);
     }
 }

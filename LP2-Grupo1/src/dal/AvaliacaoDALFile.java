@@ -15,6 +15,13 @@ import java.util.List;
  */
 public class AvaliacaoDALFile implements AvaliacaoDAL {
 
+    private UcDAL ucDALInstance;
+    private UcDAL ucDAL() {
+        if (ucDALInstance == null)
+            ucDALInstance = ConfigApp.isModoSql() ? new UcDALSql() : new UcDALFile();
+        return ucDALInstance;
+    }
+
     private static final String NOME_FICHEIRO = "avaliacoes.csv";
     private static final String CABECALHO = "numMec;siglaUC;anoLetivo;nota1;nota2;nota3";
 
@@ -82,7 +89,7 @@ public class AvaliacaoDALFile implements AvaliacaoDAL {
             if (dados.length >= 4) {
                 try {
                     if (Integer.parseInt(dados[0].trim()) == numMec) {
-                        UnidadeCurricular uc = UcDAL.procurarUC(dados[1].trim(), pastaBase);
+                        UnidadeCurricular uc = ucDAL().procurarUC(dados[1].trim(), pastaBase);
                         if (uc != null) {
                             Avaliacao av = new Avaliacao(uc, Integer.parseInt(dados[2].trim()));
 
@@ -111,7 +118,7 @@ public class AvaliacaoDALFile implements AvaliacaoDAL {
                     String sigla = dados[1].trim();
                     int anoLido = Integer.parseInt(dados[2].trim());
                     if (num == numMec && sigla.equalsIgnoreCase(siglaUc) && anoLido == ano) {
-                        UnidadeCurricular uc = UcDAL.procurarUC(siglaUc, pastaBase);
+                        UnidadeCurricular uc = ucDAL().procurarUC(siglaUc, pastaBase);
                         if (uc == null) uc = new UnidadeCurricular(siglaUc, "", ano, null);
                         Avaliacao av = new Avaliacao(uc, ano);
                         for (int i = 3; i < dados.length; i++) {

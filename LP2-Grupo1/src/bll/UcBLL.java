@@ -1,6 +1,10 @@
 package bll;
 
 import common.ConfigApp;
+import dal.CursoDALFile;
+import dal.CursoDALSql;
+import dal.UcDALFile;
+import dal.UcDALSql;
 
 import model.UnidadeCurricular;
 import model.Docente;
@@ -17,6 +21,8 @@ import dal.CursoDAL;
 public class UcBLL {
 
     private static final String PASTA_BD = ConfigApp.PASTA_BD;
+    private final CursoDAL cursoDAL = ConfigApp.isModoSql() ? new CursoDALSql() : new CursoDALFile();
+    private final UcDAL ucDAL = ConfigApp.isModoSql() ? new UcDALSql() : new UcDALFile();
 
     /**
      * Constrói e devolve uma UC com docente e cursos associados.
@@ -24,7 +30,7 @@ public class UcBLL {
      * @return A UC construída, ou null se não existir.
      */
     public UnidadeCurricular procurarUCCompleta(String sigla) {
-        String[] dados = UcDAL.obterDadosBrutosUC(sigla, PASTA_BD);
+        String[] dados = ucDAL.obterDadosBrutosUC(sigla, PASTA_BD);
         if (dados == null) return null;
 
         try {
@@ -39,7 +45,7 @@ public class UcBLL {
             if (dados.length >= 5
                     && !dados[4].trim().equalsIgnoreCase("N/A")
                     && !dados[4].trim().isEmpty()) {
-                Curso curso = CursoDAL.procurarCurso(dados[4].trim(), PASTA_BD);
+                Curso curso = cursoDAL.procurarCurso(dados[4].trim(), PASTA_BD);
                 if (curso != null) uc.adicionarCurso(curso);
             }
 
@@ -64,6 +70,6 @@ public class UcBLL {
      * @return Array de strings.
      */
     public String[] obterListaUcs() {
-        return UcDAL.obterListaUcs(PASTA_BD);
+        return ucDAL.obterListaUcs(PASTA_BD);
     }
 }

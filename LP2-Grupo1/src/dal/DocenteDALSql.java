@@ -20,6 +20,13 @@ import java.util.List;
  */
 public class DocenteDALSql implements DocenteDAL {
 
+    private UcDAL ucDALInstance;
+    private UcDAL ucDAL() {
+        if (ucDALInstance == null)
+            ucDALInstance = ConfigApp.isModoSql() ? new UcDALSql() : new UcDALFile();
+        return ucDALInstance;
+    }
+
     private static final String TABELA = "docente";
     private static final String[] CAMINHOS_SCHEMA = {
             "sql/schema_docente.sql",
@@ -135,7 +142,7 @@ public class DocenteDALSql implements DocenteDAL {
 
     @Override
     public boolean temUcAtribuida(String sigla) {
-        return !UcDAL.obterSiglasUcsPorDocente(sigla, ConfigApp.PASTA_BD).isEmpty();
+        return !ucDAL().obterSiglasUcsPorDocente(sigla, ConfigApp.PASTA_BD).isEmpty();
     }
 
     @Override
