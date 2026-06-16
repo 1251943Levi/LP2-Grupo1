@@ -10,6 +10,7 @@ public class InscricaoBLL {
 
     private static final String PASTA_BD = Config.PASTA_BD;
     private final UcDAL ucDAL = ConfigApp.isModoSql() ? new UcDALSql() : new UcDALFile();
+    private final CursoDAL cursoDAL = ConfigApp.isModoSql() ? new CursoDALSql() : new CursoDALFile();
     private static final double NOTA_MINIMA_APROVACAO = 9.5;
 
     private final EstudanteDAL estudanteDAL = ConfigApp.isModoSql() ? new EstudanteDALSql() : new EstudanteDALFile();
@@ -31,7 +32,6 @@ public class InscricaoBLL {
 
         Map<Estudante, Integer> novoAnoMap = new HashMap<>();
         Map<Estudante, List<String>> novasInscricoesMap = new HashMap<>();
-        List<String> alunosBloqueados = new ArrayList<>();
 
         for (Estudante e : todos) {
             if (e.getAnoCurricular() > 3) continue;
@@ -87,15 +87,6 @@ public class InscricaoBLL {
             novasInscricoesMap.put(e, semDuplicados);
         }
 
-        if (!alunosBloqueados.isEmpty()) {
-            StringBuilder msg = new StringBuilder("Existem alunos sem aproveitamento mínimo (60%):\n");
-            for (String bloco : alunosBloqueados) {
-                msg.append("  - ").append(bloco).append("\n");
-            }
-            msg.append("Transição cancelada. Corrija as notas dos alunos ou remova os bloqueios.");
-            return OperationResult.falha(msg.toString());
-        }
-
         try {
             for (Map.Entry<Estudante, List<String>> entry : novasInscricoesMap.entrySet()) {
                 Estudante e = entry.getKey();
@@ -103,6 +94,16 @@ public class InscricaoBLL {
                 List<String> ucs = entry.getValue();
 
                 e.setAnoCurricular(novoAno);
+
+                // Propina anual: cobra a propina do curso a cada novo ano letivo
+                // aos alunos que continuam matriculados (não graduados, ano <= 3).
+                // Neste ponto o saldo está a 0 (o fecho do ano exige propina paga).
+                if (novoAno <= 3) {
+                    Curso curso = cursoDAL.procurarCurso(e.getSiglaCurso(), PASTA_BD);
+                    if (curso != null) {
+                        e.setSaldoDevedor(e.getSaldoDevedor() + curso.getValorPropinaAnual());
+                    }
+                }
 
                 estudanteDAL.atualizarEstudante(e);
 

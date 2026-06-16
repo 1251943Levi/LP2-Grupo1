@@ -11,6 +11,7 @@ import model.Docente;
 import model.Curso;
 import dal.UcDAL;
 import dal.DocenteDALFile;
+import dal.DocenteDALSql;
 import dal.CursoDAL;
 
 /**
@@ -39,7 +40,9 @@ public class UcBLL {
             int ano          = Integer.parseInt(dados[2].trim());
             String siglaDoc  = dados[3].trim();
 
-            Docente docResponsavel = new DocenteDALFile().procurarPorSigla(siglaDoc);
+            Docente docResponsavel =
+                    (ConfigApp.isModoSql() ? new DocenteDALSql() : new DocenteDALFile())
+                            .procurarPorSigla(siglaDoc);
             UnidadeCurricular uc = new UnidadeCurricular(siglaUc, nomeUc, ano, docResponsavel);
 
             if (dados.length >= 5
@@ -53,7 +56,7 @@ public class UcBLL {
             if (dados.length >= 7 && !dados[6].trim().isEmpty()) {
                 try {
                     int momentos = Integer.parseInt(dados[6].trim());
-                    if (momentos > 1) uc.setNumMomentos(momentos);
+                    if (momentos > 0) uc.setNumMomentos(momentos);
                 } catch (NumberFormatException ignored) {}
             }
 

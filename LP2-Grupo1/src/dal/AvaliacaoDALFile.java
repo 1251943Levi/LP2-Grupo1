@@ -170,4 +170,21 @@ public class AvaliacaoDALFile implements AvaliacaoDAL {
         }
         DALUtil.reescreverFicheiro(caminho(), novasLinhas);
     }
+
+    @Override
+    public void removerAvaliacoesPorAluno(int numMec) {
+        List<String> linhas = DALUtil.lerFicheiro(caminho());
+        List<String> novas = new ArrayList<>();
+        for (String linha : linhas) {
+            if (linha.equalsIgnoreCase(CABECALHO)) { novas.add(linha); continue; }
+            String[] dados = linha.split(";", -1);
+            if (dados.length >= 1) {
+                try {
+                    if (Integer.parseInt(dados[0].trim()) == numMec) continue; // remove
+                } catch (NumberFormatException ignored) {}
+            }
+            novas.add(linha);
+        }
+        DALUtil.reescreverFicheiro(caminho(), novas);
+    }
 }

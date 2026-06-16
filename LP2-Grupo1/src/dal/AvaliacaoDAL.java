@@ -45,4 +45,10 @@ public interface AvaliacaoDAL {
      * Atualiza uma avaliação existente (substitui o registo antigo pelo novo com mais notas).
      */
     void atualizarAvaliacao(Avaliacao aval, int numMec);
+
+    /**
+     * Remove todas as avaliações de um estudante (usado ao apagar o estudante).
+     * @param numMec Número mecanográfico do estudante.
+     */
+    void removerAvaliacoesPorAluno(int numMec);
 }

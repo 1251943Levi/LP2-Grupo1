@@ -330,11 +330,14 @@ public class AnoLetivoBLL {
             List<String> siglasInscritas = inscricaoDAL.obterSiglasUcsPorAluno(
                     e.getNumeroMecanografico(), anoLetivo);
             for (String siglaUc : siglasInscritas) {
+                int momentos = ucDAL.obterMomentos(siglaUc, ConfigApp.PASTA_BD);
                 Avaliacao av = avaliacaoDAL.obterAvaliacao(
                         e.getNumeroMecanografico(), siglaUc, anoLetivo);
-                if (av == null || av.getTotalAvaliacoesLancadas() == 0)
-                    pendentes.add(String.format("Aluno %d (%s) — UC %s sem nota lançada.",
-                            e.getNumeroMecanografico(), e.getNome(), siglaUc));
+                int lancadas = (av == null) ? 0 : av.getTotalAvaliacoesLancadas();
+                if (lancadas < momentos)
+                    pendentes.add(String.format(
+                            "Aluno %d (%s) — UC %s: %d de %d momentos de avaliação lançados.",
+                            e.getNumeroMecanografico(), e.getNome(), siglaUc, lancadas, momentos));
             }
         }
         return pendentes;

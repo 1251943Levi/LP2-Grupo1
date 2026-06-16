@@ -74,7 +74,8 @@ public class UcDALFile implements UcDAL {
                         int ects = (dados.length >= 6 && !dados[5].trim().isEmpty())
                                 ? Integer.parseInt(dados[5].trim())
                                 : model.UnidadeCurricular.ECTS_PADRAO;
-                        Docente doc = new DocenteDALFile().procurarPorSigla(dados[3].trim());
+                        Docente doc = (ConfigApp.isModoSql() ? new DocenteDALSql() : new DocenteDALFile())
+                                .procurarPorSigla(dados[3].trim());
                         ucEncontrada = new UnidadeCurricular(dados[0].trim(), dados[1].trim(), ano, doc, ects);
                     } catch (NumberFormatException e) { continue; }
                 }

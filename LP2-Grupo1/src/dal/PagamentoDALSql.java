@@ -61,6 +61,11 @@ public class PagamentoDALSql implements PagamentoDAL {
                 numMec);
     }
 
+    @Override
+    public void removerPagamentosPorAluno(int numMec) {
+        cm.update("DELETE FROM [pagamento] WHERE numMec = ?", numMec);
+    }
+
     // ------------------------------------------------------------------
 
     private int contar() {

@@ -45,11 +45,9 @@ public class MainController {
      * Ponto de entrada: arranca o sistema e entra no loop de menu principal.
      */
     public void iniciar() {
-        int modo = view.pedirModoPersistencia();
-        ConfigApp.definirModo(modo == 2 ? "sql" : "file");
-        // AutenticacaoBLL só pode ser criada DEPOIS de definirModo(), pois os
-        // seus DALs (LoginController, GestorDAL, DocenteDAL) são escolhidos
-        // no momento da construção, consoante ConfigApp.isModoSql().
+        // O modo de persistência já foi definido em MainView.iniciar(), ANTES
+        // de este controlador (e o seu RepositorioDados/DALs) ser construído.
+        // AutenticacaoBLL e os restantes DALs são criados já com o modo correto.
         this.bll = new AutenticacaoBLL();
         iniciarSistema();
         view.mostrarBemVindo();

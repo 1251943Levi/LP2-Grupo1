@@ -30,4 +30,10 @@ public interface PagamentoDAL {
      * Carrega todos os pagamentos de um estudante por ordem de registo.
      */
     List<Pagamento> carregarPagamentosPorAluno(int numMec);
+
+    /**
+     * Remove todos os pagamentos de um estudante (usado ao apagar o estudante).
+     * @param numMec Número mecanográfico do estudante.
+     */
+    void removerPagamentosPorAluno(int numMec);
 }

@@ -177,6 +177,11 @@ public class AvaliacaoDALSql implements AvaliacaoDAL {
                 params.toArray());
     }
 
+    @Override
+    public void removerAvaliacoesPorAluno(int numMec) {
+        cm.update("DELETE FROM [avaliacao] WHERE numMec = ?", numMec);
+    }
+
     // ------------------------------------------------------------------
 
     private int contar() {

@@ -2,8 +2,8 @@ package model;
 
 /**
  * Regista as notas obtidas por um estudante numa unidade curricular.
- * Suporta até três momentos de avaliação: época normal, recurso e especial.
- * O estudante é considerado aprovado se obtiver pelo menos 9,5 em qualquer época.
+ * Suporta até três momentos de avaliação. A nota final da UC é a média
+ * dos momentos lançados; o estudante é aprovado com média >= 9,5.
  */
 public class Avaliacao {
 
@@ -20,7 +20,7 @@ public class Avaliacao {
     public Avaliacao(UnidadeCurricular uc, int anoLetivo) {
         this.uc = uc;
         this.anoLetivo = anoLetivo;
-        this.resultados = new double[3]; // Representa Época Normal, Recurso e Especial
+        this.resultados = new double[3]; // Até 3 momentos de avaliação
         this.totalAvaliacoesLancadas = 0;
     }
 
@@ -47,22 +47,19 @@ public class Avaliacao {
 
         double soma = 0;
         for (int i = 0; i < totalAvaliacoesLancadas; i++) {
-            soma += resultados[i];
+            soma += Math.max(0.0, resultados[i]); // falta (-1) conta como 0
         }
         return soma / totalAvaliacoesLancadas;
     }
 
     /**
      * Verifica se o estudante obteve aprovação nesta UC.
-     * @return true se pelo menos uma nota for igual ou superior a 9,5.
+     * A nota final é a média dos momentos de avaliação lançados;
+     * o estudante é aprovado com média igual ou superior a 9,5.
+     * @return true se a média dos momentos for >= 9,5.
      */
     public boolean isAprovado() {
-        for (int i = 0; i < totalAvaliacoesLancadas; i++) {
-            if (resultados[i] >= 9.5) { // Lógica académica de arredondamento
-                return true;
-            }
-        }
-        return false;
+        return totalAvaliacoesLancadas > 0 && calcularMedia() >= 9.5;
     }
 
     // ---------- GETTERS ----------

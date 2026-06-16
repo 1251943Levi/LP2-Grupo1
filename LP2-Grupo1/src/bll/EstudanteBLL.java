@@ -120,11 +120,13 @@ public class EstudanteBLL {
         Estudante e = dal.procurarPorNumMec(numMec);
         if (e == null) return false;
 
-        // Remove apenas inscrições activas e credencial primeiro
+        // Remove os dados associados antes de apagar o estudante, evitando
+        // registos órfãos: inscrições, avaliações, pagamentos e credencial.
         inscricaoDAL.removerInscricoesPorAluno(numMec);
+        avaliacaoDAL.removerAvaliacoesPorAluno(numMec);
+        pagamentoDAL.removerPagamentosPorAluno(numMec);
         CredencialDAL.removerCredencial(e.getEmail(), PASTA_BD);
 
-        // Remove o estudante no ficheiro estudantes.csv
         return dal.removerEstudante(numMec);
     }
 

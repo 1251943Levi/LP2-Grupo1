@@ -536,9 +536,9 @@ public class GestorView {
      * Agora é public e implementa a leitura diretamente com Scanner.
      */
     public String lerStringOpcional(String prompt) {
-        System.out.print("  " + prompt + ": ");
-        String input = new java.util.Scanner(System.in).nextLine().trim();
-        if (input.equalsIgnoreCase("sair")) throw new CancelamentoException();
-        return input; // pode ser vazia — o chamador trata o vazio como "manter"
+        // Delega na Consola para reutilizar o Scanner partilhado (System.in).
+        // Criar um novo Scanner(System.in) a cada chamada perde input por
+        // read-ahead, partindo edições com vários campos seguidos.
+        return Consola.lerStringOpcional(prompt);
     }
 }

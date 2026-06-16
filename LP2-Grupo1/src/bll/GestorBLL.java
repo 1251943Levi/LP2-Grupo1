@@ -313,15 +313,8 @@ public class GestorBLL {
      * @return true se o curso não tiver alocações.
      */
     public boolean isCursoAlteravel(String sigla) {
-        int totalAlunos =
-                estudanteDAL.contarEstudantesPorCursoEAno(sigla, 1)
-                        + estudanteDAL.contarEstudantesPorCursoEAno(sigla, 2)
-                        + estudanteDAL.contarEstudantesPorCursoEAno(sigla, 3);
-        int totalUcs =
-                ucDAL.contarUcsPorCursoEAno(sigla, 1, PASTA_BD)
-                        + ucDAL.contarUcsPorCursoEAno(sigla, 2, PASTA_BD)
-                        + ucDAL.contarUcsPorCursoEAno(sigla, 3, PASTA_BD);
-        return totalAlunos == 0 && totalUcs == 0;
+        // Fonte única da regra de alterabilidade do curso: CursoBLL.
+        return new CursoBLL().isAlteravel(sigla);
     }
 
     /**
@@ -346,8 +339,8 @@ public class GestorBLL {
      * @return false se o curso tiver alocações.
      */
     public boolean removerCurso(String sigla) {
-        if (!isCursoAlteravel(sigla)) return false;
-        return cursoDAL.removerCurso(sigla, PASTA_BD);
+        // Delega na fonte única (CursoBLL), que valida alterabilidade e remove.
+        return new CursoBLL().removerCurso(sigla);
     }
 
     // ─────────────────────────── ESTATÍSTICAS ──────────────────────────
