@@ -13,7 +13,12 @@ public class InscricaoBLL {
     private final CursoDAL cursoDAL = ConfigApp.isModoSql() ? new CursoDALSql() : new CursoDALFile();
     private static final double NOTA_MINIMA_APROVACAO = 9.5;
 
-    private final EstudanteDAL estudanteDAL = ConfigApp.isModoSql() ? new EstudanteDALSql() : new EstudanteDALFile();
+    // A7: acesso ao módulo do estudante (lazy — evita efeitos colaterais no arranque)
+    private EstudanteBLL moduloEstudante;
+    private EstudanteBLL moduloEstudante() {
+        if (moduloEstudante == null) moduloEstudante = new EstudanteBLL();
+        return moduloEstudante;
+    }
     private final InscricaoDAL inscricaoDAL =
             ConfigApp.isModoSql() ? new InscricaoDALSql() : new InscricaoDALFile();
     private final AvaliacaoDAL avaliacaoDAL =
@@ -105,11 +110,23 @@ public class InscricaoBLL {
                     }
                 }
 
-                estudanteDAL.atualizarEstudante(e);
+                moduloEstudante().atualizarEstudante(e);
+
+                // A1: captura o ano de realização original de cada UC ANTES de remover
+                // as inscrições. UCs reprovadas (já inscritas no ano atual) mantêm o ano
+                // original; UCs novas usam o ano novo como ano de realização.
+                Map<String, Integer> realizacaoPorUc = new HashMap<>();
+                for (String sigla : ucs) {
+                    int orig = inscricaoDAL.obterAnoRealizacao(
+                            e.getNumeroMecanografico(), sigla, anoAtual.getAno());
+                    realizacaoPorUc.put(sigla, orig > 0 ? orig : anoSeguinte.getAno());
+                }
 
                 inscricaoDAL.removerInscricoesPorAluno(e.getNumeroMecanografico());
                 for (String sigla : ucs) {
-                    inscricaoDAL.adicionarInscricao(e.getNumeroMecanografico(), sigla, anoSeguinte.getAno());
+                    inscricaoDAL.adicionarInscricao(
+                            e.getNumeroMecanografico(), sigla, anoSeguinte.getAno(),
+                            realizacaoPorUc.get(sigla));
                 }
             }
             return OperationResult.sucesso("Transição concluída para " + novasInscricoesMap.size() + " alunos.");

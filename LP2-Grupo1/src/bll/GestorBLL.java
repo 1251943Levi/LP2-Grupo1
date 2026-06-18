@@ -29,7 +29,12 @@ public class GestorBLL {
     private static final String PASTA_BD = ConfigApp.PASTA_BD;
     private final CursoDAL cursoDAL = ConfigApp.isModoSql() ? new CursoDALSql() : new CursoDALFile();
     private final UcDAL ucDAL = ConfigApp.isModoSql() ? new UcDALSql() : new UcDALFile();
-    private final EstudanteDAL estudanteDAL = ConfigApp.isModoSql() ? new EstudanteDALSql() : new EstudanteDALFile();
+    // A7: acesso ao módulo do estudante (lazy — evita efeitos colaterais no arranque)
+    private EstudanteBLL moduloEstudante;
+    private EstudanteBLL moduloEstudante() {
+        if (moduloEstudante == null) moduloEstudante = new EstudanteBLL();
+        return moduloEstudante;
+    }
     private final LoginController loginController = new LoginController();
     private final DepartamentoDAL departamentoDAL =
             ConfigApp.isModoSql() ? new DepartamentoDALSql() : new DepartamentoDALFile();
@@ -67,7 +72,7 @@ public class GestorBLL {
         int proximoAnoLetivo  = anoLetivoCorrente + 1;
 
         // ── Verificar se existem alunos com propinas em dívida ─────────
-        List<Estudante> todosEstudantes = estudanteDAL.carregarTodos();
+        List<Estudante> todosEstudantes = moduloEstudante().carregarTodos();
         List<Estudante> devedores = new ArrayList<>();
         for (Estudante e : todosEstudantes) {
             if (e != null && e.getSaldoDevedor() > 0) {
@@ -94,18 +99,18 @@ public class GestorBLL {
             if (curso == null) continue;
 
             // Chamadas atualizadas usando a instância estudanteDAL
-            int a1 = estudanteDAL.contarEstudantesPorCursoEAno(sigla, 1);
-            int a2 = estudanteDAL.contarEstudantesPorCursoEAno(sigla, 2);
-            int a3 = estudanteDAL.contarEstudantesPorCursoEAno(sigla, 3);
+            int a1 = moduloEstudante().contarEstudantesPorCursoEAno(sigla, 1);
+            int a2 = moduloEstudante().contarEstudantesPorCursoEAno(sigla, 2);
+            int a3 = moduloEstudante().contarEstudantesPorCursoEAno(sigla, 3);
 
             if (a1 > 0 && a1 < 5) {
                 view.mostrarErroQuorum(sigla, a1);
-                curso.setEstado("Inativo");
+                curso.setEstadoCurso(model.EstadoCurso.PENDENTE); // não reúne quórum
             } else if (a1 >= 5 || a2 >= 1 || a3 >= 1) {
                 view.mostrarSucessoQuorum(sigla);
-                curso.setEstado("Ativo");
+                curso.setEstadoCurso(model.EstadoCurso.ATIVO);
             } else {
-                curso.setEstado("Inativo");
+                curso.setEstadoCurso(model.EstadoCurso.PENDENTE); // sem alunos: sem condições
             }
             cursoDAL.atualizarCurso(curso, PASTA_BD);
         }
@@ -179,7 +184,7 @@ public class GestorBLL {
         }
 
         // Chamada atualizada usando a instância estudanteDAL
-        int    numMec    = estudanteDAL.obterProximoNumeroMecanografico(anoInscricao);
+        int    numMec    = moduloEstudante().obterProximoNumeroMecanografico(anoInscricao);
         String email     = EmailGenerator.gerarEmailEstudante(numMec);
         String passLimpa = PasswordGenerator.gerarPasswordSegura();
         EmailService.enviarCredenciaisTodos(nome, email, passLimpa);
@@ -190,7 +195,7 @@ public class GestorBLL {
 
         // Chamada atualizada usando a instância estudanteDAL
         loginController.criarCredencial(email, passLimpa, "ESTUDANTE");
-        estudanteDAL.adicionarEstudante(novo, siglaCurso);
+        moduloEstudante().adicionarEstudante(novo, siglaCurso);
 
         for (String siglaUc : ucDAL.obterSiglasUcsPorCursoEAno(siglaCurso, 1, PASTA_BD)) {
             inscricaoDAL.adicionarInscricao(numMec, siglaUc, anoInscricao);
@@ -301,7 +306,7 @@ public class GestorBLL {
     public void adicionarCurso(String sigla, String nome, String siglaDep, double propina) {
         Departamento dep = departamentoDAL.procurarPorSigla(siglaDep);
         Curso c = new Curso(sigla, nome, dep, propina);
-        c.setEstado("Inativo");
+        c.setEstadoCurso(model.EstadoCurso.PENDENTE); // criado sem condições para abrir
         cursoDAL.adicionarCurso(c, PASTA_BD);
     }
 
@@ -417,7 +422,7 @@ public class GestorBLL {
      */
     public List<Estudante> obterListaDevedores() {
         List<Estudante> devedores = new ArrayList<>();
-        for (Estudante e : estudanteDAL.carregarTodos())
+        for (Estudante e : moduloEstudante().carregarTodos())
             if (e != null && e.getSaldoDevedor() > 0) devedores.add(e);
         return devedores;
     }
@@ -456,7 +461,7 @@ public class GestorBLL {
      * @return true se o NIF já existir.
      */
     public boolean isNifDuplicado(String nif) {
-        return estudanteDAL.existeNif(nif) || docenteDAL.existeNif(nif);
+        return moduloEstudante().existeNif(nif) || docenteDAL.existeNif(nif);
     }
 
     /**

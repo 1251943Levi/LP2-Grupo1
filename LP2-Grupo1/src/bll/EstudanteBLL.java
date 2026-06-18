@@ -70,6 +70,18 @@ public class EstudanteBLL {
         return dal.carregarTodos();
     }
 
+    /**
+     * A2: lista apenas estudantes ATIVOS (não concluídos).
+     * Um aluno com anoCurricular > 3 concluiu o curso e sai das listas ativas.
+     */
+    public List<Estudante> listarAtivos() {
+        List<Estudante> ativos = new ArrayList<>();
+        for (Estudante e : dal.carregarTodos()) {
+            if (e != null && e.getAnoCurricular() <= 3) ativos.add(e);
+        }
+        return ativos;
+    }
+
     /** Devolve todos os estudantes com percurso académico completo. */
     public List<Estudante> carregarTodosCompleto() {
         List<Estudante> base = dal.carregarTodos();
@@ -112,6 +124,36 @@ public class EstudanteBLL {
         return dal.obterProximoNumeroMecanografico(anoAtual);
     }
 
+    // ==================================================================
+    // A7: API do módulo do estudante usada por outros módulos.
+    // Outros módulos passam a pedir aqui em vez de aceder à EstudanteDAL.
+    // ==================================================================
+
+    /** Devolve todos os estudantes (dados básicos). */
+    public List<Estudante> carregarTodos() {
+        return dal.carregarTodos();
+    }
+
+    /** Procura um estudante pelo número mecanográfico. */
+    public Estudante procurarPorNumMec(int numMec) {
+        return dal.procurarPorNumMec(numMec);
+    }
+
+    /** Conta estudantes de um curso num dado ano curricular. */
+    public int contarEstudantesPorCursoEAno(String siglaCurso, int anoCurricular) {
+        return dal.contarEstudantesPorCursoEAno(siglaCurso, anoCurricular);
+    }
+
+    /** Verifica se já existe um estudante com o NIF indicado. */
+    public boolean existeNif(String nif) {
+        return dal.existeNif(nif);
+    }
+
+    /** Persiste um novo estudante. */
+    public void adicionarEstudante(Estudante estudante, String siglaCurso) {
+        dal.adicionarEstudante(estudante, siglaCurso);
+    }
+
     /**
      * Remove um estudante e todos os seus dados associados.
      * ORQUESTRAÇÃO NA BLL (Boa Prática de Arquitetura).
@@ -125,7 +167,8 @@ public class EstudanteBLL {
         inscricaoDAL.removerInscricoesPorAluno(numMec);
         avaliacaoDAL.removerAvaliacoesPorAluno(numMec);
         pagamentoDAL.removerPagamentosPorAluno(numMec);
-        CredencialDAL.removerCredencial(e.getEmail(), PASTA_BD);
+        // A6: a credencial é removida pelo módulo de login (não diretamente).
+        loginController.eliminar(e.getEmail());
 
         return dal.removerEstudante(numMec);
     }

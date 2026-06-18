@@ -95,7 +95,9 @@ public class GestorController {
     }
 
     private void executarListarEstudantes() {
-        List<Estudante> estudantes = estudanteBll.listarTodos();
+        // A2: a listagem de estudantes do gestor mostra apenas os ativos
+        // (alunos que concluíram o curso saem das listas ativas).
+        List<Estudante> estudantes = estudanteBll.listarAtivos();
         if (estudantes.isEmpty()) {
             view.mostrarErroNaoEncontrado("Estudantes");
             return;

@@ -33,7 +33,12 @@ public class MatriculaBLL {
     private static final String PASTA_BD = ConfigApp.PASTA_BD;
     private final CursoDAL cursoDAL = ConfigApp.isModoSql() ? new CursoDALSql() : new CursoDALFile();
     private final UcDAL ucDAL = ConfigApp.isModoSql() ? new UcDALSql() : new UcDALFile();
-    private final EstudanteDAL estudanteDAL = ConfigApp.isModoSql() ? new EstudanteDALSql() : new EstudanteDALFile();
+    // A7: acesso ao módulo do estudante (lazy — evita efeitos colaterais no arranque)
+    private EstudanteBLL moduloEstudante;
+    private EstudanteBLL moduloEstudante() {
+        if (moduloEstudante == null) moduloEstudante = new EstudanteBLL();
+        return moduloEstudante;
+    }
     private final LoginController loginController = new LoginController();
     private final InscricaoDAL inscricaoDAL =
             ConfigApp.isModoSql() ? new InscricaoDALSql() : new InscricaoDALFile();
@@ -65,7 +70,7 @@ public class MatriculaBLL {
         if (ucDAL.contarUcsPorCursoEAno(siglaCurso, 1, PASTA_BD) == 0) {
             return null;
         }
-        int numMec = estudanteDAL.obterProximoNumeroMecanografico(anoAtual);
+        int numMec = moduloEstudante().obterProximoNumeroMecanografico(anoAtual);
         String emailInst = EmailGenerator.gerarEmailEstudante(numMec);
         String passLimpa = PasswordGenerator.gerarPasswordSegura();
 
@@ -77,7 +82,7 @@ public class MatriculaBLL {
         }
         novo.setSiglaCurso(siglaCurso);
 
-        estudanteDAL.adicionarEstudante(novo, siglaCurso);
+        moduloEstudante().adicionarEstudante(novo, siglaCurso);
 
         loginController.criarCredencial(emailInst, passLimpa, "ESTUDANTE");
         for (String siglaUc : ucDAL.obterSiglasUcsPorCursoEAno(siglaCurso, 1, PASTA_BD)) {

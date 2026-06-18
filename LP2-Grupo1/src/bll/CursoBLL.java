@@ -14,6 +14,7 @@ import dal.EstudanteDALFile;
 import dal.EstudanteDALSql;
 import model.Curso;
 import model.Departamento;
+import model.EstadoCurso;
 import dal.CursoDAL;
 import dal.UcDAL;
 
@@ -29,7 +30,12 @@ public class CursoBLL {
     private static final String PASTA_BD = ConfigApp.PASTA_BD;
     private final CursoDAL cursoDAL = ConfigApp.isModoSql() ? new CursoDALSql() : new CursoDALFile();
     private final UcDAL ucDAL = ConfigApp.isModoSql() ? new UcDALSql() : new UcDALFile();
-    private final EstudanteDAL estudanteDAL = ConfigApp.isModoSql() ? new EstudanteDALSql() : new EstudanteDALFile();
+    // A7: acesso ao módulo do estudante (lazy — evita efeitos colaterais no arranque)
+    private EstudanteBLL moduloEstudante;
+    private EstudanteBLL moduloEstudante() {
+        if (moduloEstudante == null) moduloEstudante = new EstudanteBLL();
+        return moduloEstudante;
+    }
     private final DepartamentoDAL departamentoDAL =
             ConfigApp.isModoSql() ? new DepartamentoDALSql() : new DepartamentoDALFile();
 
@@ -76,12 +82,65 @@ public class CursoBLL {
     }
 
     /**
+     * F1/F2: calcula o estado de um curso a partir de TODAS as restrições
+     * (UCs, propina e quórum), não apenas dos estudantes.
+     *  - INATIVO se foi desativado manualmente (mantém-se);
+     *  - ATIVO se tem UCs no 1.º ano, propina definida (>0) e quórum cumprido
+     *    (sem alunos no 1.º ano, ou pelo menos 5);
+     *  - PENDENTE caso contrário (criado mas sem condições para abrir).
+     * @param siglaCurso Sigla do curso a avaliar.
+     * @return O {@link EstadoCurso} calculado.
+     */
+    public EstadoCurso avaliarEstado(String siglaCurso) {
+        Curso curso = procurarCursoCompleto(siglaCurso);
+        if (curso == null) return EstadoCurso.PENDENTE;
+        if (curso.getEstadoCurso() == EstadoCurso.INATIVO) return EstadoCurso.INATIVO;
+
+        boolean temUcs    = ucDAL.contarUcsPorCursoEAno(siglaCurso, 1, PASTA_BD) > 0;
+        boolean propinaOk = curso.getValorPropinaAnual() > 0;
+        int a1            = moduloEstudante().contarEstudantesPorCursoEAno(siglaCurso, 1);
+        boolean quorumOk  = (a1 == 0) || (a1 >= 5);
+
+        return (temUcs && propinaOk && quorumOk) ? EstadoCurso.ATIVO : EstadoCurso.PENDENTE;
+    }
+
+    /**
+     * Recalcula o estado do curso (via {@link #avaliarEstado}) e persiste-o.
+     * Deve ser chamado após operações que alterem as condições (UCs, propina, alunos).
+     * @param siglaCurso Sigla do curso a atualizar.
+     */
+    public void atualizarEstadoCurso(String siglaCurso) {
+        Curso curso = procurarCursoCompleto(siglaCurso);
+        if (curso == null) return;
+        curso.setEstadoCurso(avaliarEstado(siglaCurso));
+        cursoDAL.atualizarCurso(curso, PASTA_BD);
+    }
+
+    /**
+     * A3: motivo(s) por que um curso não está apto a abrir.
+     * @return string vazia se está apto (ATIVO); caso contrário, os motivos separados por "; ".
+     */
+    public String motivoNaoApto(String siglaCurso) {
+        Curso curso = procurarCursoCompleto(siglaCurso);
+        if (curso == null) return "curso inexistente";
+        if (curso.getEstadoCurso() == EstadoCurso.INATIVO) return "curso inativo (desativado manualmente)";
+
+        java.util.List<String> motivos = new java.util.ArrayList<>();
+        if (ucDAL.contarUcsPorCursoEAno(siglaCurso, 1, PASTA_BD) == 0) motivos.add("sem UCs no 1.º ano");
+        if (curso.getValorPropinaAnual() <= 0) motivos.add("propina por definir");
+        int a1 = moduloEstudante().contarEstudantesPorCursoEAno(siglaCurso, 1);
+        if (a1 > 0 && a1 < 5) motivos.add("quórum insuficiente no 1.º ano (" + a1 + "/5)");
+
+        return motivos.isEmpty() ? "" : String.join("; ", motivos);
+    }
+
+    /**
      * Valida se o primeiro ano de um curso pode ser iniciado.
      * @param siglaCurso Sigla do curso a verificar.
      * @return true se tiver 5 ou mais alunos
      */
     public boolean verificarQuorumPrimeiroAno(String siglaCurso) {
-        int total = estudanteDAL.contarEstudantesPorCursoEAno(siglaCurso, 1);        return total >= 5;
+        int total = moduloEstudante().contarEstudantesPorCursoEAno(siglaCurso, 1);        return total >= 5;
     }
 
     /**
@@ -115,7 +174,7 @@ public class CursoBLL {
         if (dep == null) return false; // departamento obrigatório
 
         Curso curso = new Curso(sigla, nome, dep, propina);
-        curso.setEstado("Inativo"); // estado inicial
+        curso.setEstadoCurso(EstadoCurso.PENDENTE); // criado sem condições para abrir
         cursoDAL.adicionarCurso(curso, PASTA_BD);
         return true;
     }
@@ -171,9 +230,9 @@ public class CursoBLL {
      */
     public boolean isAlteravel(String sigla) {
         // Chamadas corrigidas (usando a instância e sem o PASTA_BD)
-        int totalAlunos = estudanteDAL.contarEstudantesPorCursoEAno(sigla, 1)
-                + estudanteDAL.contarEstudantesPorCursoEAno(sigla, 2)
-                + estudanteDAL.contarEstudantesPorCursoEAno(sigla, 3);
+        int totalAlunos = moduloEstudante().contarEstudantesPorCursoEAno(sigla, 1)
+                + moduloEstudante().contarEstudantesPorCursoEAno(sigla, 2)
+                + moduloEstudante().contarEstudantesPorCursoEAno(sigla, 3);
         int totalUcs = ucDAL.contarUcsPorCursoEAno(sigla, 1, PASTA_BD)
                 + ucDAL.contarUcsPorCursoEAno(sigla, 2, PASTA_BD)
                 + ucDAL.contarUcsPorCursoEAno(sigla, 3, PASTA_BD);

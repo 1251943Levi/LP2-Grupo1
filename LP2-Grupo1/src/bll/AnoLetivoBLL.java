@@ -44,7 +44,12 @@ public class AnoLetivoBLL {
 
     private final AnoLetivoDAL dal;
     private final HistoricoAnoLetivoDAL historicoDAL;
-    private final EstudanteDAL estudanteDAL;
+    // A7: acesso ao módulo do estudante (lazy — evita efeitos colaterais no arranque)
+    private EstudanteBLL moduloEstudante;
+    private EstudanteBLL moduloEstudante() {
+        if (moduloEstudante == null) moduloEstudante = new EstudanteBLL();
+        return moduloEstudante;
+    }
     private final InscricaoDAL inscricaoDAL;
     private final AvaliacaoDAL avaliacaoDAL;
     private final HistoricoDAL historicoAcademicoDAL;
@@ -52,7 +57,6 @@ public class AnoLetivoBLL {
     public AnoLetivoBLL() {
         this.dal         = ConfigApp.isModoSql() ? new AnoLetivoDALSql()         : new AnoLetivoDALFile();
         this.historicoDAL = ConfigApp.isModoSql() ? new HistoricoAnoLetivoDALSql() : new HistoricoAnoLetivoDALFile();
-        this.estudanteDAL = ConfigApp.isModoSql() ? new EstudanteDALSql() : new EstudanteDALFile();
         this.inscricaoDAL = ConfigApp.isModoSql() ? new InscricaoDALSql() : new InscricaoDALFile();
         this.avaliacaoDAL = ConfigApp.isModoSql() ? new AvaliacaoDALSql() : new AvaliacaoDALFile();
         this.historicoAcademicoDAL = ConfigApp.isModoSql() ? new HistoricoDALSql() : new HistoricoDALFile();
@@ -122,16 +126,25 @@ public class AnoLetivoBLL {
             throw new EstadoInvalidoException(msg.toString());
         }
 
+        // C2: a propina anual tem de estar definida (>0) em todos os cursos com
+        // alunos antes de o ano poder iniciar (à semelhança dos momentos).
+        List<String> errosPropinas = validarPropinasCursos();
+        if (!errosPropinas.isEmpty()) {
+            StringBuilder msgPropinas = new StringBuilder("Bloqueado para iniciar — propinas por definir:");
+            for (String e : errosPropinas) msgPropinas.append("\n  - ").append(e);
+            throw new EstadoInvalidoException(msgPropinas.toString());
+        }
+
         List<String> cursosInativados = new ArrayList<>();
         CursoBLL cursoBll = new CursoBLL();
         String[] cursos = cursoDAL.obterListaCursos(ConfigApp.PASTA_BD);
         for (String c : cursos) {
             String sigla = c.split(" - ")[0];
-            int a1 = estudanteDAL.contarEstudantesPorCursoEAno(sigla, 1);
+            int a1 = moduloEstudante().contarEstudantesPorCursoEAno(sigla, 1);
             if (a1 > 0 && a1 < 5) {
                 Curso curso = cursoBll.procurarCursoCompleto(sigla);
                 if (curso != null) {
-                    curso.setEstado("Inativo");
+                    curso.setEstadoCurso(EstadoCurso.PENDENTE); // não reúne quórum para abrir
                     cursoDAL.atualizarCurso(curso, ConfigApp.PASTA_BD);
                     cursosInativados.add(sigla);
                 }
@@ -218,6 +231,10 @@ public class AnoLetivoBLL {
         int proximo = atual.getAno() + 1;
         if (dal.procurarPorAno(proximo) == null)
             dal.adicionar(new AnoLetivo(proximo));
+
+        // A5: o ano fechado já foi arquivado no histórico em fechar(); agora é
+        // removido da lista principal (anos_letivos), ficando apenas no histórico.
+        dal.remover(atual.getAno());
     }
 
     /**
@@ -254,6 +271,7 @@ public class AnoLetivoBLL {
                 List<String> errosInicio = new ArrayList<>();
                 errosInicio.addAll(validarQuorumCursos());
                 errosInicio.addAll(validarMomentosUcs());
+                errosInicio.addAll(validarPropinasCursos());
                 if (errosInicio.isEmpty()) linhas.add("[INICIAR] Pronto para iniciar.");
                 else for (String e : errosInicio) linhas.add("[INICIAR - BLOQUEIO] " + e);
                 break;
@@ -292,6 +310,12 @@ public class AnoLetivoBLL {
             throw new EstadoInvalidoException("Sigla de UC inválida.");
         if (momentos < 1 || momentos > 3)
             throw new EstadoInvalidoException("O número de momentos deve estar entre 1 e 3.");
+        // A4: só é permitido alterar momentos com o ano letivo em PLANEAMENTO
+        // (o caminho do docente — DocenteBLL.definirMomentosAvaliacao — já valida isto).
+        EstadoAnoLetivo estado = getEstadoAnoAtual();
+        if (estado != null && estado != EstadoAnoLetivo.PLANEAMENTO)
+            throw new EstadoInvalidoException(
+                    "Só é possível alterar os momentos com o ano letivo em PLANEAMENTO (estado atual: " + estado + ").");
         ucDAL.atualizarMomentos(siglaUc, momentos, ConfigApp.PASTA_BD);
     }
 
@@ -304,7 +328,7 @@ public class AnoLetivoBLL {
         String[] cursos = cursoDAL.obterListaCursos(ConfigApp.PASTA_BD);
         for (String c : cursos) {
             String sigla = c.split(" - ")[0];
-            int a1 = estudanteDAL.contarEstudantesPorCursoEAno(sigla, 1);
+            int a1 = moduloEstudante().contarEstudantesPorCursoEAno(sigla, 1);
             if (a1 > 0 && a1 < 5)
                 erros.add("Curso " + sigla + " — 1.º ano tem " + a1 + " aluno(s); mínimo exigido é 5.");
         }
@@ -322,9 +346,29 @@ public class AnoLetivoBLL {
         return erros;
     }
 
+    /**
+     * C2: valida que todos os cursos COM alunos têm a propina anual definida (>0).
+     * Pré-condição para iniciar o ano letivo, à semelhança dos momentos das UCs.
+     */
+    private List<String> validarPropinasCursos() {
+        List<String> erros = new ArrayList<>();
+        String[] cursos = cursoDAL.obterListaCursos(ConfigApp.PASTA_BD);
+        for (String c : cursos) {
+            String sigla = c.split(" - ")[0];
+            int totalAlunos = moduloEstudante().contarEstudantesPorCursoEAno(sigla, 1)
+                    + moduloEstudante().contarEstudantesPorCursoEAno(sigla, 2)
+                    + moduloEstudante().contarEstudantesPorCursoEAno(sigla, 3);
+            if (totalAlunos == 0) continue; // só interessam cursos com alunos
+            Curso curso = cursoDAL.procurarCurso(sigla, ConfigApp.PASTA_BD);
+            if (curso != null && curso.getValorPropinaAnual() <= 0)
+                erros.add("Curso " + sigla + " — propina anual não definida (está a 0).");
+        }
+        return erros;
+    }
+
     private List<String> validarNotasPendentes(int anoLetivo) {
         List<String> pendentes = new ArrayList<>();
-        List<Estudante> estudantes = estudanteDAL.carregarTodos();
+        List<Estudante> estudantes = moduloEstudante().carregarTodos();
         for (Estudante e : estudantes) {
             if (e == null || e.getAnoCurricular() > 3) continue;
             List<String> siglasInscritas = inscricaoDAL.obterSiglasUcsPorAluno(
@@ -345,7 +389,7 @@ public class AnoLetivoBLL {
 
     private List<String> validarPropinasPendentes() {
         List<String> pendentes = new ArrayList<>();
-        for (Estudante e : estudanteDAL.carregarTodos()) {
+        for (Estudante e : moduloEstudante().carregarTodos()) {
             if (e != null && e.getSaldoDevedor() > 0) {
                 pendentes.add(String.format("Aluno %d (%s) — dívida de %.2f€.",
                         e.getNumeroMecanografico(), e.getNome(), e.getSaldoDevedor()));

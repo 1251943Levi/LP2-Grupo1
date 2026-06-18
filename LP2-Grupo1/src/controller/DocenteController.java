@@ -5,6 +5,7 @@ import model.*;
 import utils.Consola;
 import view.DocenteView;
 import bll.DocenteBLL;
+import bll.EstudanteBLL;
 import utils.CancelamentoException;
 
 import java.util.ArrayList;
@@ -28,7 +29,12 @@ public class DocenteController {
     private final Docente docente;
     private final DocenteView view;
     private final DocenteBLL docenteBll;
-    private final EstudanteDAL estudanteDAL = ConfigApp.isModoSql() ? new EstudanteDALSql() : new EstudanteDALFile();
+    // A7: acesso ao módulo do estudante (lazy — evita efeitos colaterais no arranque)
+    private EstudanteBLL moduloEstudante;
+    private EstudanteBLL moduloEstudante() {
+        if (moduloEstudante == null) moduloEstudante = new EstudanteBLL();
+        return moduloEstudante;
+    }
     private final HistoricoDAL historicoDAL =
             ConfigApp.isModoSql() ? new HistoricoDALSql() : new HistoricoDALFile();
 
@@ -130,7 +136,7 @@ public class DocenteController {
             boolean alunoValido = false;
             while (!alunoValido) {
                 numMec = view.pedirNumeroAluno();
-                if (estudanteDAL.procurarPorNumMec(numMec) != null) {
+                if (moduloEstudante().procurarPorNumMec(numMec) != null) {
                     alunoValido = true;
                     break;
                 } else {
@@ -254,7 +260,7 @@ public class DocenteController {
 
             // Função que pergunta a nota para cada aluno
             java.util.function.Function<Integer, Double> obterNota = (numMec) -> {
-                Estudante e = estudanteDAL.procurarPorNumMec(numMec);
+                Estudante e = moduloEstudante().procurarPorNumMec(numMec);
                 String nome = (e != null) ? e.getNome() : "Desconhecido";
                 view.mostrarPedidoNotaParaAluno(numMec, nome);
                 try {

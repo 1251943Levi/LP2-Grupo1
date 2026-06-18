@@ -24,8 +24,12 @@ public class PagamentoBLL {
     private static final String PASTA_BD = ConfigApp.PASTA_BD;
     private static final DateTimeFormatter FORMATO_DATA = DateTimeFormatter.ofPattern("dd-MM-yyyy");
 
-    // Instância da DAL criada aqui
-    private final EstudanteDAL estudanteDAL = ConfigApp.isModoSql() ? new EstudanteDALSql() : new EstudanteDALFile();
+    // A7: acesso ao módulo do estudante (lazy — evita efeitos colaterais no arranque)
+    private EstudanteBLL moduloEstudante;
+    private EstudanteBLL moduloEstudante() {
+        if (moduloEstudante == null) moduloEstudante = new EstudanteBLL();
+        return moduloEstudante;
+    }
     private final PagamentoDAL pagamentoDAL =
             ConfigApp.isModoSql() ? new PagamentoDALSql() : new PagamentoDALFile();
 
@@ -52,7 +56,7 @@ public class PagamentoBLL {
         Pagamento registo = new Pagamento(estudante.getNumeroMecanografico(), valor, dataHoje);
         estudante.adicionarPagamento(registo);
 
-        estudanteDAL.atualizarEstudante(estudante);
+        moduloEstudante().atualizarEstudante(estudante);
         pagamentoDAL.adicionarPagamento(estudante.getNumeroMecanografico(), valor, dataHoje);
 
         return true;

@@ -1,8 +1,10 @@
 package controller;
 
 import bll.AnoLetivoBLL;
+import bll.CursoBLL;
 import bll.EstadoInvalidoException;
 import model.AnoLetivo;
+import model.Curso;
 import model.RepositorioDados;
 import utils.CancelamentoException;
 import utils.Consola;
@@ -89,7 +91,15 @@ public class AnoLetivoController {
      */
     private void iniciarAno() {
         try {
-            Consola.imprimirCabecalho("Iniciar Ano Letivo");
+            // A3: no arranque, listar o estado dos anos existentes e o relatório
+            // de aptidão de cada curso (apto a abrir ou motivos de bloqueio).
+            view.mostrarCabecalhoRelatorioAptidao(bll.listar());
+            CursoBLL cursoBll = new CursoBLL();
+            for (Curso c : cursoBll.listarTodos()) {
+                String motivo = cursoBll.motivoNaoApto(c.getSigla());
+                view.mostrarAptidaoCurso(c.getSigla(), motivo.isEmpty(), motivo);
+            }
+
             List<AnoLetivo> anos = bll.listar().stream()
                     .filter(a -> a.getEstado() == model.EstadoAnoLetivo.PLANEAMENTO)
                     .collect(java.util.stream.Collectors.toList());
