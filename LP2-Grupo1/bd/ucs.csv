@@ -1,0 +1,9 @@
+sigla;nome;anoCurricular;siglaDocenteResponsavel;siglaCurso;ects;momentos
+EST;Estatística;1;MFP;EEC;6;0
+ALG;Álgebra;1;MFP;EEC;6;0
+MAT;Matematica aplicada;1;MFP;EEC;6;0
+FIS;Fisica Aplicada;1;AVN;EEC;6;0
+RO2;Robótica 2;2;AVA;EEC;6;0
+AI;Inteligencia Artificial;2;AVA;EEC;6;0
+ALP;Algoritmia e Progamaçaõ;2;AVN;EEC;6;0
+PEE;Projeto e estagio;3;AVN;EEC;6;0

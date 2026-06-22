@@ -1,0 +1,63 @@
+/.idea/.gitignore
+/.idea/misc.xml
+/.idea/modules.xml
+/.idea/vcs.xml
+/LP2-Grupo1.iml
+/out/production/LP2-Grupo1/controller/DocenteController.class
+/out/production/LP2-Grupo1/controller/EstudanteController.class
+/out/production/LP2-Grupo1/controller/GestorController.class
+/out/production/LP2-Grupo1/controller/MainController.class
+/out/production/LP2-Grupo1/model/Avaliacao.class
+/out/production/LP2-Grupo1/model/Curso.class
+/out/production/LP2-Grupo1/model/Departamento.class
+/out/production/LP2-Grupo1/model/Docente.class
+/out/production/LP2-Grupo1/model/Estudante.class
+/out/production/LP2-Grupo1/model/Gestor.class
+/out/production/LP2-Grupo1/model/PercursoAcademico.class
+/out/production/LP2-Grupo1/model/RepositorioDados.class
+/out/production/LP2-Grupo1/model/UnidadeCurricular.class
+/out/production/LP2-Grupo1/model/Utilizador.class
+/out/production/LP2-Grupo1/utils/EmailGenerator.class
+/out/production/LP2-Grupo1/utils/ExportadorCSV.class
+/out/production/LP2-Grupo1/utils/ImportadorCSV.class
+/out/production/LP2-Grupo1/utils/MigradorDados.class
+/out/production/LP2-Grupo1/utils/PasswordGenerator.class
+/out/production/LP2-Grupo1/utils/SegurancaPasswords.class
+/out/production/LP2-Grupo1/utils/Validador.class
+/out/production/LP2-Grupo1/view/DocenteView.class
+/out/production/LP2-Grupo1/view/EstudanteView.class
+/out/production/LP2-Grupo1/view/GestorView.class
+/out/production/LP2-Grupo1/view/MainView.class
+/out/production/LP2-Grupo1/Main.class
+# Ficheiros de compilação (Código gerado)
+out/
+bin/
+*.class
+
+# Configurações locais do IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Ficheiros do Sistema Operativo (Mac / Windows)
+.DS_Store
+Thumbs.db
+/LP2-Grupo1/iniciar.bat
+/LP2-Grupo1/.claude/worktrees/jolly-gagarin-c6690b/
+/LP2-Grupo1/.claude/worktrees/serene-lederberg-8a289d/
+/LP2-Grupo1/.claude/worktrees/priceless-hypatia-5c0950/
+/LP2-Grupo1/bd - TestesTransicaoAlunos/anos_letivos_historico.csv
+/LP2-Grupo1/bd - TestesTransicaoAlunos/anos_letivos.csv
+/LP2-Grupo1/bd - TestesTransicaoAlunos/avaliacoes.csv
+/LP2-Grupo1/bd - TestesTransicaoAlunos/credenciais.csv
+/LP2-Grupo1/bd - TestesTransicaoAlunos/cursos.csv
+/LP2-Grupo1/bd - TestesTransicaoAlunos/departamentos.csv
+/LP2-Grupo1/bd - TestesTransicaoAlunos/docentes.csv
+/LP2-Grupo1/bd - TestesTransicaoAlunos/estudantes.csv
+/LP2-Grupo1/bd - TestesTransicaoAlunos/gestores.csv
+/LP2-Grupo1/bd - TestesTransicaoAlunos/historico_academico.csv
+/LP2-Grupo1/bd - TestesTransicaoAlunos/inscricoes.csv
+/LP2-Grupo1/bd - TestesTransicaoAlunos/pagamentos.csv
+/LP2-Grupo1/bd - TestesTransicaoAlunos/ucs.csv
+/LP2-Grupo1/run.bat
