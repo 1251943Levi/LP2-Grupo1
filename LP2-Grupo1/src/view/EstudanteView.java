@@ -1,5 +1,6 @@
 package view;
 
+import model.Aula;
 import model.Avaliacao;
 import model.Estudante;
 import model.Pagamento;
@@ -31,7 +32,8 @@ public class EstudanteView {
                 "Consultar Dados Financeiros / Pagar",
                 "Ver UCs em que estou inscrito",
                 "Ver minhas notas por UC",
-                "Consultar Histórico Académico"
+                "Consultar Histórico Académico",
+                "Ver Horário Semanal"
         }, "Sair / Logout");
         return Consola.lerOpcaoMenu();
     }
@@ -142,4 +144,32 @@ public class EstudanteView {
     public void mostrarOpcaoInvalida()           { Consola.imprimirErro("Opção inválida."); }
     public void mostrarDespedida()               { Consola.imprimirInfo("Logout efetuado. Até breve!"); }
     public void mostrarOperacaoCancelada()       { Consola.imprimirInfo("Operação cancelada. A regressar ao menu..."); }
+
+    public void mostrarMensagem(String msg)           { System.out.println("  " + msg); }
+    /**
+     * Exibe o horário semanal do estudante.
+     * @param aulas Lista de aulas já ordenada
+     */
+
+
+    public void mostrarHorario(List<Aula> aulas) {
+        Consola.imprimirTitulo("Meu Horário Semanal");
+        if (aulas.isEmpty()) {
+            Consola.imprimirInfo("Não tem aulas agendadas para este ano letivo.");
+            Consola.pausar();
+            return;
+        }
+
+        System.out.printf("  %-10s | %-15s | %-8s | %-6s%n", "Dia", "Hora", "UC", "Sala");
+        Consola.imprimirLinha();
+
+        for (Aula a : aulas) {
+            String dia = a.getDiaSemana().toString().substring(0, 3); // SEG, TER, ...
+            String hora = a.getHoraInicio() + "-" + a.getHoraFim();
+            System.out.printf("  %-10s | %-15s | %-8s | %-6s%n",
+                    dia, hora, a.getSiglaUC(), "N/A");
+        }
+        Consola.imprimirLinha();
+        Consola.pausar();
+    }
 }

@@ -1,7 +1,9 @@
 package controller;
 
+import bll.HorarioBLL;
 import common.ConfigApp;
 import model.*;
+import utils.Config;
 import utils.Consola;
 import view.DocenteView;
 import bll.DocenteBLL;
@@ -61,6 +63,7 @@ public class DocenteController {
                     case 6: verMinhasUcs(); break;
                     case 7: consultarHistoricoAluno(); break;
                     case 8: definirMomentosAvaliacao(); break;
+                    case 9: verHorario(); break;
                     case 0:
                         view.mostrarDespedida();
                         repo.limparSessao();
@@ -352,6 +355,22 @@ public class DocenteController {
             }
         } catch (CancelamentoException e) {
             view.mostrarOperacaoCancelada();
+        }
+    }
+
+    /**
+     * Mostra o horário semanal do docente (aulas que leciona).
+     */
+    private void verHorario() {
+        try {
+            int anoAtual = Config.getAnoAtual();
+            String siglaDocente = docente.getSigla();
+
+            HorarioBLL horarioBll = new HorarioBLL();
+            List<Aula> aulas = horarioBll.listarHorarioDocente(siglaDocente, anoAtual);
+            view.mostrarHorario(aulas);
+        } catch (Exception e) {
+            view.mostrarErroLeituraOpcao();
         }
     }
 }

@@ -1,5 +1,6 @@
 package view;
 
+import model.Aula;
 import model.Avaliacao;
 import model.Docente;
 import model.UnidadeCurricular;
@@ -28,7 +29,8 @@ public class DocenteView {
                 "Ver Dados Pessoais",
                 "Ver as Minhas Unidades Curriculares",
                 "Consultar Histórico de um Aluno",
-                "Definir Momentos de Avaliação"
+                "Definir Momentos de Avaliação",
+                "Ver Horário Semanal"
         }, "Sair / Logout");
         return Consola.lerOpcaoMenu();
     }
@@ -236,6 +238,30 @@ public class DocenteView {
         } else {
             Consola.imprimirInfo("UC " + siglaUc + ": momentos atuais = " + momentosAtuais + ".");
         }
+    }
+
+    /**
+     * Exibe o horário semanal do docente.
+     */
+    public void mostrarHorario(List<Aula> aulas) {
+        Consola.imprimirTitulo("Meu Horário Semanal (Aulas que Leciono)");
+        if (aulas.isEmpty()) {
+            Consola.imprimirInfo("Não tem aulas agendadas para este ano letivo.");
+            Consola.pausar();
+            return;
+        }
+
+        System.out.printf("  %-10s | %-15s | %-8s | %-6s%n", "Dia", "Hora", "UC", "Sala");
+        Consola.imprimirLinha();
+
+        for (Aula a : aulas) {
+            String dia = a.getDiaSemana().toString().substring(0, 3);
+            String hora = a.getHoraInicio() + "-" + a.getHoraFim();
+            System.out.printf("  %-10s | %-15s | %-8s | %-6s%n",
+                    dia, hora, a.getSiglaUC(), "N/A");
+        }
+        Consola.imprimirLinha();
+        Consola.pausar();
     }
 }
 

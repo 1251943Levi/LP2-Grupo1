@@ -1,5 +1,6 @@
 package controller;
 
+import bll.*;
 import common.ConfigApp;
 import model.*;
 import utils.*;
@@ -7,14 +8,11 @@ import view.GestorView;
 import dal.UcDAL;
 import dal.UcDALFile;
 import dal.UcDALSql;
-import bll.GestorBLL;
-import bll.EstudanteBLL;
-import bll.UcBLL;
-import bll.DocenteBLL;
-import bll.DepartamentoBLL;
-import bll.CursoBLL;
 import utils.CancelamentoException;
 import utils.Validador;
+
+import java.time.DayOfWeek;
+import java.time.LocalTime;
 import java.util.List;
 
 /**
@@ -61,6 +59,7 @@ public class GestorController {
                     case 8: consultarHistoricoAno(); break;
                     case 9: listarDevedores(); break;
                     case 10: alterarPassword(); break;
+                    case 11: menuGerirHorarios(); break;
                     case 0:
                         view.mostrarDespedida();
                         repo.limparSessao();
@@ -1268,6 +1267,160 @@ public class GestorController {
             view.mostrarSucessoAlteracaoPassword();
         } else {
             view.mostrarCancelamentoPassword();
+        }
+    }
+
+// ============================================================
+// MENU GERIR HORÁRIOS
+// ============================================================
+
+    private void menuGerirHorarios() {
+        boolean voltar = false;
+        HorarioBLL horarioBll = new HorarioBLL();
+        while (!voltar) {
+            int opcao = view.mostrarSubMenuHorarios();
+            switch (opcao) {
+                case 1: adicionarAula(horarioBll); break;
+                case 2: listarAulas(horarioBll); break;
+                case 3: removerAula(horarioBll); break;
+                case 4: editarAula(horarioBll); break;
+                case 0: voltar = true; break;
+                default: view.mostrarOpcaoInvalida();
+            }
+        }
+    }
+
+    private void adicionarAula(HorarioBLL bll) {
+        try {
+            view.mostrarTitulo("Adicionar Aula");
+            int ano = view.pedirAnoLetivo();
+            AnoLetivoBLL anoBll = new AnoLetivoBLL();
+            if (anoBll.listar().stream().noneMatch(a -> a.getAno() == ano)) {
+                view.mostrarMensagem("[ERRO] Ano letivo não encontrado.");
+                return;
+            }
+            String[] ucs = new UcBLL().obterListaUcs();
+            if (ucs.length == 0) {
+                view.mostrarMensagem("[ERRO] Nenhuma UC encontrada.");
+                return;
+            }
+            view.mostrarListaUcs(ucs);
+            int idxUc = view.pedirOpcaoUc(ucs.length);
+            if (idxUc == -1) return;
+            String siglaUC = ucs[idxUc - 1].split(" - ")[0];
+            UnidadeCurricular uc = new UcBLL().procurarUCCompleta(siglaUC);
+            if (uc == null || uc.getCursos().length == 0) {
+                view.mostrarMensagem("[ERRO] UC não tem curso associado.");
+                return;
+            }
+            String siglaCurso = uc.getCursos()[0].getSigla();
+
+            // Obter docente responsável da UC
+            Docente docente = uc.getDocenteResponsavel();
+            if (docente == null) {
+                view.mostrarMensagem("[ERRO] A UC não tem docente responsável atribuído.");
+                return;
+            }
+            String siglaDoc = docente.getSigla();
+            view.mostrarMensagem("Docente responsável: " + docente.getNome() + " (" + siglaDoc + ")");
+
+            DayOfWeek dia = view.pedirDiaSemana();
+            LocalTime horaInicio = view.pedirHoraInicio();
+            int bloco = view.pedirBloco();
+            LocalTime horaFim = horaInicio.plusHours(bloco);
+
+            Aula aula = new Aula(siglaUC, siglaDoc, dia, horaInicio, horaFim, bloco, ano);
+            aula.setSiglaCurso(siglaCurso);
+            bll.adicionarAula(aula);
+            view.mostrarMensagem("[SUCESSO] Aula adicionada com sucesso!");
+        } catch (utils.CancelamentoException e) {
+            view.mostrarOperacaoCancelada();
+        } catch (bll.EstadoInvalidoException e) {
+            view.mostrarMensagem("[ERRO] " + e.getMessage());
+        }
+    }
+
+    private void listarAulas(HorarioBLL bll) {
+        try {
+            int ano = view.pedirAnoLetivo();
+            java.util.List<Aula> aulas = bll.listarPorAnoLetivo(ano);
+            view.mostrarAulas(aulas);
+        } catch (utils.CancelamentoException e) {
+            view.mostrarOperacaoCancelada();
+        }
+    }
+
+    private void removerAula(HorarioBLL bll) {
+        try {
+            int id = view.pedirIdAula();
+            Aula aula = bll.buscarPorId(id);
+            if (aula == null) {
+                view.mostrarMensagem("[ERRO] Aula não encontrada.");
+                return;
+            }
+            view.mostrarAula(aula);
+            if (view.confirmarRemocaoBoolean("aula ID " + id)) {
+                if (bll.removerAula(id)) {
+                    view.mostrarMensagem("[SUCESSO] Aula removida com sucesso!");
+                } else {
+                    view.mostrarMensagem("[ERRO] Falha ao remover aula.");
+                }
+            }
+        } catch (utils.CancelamentoException e) {
+            view.mostrarOperacaoCancelada();
+        }
+    }
+
+    private void editarAula(HorarioBLL bll) {
+        try {
+            int id = view.pedirIdAula();
+            Aula existente = bll.buscarPorId(id);
+            if (existente == null) {
+                view.mostrarMensagem("[ERRO] Aula não encontrada.");
+                return;
+            }
+            view.mostrarAula(existente);
+            view.mostrarMensagemModoEdicao();
+
+            String novaSiglaUC = view.pedirNovaSiglaUc();
+            if (!novaSiglaUC.isEmpty()) {
+                UnidadeCurricular uc = new UcBLL().procurarUCCompleta(novaSiglaUC);
+                if (uc == null || uc.getCursos().length == 0) {
+                    view.mostrarMensagem("[ERRO] UC inválida ou sem curso.");
+                    return;
+                }
+                existente.setSiglaUC(novaSiglaUC);
+                existente.setSiglaCurso(uc.getCursos()[0].getSigla());
+            }
+
+            String novaSiglaDoc = view.pedirNovaSiglaDocenteUc();
+            if (!novaSiglaDoc.isEmpty()) {
+                if (!new GestorBLL().existeDocente(novaSiglaDoc)) {
+                    view.mostrarMensagem("[ERRO] Docente não encontrado.");
+                    return;
+                }
+                existente.setSiglaDocente(novaSiglaDoc);
+            }
+
+            DayOfWeek novoDia = view.pedirDiaSemanaOpcional();
+            if (novoDia != null) existente.setDiaSemana(novoDia);
+
+            LocalTime novaHora = view.pedirHoraInicioOpcional();
+            if (novaHora != null) existente.setHoraInicio(novaHora);
+
+            Integer novoBloco = view.pedirBlocoOpcional();
+            if (novoBloco != null) {
+                existente.setBloco(novoBloco);
+                existente.setHoraFim(existente.getHoraInicio().plusHours(novoBloco));
+            }
+
+            bll.atualizarAula(existente);
+            view.mostrarMensagem("[SUCESSO] Aula atualizada com sucesso!");
+
+        } catch (utils.CancelamentoException e) {
+            view.mostrarOperacaoCancelada();
+        } catch (bll.EstadoInvalidoException e) {
+            view.mostrarMensagem("[ERRO] " + e.getMessage());
         }
     }
 }
