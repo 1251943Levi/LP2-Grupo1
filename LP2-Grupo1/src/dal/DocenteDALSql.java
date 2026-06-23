@@ -119,9 +119,7 @@ public class DocenteDALSql implements DocenteDAL {
 
     @Override
     public boolean removerDocente(String sigla) {
-        Docente d = procurarPorSigla(sigla);
-        if (d == null) return false;
-        cm.update("DELETE FROM [login] WHERE email = ?", d.getEmail());
+        // A6: a credencial é removida pelo módulo de login (em DocenteBLL), não aqui.
         int linhas = cm.update("DELETE FROM [docente] WHERE sigla = ?", sigla);
         return linhas > 0;
     }

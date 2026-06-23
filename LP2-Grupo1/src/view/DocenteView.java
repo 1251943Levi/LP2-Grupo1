@@ -1,10 +1,12 @@
 package view;
 
+import model.Aula;
 import model.Avaliacao;
 import model.Docente;
 import model.UnidadeCurricular;
 import utils.Consola;
 
+import java.time.DayOfWeek;
 import java.util.List;
 
 /**
@@ -28,7 +30,8 @@ public class DocenteView {
                 "Ver Dados Pessoais",
                 "Ver as Minhas Unidades Curriculares",
                 "Consultar Histórico de um Aluno",
-                "Definir Momentos de Avaliação"
+                "Definir Momentos de Avaliação",
+                "Ver Horário Semanal"
         }, "Sair / Logout");
         return Consola.lerOpcaoMenu();
     }
@@ -235,6 +238,43 @@ public class DocenteView {
             Consola.imprimirInfo("UC " + siglaUc + ": momentos ainda não definidos.");
         } else {
             Consola.imprimirInfo("UC " + siglaUc + ": momentos atuais = " + momentosAtuais + ".");
+        }
+    }
+
+    /**
+     * Exibe o horário semanal do docente.
+     */
+    public void mostrarHorario(List<Aula> aulas) {
+        Consola.imprimirTitulo("Meu Horário Semanal (Aulas que Leciono)");
+        if (aulas == null || aulas.isEmpty()) {
+            Consola.imprimirInfo("Não tem aulas agendadas para este ano letivo.");
+            Consola.pausar();
+            return;
+        }
+
+        System.out.printf("  %-10s | %-15s | %-8s%n", "Dia", "Hora", "UC");
+        Consola.imprimirLinha();
+
+        for (Aula a : aulas) {
+            String dia = diaEmPortugues(a.getDiaSemana());
+            String hora = a.getHoraInicio() + "-" + a.getHoraFim();
+            System.out.printf("  %-10s | %-15s | %-8s%n",
+                    dia, hora, a.getSiglaUC());
+        }
+        Consola.imprimirLinha();
+        Consola.pausar();
+    }
+
+    private String diaEmPortugues(DayOfWeek dia) {
+        switch (dia) {
+            case MONDAY:    return "Segunda";
+            case TUESDAY:   return "Terça";
+            case WEDNESDAY: return "Quarta";
+            case THURSDAY:  return "Quinta";
+            case FRIDAY:    return "Sexta";
+            case SATURDAY:  return "Sábado";
+            case SUNDAY:    return "Domingo";
+            default:        return dia.toString();
         }
     }
 }

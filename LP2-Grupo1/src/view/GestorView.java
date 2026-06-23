@@ -1,11 +1,13 @@
 package view;
 
-import model.Docente;
-import model.Estudante;
+import model.*;
 import utils.CancelamentoException;
 import utils.Consola;
-import model.Departamento;
-import model.Curso;
+import java.util.Map;
+import java.util.HashMap;
+
+import java.time.DayOfWeek;
+import java.time.LocalTime;
 import java.util.List;
 
 
@@ -31,6 +33,7 @@ public class GestorView {
                 "Consultar Histórico de Anos Anteriores",
                 "Listar Devedores de Propinas",
                 "Alterar Password",
+                "Gerir Horários"
         }, "Sair / Logout");
         return Consola.lerOpcaoMenu();
     }
@@ -540,5 +543,171 @@ public class GestorView {
         // Criar um novo Scanner(System.in) a cada chamada perde input por
         // read-ahead, partindo edições com vários campos seguidos.
         return Consola.lerStringOpcional(prompt);
+    }
+
+    // MENU DE HORÁRIOS
+    public int mostrarSubMenuHorarios() {
+        Consola.imprimirCabecalho("Gestão de Horários");
+        Consola.imprimirMenu(new String[]{
+                "Adicionar Aula",
+                "Listar Aulas por Ano Letivo",
+                "Remover Aula",
+                "Editar Aula"
+        }, "Voltar");
+        return Consola.lerOpcaoMenu();
+    }
+
+    // INPUTS
+    public int pedirIdAula() {
+        return Consola.lerInt("ID da Aula");
+    }
+
+    public DayOfWeek pedirDiaSemana() {
+        Map<String, DayOfWeek> mapa = new HashMap<>();
+        mapa.put("SEGUNDA", DayOfWeek.MONDAY);
+        mapa.put("TERCA", DayOfWeek.TUESDAY);
+        mapa.put("QUARTA", DayOfWeek.WEDNESDAY);
+        mapa.put("QUINTA", DayOfWeek.THURSDAY);
+        mapa.put("SEXTA", DayOfWeek.FRIDAY);
+        mapa.put("SABADO", DayOfWeek.SATURDAY);
+        mapa.put("DOMINGO", DayOfWeek.SUNDAY);
+
+        while (true) {
+            String dia = Consola.lerString("Dia da semana (SEGUNDA, TERCA, QUARTA, QUINTA, SEXTA, SABADO, DOMINGO)");
+            String chave = dia.toUpperCase().trim();
+            if (mapa.containsKey(chave)) {
+                return mapa.get(chave);
+            } else {
+                Consola.imprimirErro("Dia inválido. Use os nomes em português.");
+            }
+        }
+    }
+
+    public DayOfWeek pedirDiaSemanaOpcional() {
+        Map<String, DayOfWeek> mapa = new HashMap<>();
+        mapa.put("SEGUNDA", DayOfWeek.MONDAY);
+        mapa.put("TERCA", DayOfWeek.TUESDAY);
+        mapa.put("QUARTA", DayOfWeek.WEDNESDAY);
+        mapa.put("QUINTA", DayOfWeek.THURSDAY);
+        mapa.put("SEXTA", DayOfWeek.FRIDAY);
+        mapa.put("SABADO", DayOfWeek.SATURDAY);
+        mapa.put("DOMINGO", DayOfWeek.SUNDAY);
+
+        String dia = Consola.lerStringOpcional("Novo dia da semana (Enter mantém o atual)");
+        if (dia.isEmpty()) return null;
+        String chave = dia.toUpperCase().trim();
+        if (mapa.containsKey(chave)) {
+            return mapa.get(chave);
+        } else {
+            Consola.imprimirErro("Dia inválido. Mantido o anterior.");
+            return null;
+        }
+    }
+
+    public LocalTime pedirHoraInicio() {
+        while (true) {
+            String hora = Consola.lerString("Hora de início (HH:mm)");
+            try {
+                return LocalTime.parse(hora);
+            } catch (Exception e) {
+                Consola.imprimirErro("Formato inválido. Use HH:mm.");
+            }
+        }
+    }
+
+    public LocalTime pedirHoraInicioOpcional() {
+        String hora = Consola.lerStringOpcional("Nova hora de início (HH:mm, Enter mantém a atual)");
+        if (hora.isEmpty()) return null;
+        try {
+            return LocalTime.parse(hora);
+        } catch (Exception e) {
+            Consola.imprimirErro("Formato inválido. Mantido o anterior.");
+            return null;
+        }
+    }
+
+    public int pedirBloco() {
+        return Consola.lerInt("Bloco (1 ou 2 horas)");
+    }
+
+    public Integer pedirBlocoOpcional() {
+        String input = Consola.lerStringOpcional("Novo bloco (1 ou 2, Enter mantém o atual)");
+        if (input.isEmpty()) return null;
+        try {
+            int b = Integer.parseInt(input);
+            if (b == 1 || b == 2) return b;
+            Consola.imprimirErro("Bloco deve ser 1 ou 2. Mantido o anterior.");
+            return null;
+        } catch (NumberFormatException e) {
+            Consola.imprimirErro("Valor inválido. Mantido o anterior.");
+            return null;
+        }
+    }
+
+    // LISTAGEM DE AULAS
+    public void mostrarAulas(java.util.List<Aula> aulas) {
+        if (aulas == null || aulas.isEmpty()) {
+            Consola.imprimirInfo("Nenhuma aula agendada.");
+            Consola.pausar();
+            return;
+        }
+        Consola.imprimirTitulo("Lista de Aulas");
+        for (Aula a : aulas) {
+            System.out.printf("  ID: %d | Ano: %d | UC: %s | Curso: %s | Docente: %s | %s | %s-%s | Bloco: %dh%n",
+                    a.getId(), a.getAnoLetivo(), a.getSiglaUC(), a.getSiglaCurso(),
+                    a.getSiglaDocente(), diaEmPortugues(a.getDiaSemana()), a.getHoraInicio(),
+                    a.getHoraFim(), a.getBloco());
+        }
+        Consola.imprimirLinha();
+        Consola.pausar();
+    }
+
+    public void mostrarAula(Aula a) {
+        System.out.printf("  ID: %d | Ano: %d | UC: %s | Curso: %s | Docente: %s | %s | %s-%s | Bloco: %dh%n",
+                a.getId(), a.getAnoLetivo(), a.getSiglaUC(), a.getSiglaCurso(),
+                a.getSiglaDocente(), diaEmPortugues(a.getDiaSemana()), a.getHoraInicio(),
+                a.getHoraFim(), a.getBloco());
+    }
+
+    public boolean confirmarFimDeSemana() {
+        Consola.imprimirTitulo("Aviso: Sábado");
+        Consola.imprimirInfo("Está a agendar uma aula ao Sábado.");
+        Consola.imprimirInfo("Deseja continuar mesmo assim?");
+        return Consola.lerSimNao("Continuar");
+    }
+
+    /**
+     * Lista as aulas de uma UC específica, mostrando ID, dia, hora e bloco.
+     */
+    public void mostrarAulasPorUC(List<Aula> aulas, String siglaUC) {
+        if (aulas == null || aulas.isEmpty()) {
+            Consola.imprimirInfo("Não há aulas agendadas para a UC " + siglaUC + " neste ano.");
+            Consola.pausar();
+            return;
+        }
+        Consola.imprimirTitulo("Aulas da UC " + siglaUC);
+        for (Aula a : aulas) {
+            System.out.printf("  ID: %d | %s | %s-%s | Bloco: %dh%n",
+                    a.getId(), diaEmPortugues(a.getDiaSemana()),
+                    a.getHoraInicio(), a.getHoraFim(), a.getBloco());
+        }
+        Consola.imprimirLinha();
+    }
+
+    private String diaEmPortugues(DayOfWeek dia) {
+        switch (dia) {
+            case MONDAY:    return "Segunda";
+            case TUESDAY:   return "Terça";
+            case WEDNESDAY: return "Quarta";
+            case THURSDAY:  return "Quinta";
+            case FRIDAY:    return "Sexta";
+            case SATURDAY:  return "Sábado";
+            case SUNDAY:    return "Domingo";
+            default:        return dia.toString();
+        }
+    }
+
+    public String pedirSiglaUcParaHorario() {
+        return Consola.lerString("Sigla da UC (ex: EST, ALG)").toUpperCase().trim();
     }
 }

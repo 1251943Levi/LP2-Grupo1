@@ -34,7 +34,12 @@ public class DocenteBLL {
     private static final String PASTA_BD = ConfigApp.PASTA_BD;
     private final UcDAL ucDAL = ConfigApp.isModoSql() ? new UcDALSql() : new UcDALFile();
     private final LoginController loginController = new LoginController();
-    private final EstudanteDAL estudanteDAL = ConfigApp.isModoSql() ? new EstudanteDALSql() : new EstudanteDALFile();
+    // A7: acesso ao módulo do estudante (lazy — evita efeitos colaterais no arranque)
+    private EstudanteBLL moduloEstudante;
+    private EstudanteBLL moduloEstudante() {
+        if (moduloEstudante == null) moduloEstudante = new EstudanteBLL();
+        return moduloEstudante;
+    }
     private final DocenteDAL docenteDAL =
             ConfigApp.isModoSql() ? new DocenteDALSql() : new DocenteDALFile();
     private final InscricaoDAL inscricaoDAL =
@@ -68,7 +73,7 @@ public class DocenteBLL {
      *   - Linha ~275: "adicionarAvaliacao(avaliacao)" → "adicionarAvaliacao(avaliacao, numMec, PASTA_BD)" (args em falta)
      */
     public String lancarNota(int numMec, String siglaUc, int ano, double notaMomento, Docente d) {
-        Estudante aluno = estudanteDAL.procurarPorNumMec(numMec);
+        Estudante aluno = moduloEstudante().procurarPorNumMec(numMec);
 
         AnoLetivoBLL anoBll = new AnoLetivoBLL();
         if (anoBll.getEstadoAnoAtual() == EstadoAnoLetivo.PLANEAMENTO) {
@@ -163,7 +168,7 @@ public class DocenteBLL {
             for (int numMec : numsMec) {
                 if (contemAluno(alunosAdicionados, numMec)) continue;
 
-                Estudante aluno = estudanteDAL.procurarPorNumMec(numMec);                if (aluno == null) continue;
+                Estudante aluno = moduloEstudante().procurarPorNumMec(numMec);                if (aluno == null) continue;
 
                 carregarAvaliacoesSeNecessario(aluno);
                 double media = calcularMediaAlunoNaUc(aluno, uc.getSigla());
@@ -195,7 +200,7 @@ public class DocenteBLL {
         List<Integer> nums = inscricaoDAL.obterAlunosPorUc(siglaUc, Config.getAnoAtual());
         List<String> alunosFormatados = new ArrayList<>();
         for (int num : nums) {
-            Estudante e = estudanteDAL.procurarPorNumMec(num);            String nome = (e != null) ? e.getNome() : "Desconhecido";
+            Estudante e = moduloEstudante().procurarPorNumMec(num);            String nome = (e != null) ? e.getNome() : "Desconhecido";
             alunosFormatados.add(num + " - " + nome);
         }
         return alunosFormatados;
@@ -235,7 +240,11 @@ public class DocenteBLL {
      */
     public boolean removerDocente(String sigla) {
         if (temUcAtribuida(sigla)) return false;
-        return docenteDAL.removerDocente(sigla);
+        Docente d = docenteDAL.procurarPorSigla(sigla);
+        boolean removido = docenteDAL.removerDocente(sigla);
+        // A6: a credencial é removida pelo módulo de login (não pela DAL do docente).
+        if (removido && d != null) loginController.eliminar(d.getEmail());
+        return removido;
     }
 
     /**
@@ -261,7 +270,7 @@ public class DocenteBLL {
         int sucessos = 0, erros = 0;
 
         for (int numMec : alunosInscritos) {
-            Estudante aluno = estudanteDAL.procurarPorNumMec(numMec);
+            Estudante aluno = moduloEstudante().procurarPorNumMec(numMec);
             String nome = (aluno != null) ? aluno.getNome() : "Desconhecido";
 
             Double nota = obterNota.apply(numMec);
@@ -291,7 +300,7 @@ public class DocenteBLL {
         List<Integer> nums = inscricaoDAL.obterAlunosPorUc(siglaUc, anoLetivo);
         List<String> formatados = new ArrayList<>();
         for (int num : nums) {
-            Estudante e = estudanteDAL.procurarPorNumMec(num);
+            Estudante e = moduloEstudante().procurarPorNumMec(num);
             String nome = (e != null) ? e.getNome() : "Desconhecido";
             formatados.add(num + " - " + nome);
         }

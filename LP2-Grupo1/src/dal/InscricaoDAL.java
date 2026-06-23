@@ -26,6 +26,20 @@ public interface InscricaoDAL {
     void adicionarInscricao(int numMec, String siglaUC, int anoLetivo);
 
     /**
+     * Regista a inscrição preservando o ano letivo de realização original (A1).
+     * Usado ao reinscrever UCs reprovadas: a inscrição passa para o ano novo
+     * (anoLetivo), mas mantém o ano em que o aluno frequentou originalmente a UC
+     * (anoLetivoRealizacao). Numa inscrição nova, anoLetivoRealizacao == anoLetivo.
+     */
+    void adicionarInscricao(int numMec, String siglaUC, int anoLetivo, int anoLetivoRealizacao);
+
+    /**
+     * Ano letivo de realização original de uma inscrição (A1).
+     * @return o ano de realização, ou -1 se não existir inscrição para (numMec, siglaUC, anoLetivo).
+     */
+    int obterAnoRealizacao(int numMec, String siglaUC, int anoLetivo);
+
+    /**
      * Remove a inscrição de um estudante numa unidade curricular.
      * Chamado na transição de ano para eliminar inscrições em UCs já aprovadas.
      */

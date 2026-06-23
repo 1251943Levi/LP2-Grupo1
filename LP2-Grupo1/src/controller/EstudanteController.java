@@ -1,13 +1,16 @@
 package controller;
 
+import bll.HorarioBLL;
 import common.ConfigApp;
 import bll.EstudanteBLL;
 import bll.PagamentoBLL;
 import dal.HistoricoDAL;
 import dal.HistoricoDALFile;
 import dal.HistoricoDALSql;
+import model.Aula;
 import model.Estudante;
 import model.RepositorioDados;
+import utils.Config;
 import utils.Consola;
 import view.EstudanteView;
 
@@ -57,6 +60,7 @@ public class EstudanteController {
                         break;
                     case 7: consultarHistorico();
                         break;
+                    case 8: verHorario(); break;
                     case 0:
                         view.mostrarDespedida();
                         repositorio.limparSessao();
@@ -170,6 +174,28 @@ public class EstudanteController {
             Consola.pausar();
         } catch (utils.CancelamentoException e) {
             view.mostrarOperacaoCancelada();
+        }
+    }
+
+    /**
+     * Mostra o horário semanal do estudante.
+     */
+    private void verHorario() {
+        try {
+            int anoAtual = Config.getAnoAtual();
+            String siglaCurso = estudanteAtivo.getSiglaCurso();
+            int anoCurricular = estudanteAtivo.getAnoCurricular();
+
+            if (anoCurricular > 3) {
+                view.mostrarMensagem("Curso concluído. Não tem horário ativo.");
+                return;
+            }
+
+            HorarioBLL horarioBll = new HorarioBLL();
+            List<Aula> aulas = horarioBll.listarHorarioEstudante(siglaCurso, anoCurricular, anoAtual);
+            view.mostrarHorario(aulas);
+        } catch (Exception e) {
+            view.mostrarErroLeitura();
         }
     }
 }

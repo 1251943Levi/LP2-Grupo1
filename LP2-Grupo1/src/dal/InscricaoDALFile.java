@@ -14,7 +14,7 @@ import java.util.List;
 public class InscricaoDALFile implements InscricaoDAL {
 
     private static final String NOME_FICHEIRO = "inscricoes.csv";
-    private static final String CABECALHO = "numMec;siglaUC;anoLetivo";
+    private static final String CABECALHO = "numMec;siglaUC;anoLetivo;anoLetivoRealizacao";
 
     private final String pastaBase;
 
@@ -33,9 +33,38 @@ public class InscricaoDALFile implements InscricaoDAL {
 
     @Override
     public void adicionarInscricao(int numMec, String siglaUC, int anoLetivo) {
+        // Inscrição nova: o ano de realização é o próprio ano letivo.
+        adicionarInscricao(numMec, siglaUC, anoLetivo, anoLetivo);
+    }
+
+    @Override
+    public void adicionarInscricao(int numMec, String siglaUC, int anoLetivo, int anoLetivoRealizacao) {
         if (siglaUC == null || siglaUC.trim().isEmpty()) return;
         DALUtil.garantirFicheiroECabecalho(caminho(), CABECALHO);
-        DALUtil.adicionarLinhaCSV(caminho(), numMec + ";" + siglaUC.trim() + ";" + anoLetivo);
+        DALUtil.adicionarLinhaCSV(caminho(),
+                numMec + ";" + siglaUC.trim() + ";" + anoLetivo + ";" + anoLetivoRealizacao);
+    }
+
+    @Override
+    public int obterAnoRealizacao(int numMec, String siglaUC, int anoLetivo) {
+        if (siglaUC == null) return -1;
+        for (String linha : DALUtil.lerFicheiro(caminho())) {
+            if (linha.equalsIgnoreCase(CABECALHO)) continue;
+            String[] dados = linha.split(";", -1);
+            if (dados.length >= 3) {
+                try {
+                    if (Integer.parseInt(dados[0].trim()) == numMec
+                            && dados[1].trim().equalsIgnoreCase(siglaUC.trim())
+                            && Integer.parseInt(dados[2].trim()) == anoLetivo) {
+                        // 4.ª coluna (retrocompatível: se não existir, usa o anoLetivo)
+                        if (dados.length >= 4 && !dados[3].trim().isEmpty())
+                            return Integer.parseInt(dados[3].trim());
+                        return anoLetivo;
+                    }
+                } catch (NumberFormatException ignored) {}
+            }
+        }
+        return -1;
     }
 
     @Override

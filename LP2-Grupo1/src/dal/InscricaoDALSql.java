@@ -48,10 +48,25 @@ public class InscricaoDALSql implements InscricaoDAL {
 
     @Override
     public void adicionarInscricao(int numMec, String siglaUC, int anoLetivo) {
+        // Inscrição nova: o ano de realização é o próprio ano letivo.
+        adicionarInscricao(numMec, siglaUC, anoLetivo, anoLetivo);
+    }
+
+    @Override
+    public void adicionarInscricao(int numMec, String siglaUC, int anoLetivo, int anoLetivoRealizacao) {
         if (siglaUC == null || siglaUC.trim().isEmpty()) return;
         if (existeInscricao(numMec, siglaUC.trim(), anoLetivo)) return;
-        cm.update("INSERT INTO [inscricao] (numMec, siglaUC, anoLetivo) VALUES (?, ?, ?)",
-                numMec, siglaUC.trim(), anoLetivo);
+        cm.update("INSERT INTO [inscricao] (numMec, siglaUC, anoLetivo, anoLetivoRealizacao) VALUES (?, ?, ?, ?)",
+                numMec, siglaUC.trim(), anoLetivo, anoLetivoRealizacao);
+    }
+
+    @Override
+    public int obterAnoRealizacao(int numMec, String siglaUC, int anoLetivo) {
+        if (siglaUC == null || siglaUC.trim().isEmpty()) return -1;
+        List<Integer> r = cm.select(
+                "SELECT anoLetivoRealizacao FROM [inscricao] WHERE numMec = ? AND siglaUC = ? AND anoLetivo = ?",
+                rs -> rs.getInt("anoLetivoRealizacao"), numMec, siglaUC.trim(), anoLetivo);
+        return r.isEmpty() ? -1 : r.get(0);
     }
 
     @Override
@@ -122,8 +137,10 @@ public class InscricaoDALSql implements InscricaoDAL {
                     int numMec = Integer.parseInt(dados[0].trim());
                     String siglaUC = dados[1].trim();
                     int anoLetivo = Integer.parseInt(dados[2].trim());
+                    int anoRealizacao = (dados.length >= 4 && !dados[3].trim().isEmpty())
+                            ? Integer.parseInt(dados[3].trim()) : anoLetivo;
                     if (!siglaUC.isEmpty()) {
-                        adicionarInscricao(numMec, siglaUC, anoLetivo);
+                        adicionarInscricao(numMec, siglaUC, anoLetivo, anoRealizacao);
                         total++;
                     }
                 } catch (NumberFormatException ignored) {}
@@ -146,9 +163,10 @@ public class InscricaoDALSql implements InscricaoDAL {
             }
         }
         return "CREATE TABLE [inscricao] (\n"
-                + "    numMec    INT          NOT NULL REFERENCES [estudante](numMec),\n"
-                + "    siglaUC   NVARCHAR(10) NOT NULL,\n"
-                + "    anoLetivo INT          NOT NULL REFERENCES [anoLetivo](ano),\n"
+                + "    numMec              INT          NOT NULL REFERENCES [estudante](numMec),\n"
+                + "    siglaUC             NVARCHAR(10) NOT NULL,\n"
+                + "    anoLetivo           INT          NOT NULL REFERENCES [anoLetivo](ano),\n"
+                + "    anoLetivoRealizacao INT          NULL,\n"
                 + "    PRIMARY KEY (numMec, siglaUC, anoLetivo)\n"
                 + ");\n";
     }

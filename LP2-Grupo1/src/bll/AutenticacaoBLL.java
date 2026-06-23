@@ -24,7 +24,12 @@ public class AutenticacaoBLL {
     private static final String PASTA_BD = ConfigApp.PASTA_BD;
     private final CursoDAL cursoDAL = ConfigApp.isModoSql() ? new CursoDALSql() : new CursoDALFile();
     private final UcDAL ucDAL = ConfigApp.isModoSql() ? new UcDALSql() : new UcDALFile();
-    private final EstudanteDAL estudanteDAL = ConfigApp.isModoSql() ? new EstudanteDALSql() : new EstudanteDALFile();
+    // A7: acesso ao módulo do estudante (lazy — evita efeitos colaterais no arranque)
+    private EstudanteBLL moduloEstudante;
+    private EstudanteBLL moduloEstudante() {
+        if (moduloEstudante == null) moduloEstudante = new EstudanteBLL();
+        return moduloEstudante;
+    }
     private final GestorDAL gestorDAL =
             ConfigApp.isModoSql() ? new GestorDALSql() : new GestorDALFile();
     private final DocenteDAL docenteDAL =
@@ -93,7 +98,7 @@ public class AutenticacaoBLL {
      * @return true se o NIF já existir.
      */
     public boolean isNifDuplicado(String nif) {
-        return estudanteDAL.existeNif(nif)
+        return moduloEstudante().existeNif(nif)
                 || docenteDAL.existeNif(nif);
     }
 
