@@ -1,6 +1,7 @@
 package controller;
 
 import bll.HorarioBLL;
+import bll.PresencaBLL;
 import common.ConfigApp;
 import bll.EstudanteBLL;
 import bll.PagamentoBLL;
@@ -14,7 +15,13 @@ import utils.Config;
 import utils.Consola;
 import view.EstudanteView;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.temporal.TemporalAdjusters;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Controlador responsável por gerir o painel do Estudante.
@@ -61,6 +68,7 @@ public class EstudanteController {
                     case 7: consultarHistorico();
                         break;
                     case 8: verHorario(); break;
+                    case 9: marcarPresenca(); break;
                     case 0:
                         view.mostrarDespedida();
                         repositorio.limparSessao();
@@ -186,16 +194,94 @@ public class EstudanteController {
             String siglaCurso = estudanteAtivo.getSiglaCurso();
             int anoCurricular = estudanteAtivo.getAnoCurricular();
 
-            if (anoCurricular > 3) {
-                view.mostrarMensagem("Curso concluído. Não tem horário ativo.");
+            Consola.imprimirInfo("Ver horário:");
+            Consola.imprimirMenu(new String[]{"Semana atual", "Escolher intervalo"}, "Cancelar");
+            int opcao = Consola.lerOpcaoMenu();
+
+            HorarioBLL horarioBll = new HorarioBLL();
+            List<Aula> aulas;
+
+            if (opcao == 1) {
+                LocalDate hoje = LocalDate.now();
+                LocalDate inicio = hoje.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+                LocalDate fim = hoje.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
+                aulas = horarioBll.listarHorarioEstudante(siglaCurso, anoCurricular, anoAtual, inicio, fim);
+            } else if (opcao == 2) {
+                LocalDate[] intervalo = Consola.pedirIntervaloDatas();
+                aulas = horarioBll.listarHorarioEstudante(siglaCurso, anoCurricular, anoAtual, intervalo[0], intervalo[1]);
+            } else {
                 return;
             }
 
-            HorarioBLL horarioBll = new HorarioBLL();
-            List<Aula> aulas = horarioBll.listarHorarioEstudante(siglaCurso, anoCurricular, anoAtual);
             view.mostrarHorario(aulas);
         } catch (Exception e) {
-            view.mostrarErroLeitura();
+            Consola.imprimirErro(e.getMessage());
+        }
+    }
+
+    /**
+     * Marca presença do estudante numa aula.
+     */
+    private void marcarPresenca() {
+        try {
+            Consola.imprimirTitulo("Marcar Presença");
+            int ano = Config.getAnoAtual();
+            String siglaCurso = estudanteAtivo.getSiglaCurso();
+            int anoCurricular = estudanteAtivo.getAnoCurricular();
+
+            HorarioBLL horarioBll = new HorarioBLL();
+
+            // 1. Listar todas as aulas do estudante
+            List<Aula> todasAulas = horarioBll.listarHorarioEstudante(siglaCurso, anoCurricular, ano);
+            if (todasAulas.isEmpty()) {
+                Consola.imprimirInfo("Não tem aulas agendadas.");
+                return;
+            }
+
+            // 2. Extrair UCs únicas
+            Set<String> siglasSet = new HashSet<>();
+            for (Aula a : todasAulas) siglasSet.add(a.getSiglaUC());
+            List<String> siglasUC = new ArrayList<>(siglasSet);
+
+            Consola.imprimirTitulo("Suas Unidades Curriculares");
+            for (int i = 0; i < siglasUC.size(); i++) {
+                System.out.println("  [" + (i + 1) + "] " + siglasUC.get(i));
+            }
+            int idx = Consola.lerInt("Escolha a UC") - 1;
+            if (idx < 0 || idx >= siglasUC.size()) return;
+            String siglaUC = siglasUC.get(idx);
+
+            // 3. Pedir data
+            LocalDate data = Consola.pedirData("Data da aula (DD-MM-YYYY)");
+
+            // 4. Listar aulas dessa UC nesse dia
+            List<Aula> aulasDia = horarioBll.listarPorUCEData(siglaUC, ano, data);
+            if (aulasDia.isEmpty()) {
+                Consola.imprimirInfo("Não há aulas da UC " + siglaUC + " nesse dia.");
+                return;
+            }
+
+            // 5. Mostrar aulas com ID
+            view.mostrarAulasParaPresenca(aulasDia);
+            int idAula = Consola.lerInt("ID da Aula para marcar presença");
+
+            // 6. Validar se o docente já abriu
+            PresencaBLL presencaBll = new PresencaBLL();
+            if (presencaBll.presencasEstaoAbertas(idAula)) {
+                // Estudante pode marcar
+                if (presencaBll.estudanteMarcouPresenca(estudanteAtivo.getNumeroMecanografico(), idAula)) {
+                    Consola.imprimirInfo("Já marcou presença para esta aula.");
+                    return;
+                }
+                presencaBll.marcarPresencaEstudante(estudanteAtivo.getNumeroMecanografico(), idAula);
+                Consola.imprimirSucesso("Presença registada com sucesso!");
+            } else if (presencaBll.docenteJaMarcou(idAula)) {
+                Consola.imprimirErro("As presenças para esta aula já foram fechadas pelo docente.");
+            } else {
+                Consola.imprimirErro("O docente ainda não abriu as presenças para esta aula.");
+            }
+        } catch (Exception e) {
+            Consola.imprimirErro(e.getMessage());
         }
     }
 }

@@ -3,6 +3,10 @@ package view;
 import model.*;
 import utils.CancelamentoException;
 import utils.Consola;
+
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Map;
 import java.util.HashMap;
 
@@ -550,7 +554,7 @@ public class GestorView {
         Consola.imprimirCabecalho("Gestão de Horários");
         Consola.imprimirMenu(new String[]{
                 "Adicionar Aula",
-                "Listar Aulas por Ano Letivo",
+                "Listar Aulas",
                 "Remover Aula",
                 "Editar Aula"
         }, "Voltar");
@@ -562,45 +566,35 @@ public class GestorView {
         return Consola.lerInt("ID da Aula");
     }
 
+    /**
+     * Pede ao utilizador um número de 1 a 5 correspondente aos dias úteis.
+     * @return DayOfWeek (MONDAY a FRIDAY)
+     */
     public DayOfWeek pedirDiaSemana() {
-        Map<String, DayOfWeek> mapa = new HashMap<>();
-        mapa.put("SEGUNDA", DayOfWeek.MONDAY);
-        mapa.put("TERCA", DayOfWeek.TUESDAY);
-        mapa.put("QUARTA", DayOfWeek.WEDNESDAY);
-        mapa.put("QUINTA", DayOfWeek.THURSDAY);
-        mapa.put("SEXTA", DayOfWeek.FRIDAY);
-        mapa.put("SABADO", DayOfWeek.SATURDAY);
-        mapa.put("DOMINGO", DayOfWeek.SUNDAY);
-
         while (true) {
-            String dia = Consola.lerString("Dia da semana (SEGUNDA, TERCA, QUARTA, QUINTA, SEXTA, SABADO, DOMINGO)");
-            String chave = dia.toUpperCase().trim();
-            if (mapa.containsKey(chave)) {
-                return mapa.get(chave);
-            } else {
-                Consola.imprimirErro("Dia inválido. Use os nomes em português.");
+            int opcao = Consola.lerInt("Dia da semana (1-Segunda, 2-Terça, 3-Quarta, 4-Quinta, 5-Sexta)");
+            switch (opcao) {
+                case 1: return DayOfWeek.MONDAY;
+                case 2: return DayOfWeek.TUESDAY;
+                case 3: return DayOfWeek.WEDNESDAY;
+                case 4: return DayOfWeek.THURSDAY;
+                case 5: return DayOfWeek.FRIDAY;
+                default: Consola.imprimirErro("Opção inválida. Escolha 1 a 5.");
             }
         }
     }
 
     public DayOfWeek pedirDiaSemanaOpcional() {
-        Map<String, DayOfWeek> mapa = new HashMap<>();
-        mapa.put("SEGUNDA", DayOfWeek.MONDAY);
-        mapa.put("TERCA", DayOfWeek.TUESDAY);
-        mapa.put("QUARTA", DayOfWeek.WEDNESDAY);
-        mapa.put("QUINTA", DayOfWeek.THURSDAY);
-        mapa.put("SEXTA", DayOfWeek.FRIDAY);
-        mapa.put("SABADO", DayOfWeek.SATURDAY);
-        mapa.put("DOMINGO", DayOfWeek.SUNDAY);
-
-        String dia = Consola.lerStringOpcional("Novo dia da semana (Enter mantém o atual)");
-        if (dia.isEmpty()) return null;
-        String chave = dia.toUpperCase().trim();
-        if (mapa.containsKey(chave)) {
-            return mapa.get(chave);
-        } else {
-            Consola.imprimirErro("Dia inválido. Mantido o anterior.");
-            return null;
+        while (true) {
+            int opcao = Consola.lerInt("Dia da semana (1-Segunda, 2-Terça, 3-Quarta, 4-Quinta, 5-Sexta)");
+            switch (opcao) {
+                case 1: return DayOfWeek.MONDAY;
+                case 2: return DayOfWeek.TUESDAY;
+                case 3: return DayOfWeek.WEDNESDAY;
+                case 4: return DayOfWeek.THURSDAY;
+                case 5: return DayOfWeek.FRIDAY;
+                default: Consola.imprimirErro("Opção inválida. Escolha 1 a 5.");
+            }
         }
     }
 
@@ -647,38 +641,46 @@ public class GestorView {
     // LISTAGEM DE AULAS
     public void mostrarAulas(java.util.List<Aula> aulas) {
         if (aulas == null || aulas.isEmpty()) {
-            Consola.imprimirInfo("Nenhuma aula agendada.");
+            Consola.imprimirInfo("Nenhuma aula agendada para esta UC.");
             Consola.pausar();
             return;
         }
-        Consola.imprimirTitulo("Lista de Aulas");
+        // Título com a sigla da UC (assumindo que todas as aulas são da mesma UC)
+        String siglaUC = aulas.get(0).getSiglaUC();
+        Consola.imprimirTitulo("Lista de Aulas da UC " + siglaUC);
+
+        DateTimeFormatter fmtData = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+        // Cabeçalho com colunas de largura fixa
+        System.out.printf("  %-6s | %-10s | %-10s | %-17s | %-6s | %-6s | %-6s | %-6s%n",
+                "ID", "Data", "Dia", "Hora", "UC", "Curso", "Docente", "Bloco");
+        Consola.imprimirLinha();
+
         for (Aula a : aulas) {
-            System.out.printf("  ID: %d | Ano: %d | UC: %s | Curso: %s | Docente: %s | %s | %s-%s | Bloco: %dh%n",
-                    a.getId(), a.getAnoLetivo(), a.getSiglaUC(), a.getSiglaCurso(),
-                    a.getSiglaDocente(), diaEmPortugues(a.getDiaSemana()), a.getHoraInicio(),
-                    a.getHoraFim(), a.getBloco());
+            String dia = diaEmPortugues(a.getData().getDayOfWeek());
+            String hora = a.getHoraInicio() + "-" + a.getHoraFim();
+            System.out.printf("  %-6d | %-10s | %-10s | %-17s | %-6s | %-6s | %-6s | %dh%n",
+                    a.getId(),
+                    a.getData().format(fmtData),
+                    dia,
+                    hora,
+                    a.getSiglaUC(),
+                    a.getSiglaCurso(),
+                    a.getSiglaDocente(),
+                    a.getBloco());
         }
         Consola.imprimirLinha();
         Consola.pausar();
     }
 
     public void mostrarAula(Aula a) {
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         System.out.printf("  ID: %d | Ano: %d | UC: %s | Curso: %s | Docente: %s | %s | %s-%s | Bloco: %dh%n",
                 a.getId(), a.getAnoLetivo(), a.getSiglaUC(), a.getSiglaCurso(),
-                a.getSiglaDocente(), diaEmPortugues(a.getDiaSemana()), a.getHoraInicio(),
-                a.getHoraFim(), a.getBloco());
+                a.getSiglaDocente(), a.getData().format(fmt),
+                a.getHoraInicio(), a.getHoraFim(), a.getBloco());
     }
 
-    public boolean confirmarFimDeSemana() {
-        Consola.imprimirTitulo("Aviso: Sábado");
-        Consola.imprimirInfo("Está a agendar uma aula ao Sábado.");
-        Consola.imprimirInfo("Deseja continuar mesmo assim?");
-        return Consola.lerSimNao("Continuar");
-    }
-
-    /**
-     * Lista as aulas de uma UC específica, mostrando ID, dia, hora e bloco.
-     */
     public void mostrarAulasPorUC(List<Aula> aulas, String siglaUC) {
         if (aulas == null || aulas.isEmpty()) {
             Consola.imprimirInfo("Não há aulas agendadas para a UC " + siglaUC + " neste ano.");
@@ -686,10 +688,13 @@ public class GestorView {
             return;
         }
         Consola.imprimirTitulo("Aulas da UC " + siglaUC);
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        System.out.printf("  %-6s | %-12s | %-17s | %-6s%n", "ID", "Data", "Hora", "Bloco");
+        Consola.imprimirLinha();
         for (Aula a : aulas) {
-            System.out.printf("  ID: %d | %s | %s-%s | Bloco: %dh%n",
-                    a.getId(), diaEmPortugues(a.getDiaSemana()),
-                    a.getHoraInicio(), a.getHoraFim(), a.getBloco());
+            System.out.printf("  %-6d | %-12s | %-17s | %dh%n",
+                    a.getId(), a.getData().format(fmt),
+                    a.getHoraInicio() + "-" + a.getHoraFim(), a.getBloco());
         }
         Consola.imprimirLinha();
     }
@@ -709,5 +714,39 @@ public class GestorView {
 
     public String pedirSiglaUcParaHorario() {
         return Consola.lerString("Sigla da UC (ex: EST, ALG)").toUpperCase().trim();
+    }
+
+    public LocalDate pedirData(String mensagem) {
+        while (true) {
+            String dataStr = Consola.lerString(mensagem);
+            try {
+                return LocalDate.parse(dataStr, DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+            } catch (DateTimeParseException e) {
+                Consola.imprimirErro("Formato inválido. Use DD-MM-AAAA.");
+            }
+        }
+    }
+
+    public int pedirDiaSemanaNumero() {
+        while (true) {
+            int dia = Consola.lerInt("Dia da semana (1-Segunda, 2-Terça, 3-Quarta, 4-Quinta, 5-Sexta)");
+            if (dia >= 1 && dia <= 5) return dia;
+            Consola.imprimirErro("Opção inválida. Escolha 1 a 5.");
+        }
+    }
+
+    /**
+     * Pede uma data opcional (Enter para manter).
+     * @return null se o utilizador premir Enter, ou a LocalDate introduzida.
+     */
+    public LocalDate pedirDataOpcional(String mensagem) {
+        String input = Consola.lerStringOpcional(mensagem);
+        if (input.isEmpty()) return null;
+        try {
+            return LocalDate.parse(input, DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+        } catch (DateTimeParseException e) {
+            Consola.imprimirErro("Formato inválido. Mantido o valor anterior.");
+            return null;
+        }
     }
 }

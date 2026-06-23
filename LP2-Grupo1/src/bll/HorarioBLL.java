@@ -10,7 +10,9 @@ import model.Docente;
 import model.UnidadeCurricular;
 
 import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,17 +22,11 @@ public class HorarioBLL {
     private final UcBLL ucBll = new UcBLL();
     private final DocenteBLL docenteBll = new DocenteBLL();
 
-    // Horário permitido para dias úteis (Segunda a Sexta)
-    private static final LocalTime INICIO_PERMITIDO_SEMANA = LocalTime.of(18, 0);
-    private static final LocalTime FIM_PERMITIDO_SEMANA = LocalTime.of(23, 30);
+    // Regras para dias úteis
+    private static final LocalTime INICIO_PERMITIDO = LocalTime.of(18, 0);
+    private static final LocalTime FIM_PERMITIDO = LocalTime.of(23, 30);
     private static final LocalTime INICIO_JANTAR = LocalTime.of(20, 0);
     private static final LocalTime FIM_JANTAR = LocalTime.of(20, 30);
-
-    // Horário permitido para Sábado
-    private static final LocalTime INICIO_PERMITIDO_SABADO = LocalTime.of(8, 0);
-    private static final LocalTime FIM_PERMITIDO_SABADO = LocalTime.of(18, 0);
-    private static final LocalTime INICIO_ALMOCO = LocalTime.of(12, 0);
-    private static final LocalTime FIM_ALMOCO = LocalTime.of(12, 30);
 
     private static final int MAX_HORAS_DIA = 5;
     private static final int MAX_HORAS_UC_SEMANA = 6;
@@ -38,17 +34,12 @@ public class HorarioBLL {
     public HorarioBLL() {
         this.dal = ConfigApp.isModoSql() ? new AulaDALSql() : new AulaDALFile();
         dal.inicializar();
-
     }
 
     // ============================================================
-    // MÉTODOS PÚBLICOS
+    // CRUD BÁSICO
     // ============================================================
 
-    /**
-     * Adiciona uma nova aula com validação completa.
-     * @throws EstadoInvalidoException se violar alguma regra.
-     */
     public void adicionarAula(Aula aula) {
         validarAula(aula);
         validarSobreposicaoDocente(aula, false);
@@ -57,10 +48,6 @@ public class HorarioBLL {
         dal.adicionar(aula);
     }
 
-    /**
-     * Atualiza uma aula existente.
-     * @throws EstadoInvalidoException se violar alguma regra.
-     */
     public void atualizarAula(Aula aula) {
         if (dal.buscarPorId(aula.getId()) == null) {
             throw new EstadoInvalidoException("Aula não encontrada.");
@@ -72,179 +59,314 @@ public class HorarioBLL {
         dal.atualizar(aula);
     }
 
-    /**
-     * Remove uma aula pelo ID.
-     * @return true se removida, false se não encontrada.
-     */
     public boolean removerAula(int id) {
         return dal.remover(id);
     }
 
-    /**
-     * Busca uma aula pelo ID.
-     * @return Aula ou null se não encontrada.
-     */
     public Aula buscarPorId(int id) {
         return dal.buscarPorId(id);
     }
 
-    /**
-     * Lista todas as aulas de um ano letivo.
-     */
     public List<Aula> listarPorAnoLetivo(int ano) {
         return dal.listarPorAnoLetivo(ano);
     }
 
-    /**
-     * Lista aulas de uma UC num ano.
-     */
-    public List<Aula> listarPorUC(String siglaUC, int ano) {
-        return dal.listarPorUC(siglaUC, ano);
+    public List<Aula> listarPorUC(String siglaUC, int anoLetivo) {
+        List<Aula> resultado = dal.listarPorUC(siglaUC, anoLetivo);
+        ordenarPorDataEHora(resultado);
+        return resultado;
     }
 
     /**
-     * Lista aulas de um docente num ano.
+     * Lista as aulas de uma UC num intervalo de datas.
      */
-    public List<Aula> listarPorDocente(String siglaDocente, int ano) {
-        return dal.listarPorDocente(siglaDocente, ano);
+    public List<Aula> listarPorUC(String siglaUC, int anoLetivo, LocalDate inicio, LocalDate fim) {
+        List<Aula> todas = dal.listarPorUC(siglaUC, anoLetivo);
+        List<Aula> resultado = new ArrayList<>();
+        for (Aula a : todas) {
+            if (!a.getData().isBefore(inicio) && !a.getData().isAfter(fim)) {
+                resultado.add(a);
+            }
+        }
+        ordenarPorDataEHora(resultado);
+        return resultado;
+    }
+
+
+    // ============================================================
+    // CRIAÇÃO EM LOTE (Intervalo de Datas)
+    // ============================================================
+
+    /**
+     * Cria aulas em todas as datas do intervalo que correspondem ao dia da semana escolhido.
+     * @param diaSemanaNum 1-Segunda, 2-Terça, 3-Quarta, 4-Quinta, 5-Sexta
+     */
+    public List<Aula> criarAulasEmIntervalo(String siglaUC, String siglaCurso, String siglaDocente,
+                                            LocalDate dataInicio, LocalDate dataFim,
+                                            int diaSemanaNum, LocalTime horaInicio,
+                                            int bloco, int anoLetivo) {
+        if (diaSemanaNum < 1 || diaSemanaNum > 5) {
+            throw new EstadoInvalidoException("Dia da semana inválido (1 a 5).");
+        }
+        DayOfWeek diaEscolhido = DayOfWeek.of(diaSemanaNum);
+
+        List<Aula> criadas = new ArrayList<>();
+        LocalDate data = dataInicio;
+
+        while (!data.isAfter(dataFim)) {
+            if (data.getDayOfWeek() == diaEscolhido) {
+                Aula aula = new Aula();
+                aula.setSiglaUC(siglaUC);
+                aula.setSiglaCurso(siglaCurso);
+                aula.setSiglaDocente(siglaDocente);
+                aula.setData(data);
+                aula.setHoraInicio(horaInicio);
+                aula.setHoraFim(horaInicio.plusHours(bloco));
+                aula.setBloco(bloco);
+                aula.setAnoLetivo(anoLetivo);
+
+                // adicionar com validações
+                adicionarAula(aula);
+                criadas.add(aula);
+            }
+            data = data.plusDays(1);
+        }
+        return criadas;
+    }
+
+    // ============================================================
+    // HORÁRIO SEMANAL (ESTUDANTE E DOCENTE)
+    // ============================================================
+
+    public List<Aula> listarHorarioSemanalEstudante(String siglaCurso, int anoCurricular, int anoLetivo) {
+        List<Aula> todas = dal.listarPorAnoLetivo(anoLetivo);
+        List<Aula> resultado = new ArrayList<>();
+        LocalDate hoje = LocalDate.now();
+        LocalDate inicioSemana = hoje.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        LocalDate fimSemana = hoje.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
+
+        for (Aula aula : todas) {
+            if (!aula.getSiglaCurso().equalsIgnoreCase(siglaCurso)) continue;
+            if (aula.getData().isBefore(inicioSemana) || aula.getData().isAfter(fimSemana)) continue;
+            UnidadeCurricular uc = ucBll.procurarUCCompleta(aula.getSiglaUC());
+            if (uc != null && uc.getAnoCurricular() == anoCurricular) {
+                resultado.add(aula);
+            }
+        }
+        ordenarPorDataEHora(resultado);
+        return resultado;
+    }
+
+    public List<Aula> listarHorarioSemanalDocente(String siglaDocente, int anoLetivo) {
+        List<Aula> todas = dal.listarPorDocente(siglaDocente, anoLetivo);
+        List<Aula> resultado = new ArrayList<>();
+        LocalDate hoje = LocalDate.now();
+        LocalDate inicioSemana = hoje.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        LocalDate fimSemana = hoje.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
+
+        for (Aula aula : todas) {
+            if (!aula.getData().isBefore(inicioSemana) && !aula.getData().isAfter(fimSemana)) {
+                resultado.add(aula);
+            }
+        }
+        ordenarPorDataEHora(resultado);
+        return resultado;
+    }
+
+    /**
+     * Lista aulas de um estudante num intervalo de datas.
+     */
+    public List<Aula> listarHorarioEstudante(String siglaCurso, int anoCurricular,
+                                             int anoLetivo, LocalDate dataInicio, LocalDate dataFim) {
+        List<Aula> todas = dal.listarPorAnoLetivo(anoLetivo);
+        List<Aula> resultado = new ArrayList<>();
+        for (Aula aula : todas) {
+            if (!aula.getSiglaCurso().equalsIgnoreCase(siglaCurso)) continue;
+            if (aula.getData().isBefore(dataInicio) || aula.getData().isAfter(dataFim)) continue;
+            UnidadeCurricular uc = ucBll.procurarUCCompleta(aula.getSiglaUC());
+            if (uc != null && uc.getAnoCurricular() == anoCurricular) {
+                resultado.add(aula);
+            }
+        }
+        ordenarPorDataEHora(resultado);
+        return resultado;
+    }
+
+    /**
+     * Lista aulas de um docente num intervalo de datas.
+     */
+    public List<Aula> listarHorarioDocente(String siglaDocente, int anoLetivo,
+                                           LocalDate dataInicio, LocalDate dataFim) {
+        List<Aula> todas = dal.listarPorDocente(siglaDocente, anoLetivo);
+        List<Aula> resultado = new ArrayList<>();
+        for (Aula aula : todas) {
+            if (!aula.getData().isBefore(dataInicio) && !aula.getData().isAfter(dataFim)) {
+                resultado.add(aula);
+            }
+        }
+        ordenarPorDataEHora(resultado);
+        return resultado;
     }
 
     // ============================================================
     // VALIDAÇÕES PRIVADAS
     // ============================================================
 
+    // bll/HorarioBLL.java
+
     /**
-     * Valida as regras básicas da aula (horário, bloco, existência de UC/docente, etc.)
-     * Inclui bloqueio de Domingo e validação de horário consoante o dia.
-     */
-    /**
-     * Valida as regras básicas da aula (horário, bloco, existência de UC/docente, etc.)
-     * @throws EstadoInvalidoException se violar alguma regra.
+     * Valida todas as regras de negócio para uma aula.
+     * @throws EstadoInvalidoException se alguma regra for violada.
      */
     private void validarAula(Aula aula) {
-        if (aula == null) throw new EstadoInvalidoException("Aula inválida.");
-        if (aula.getAnoLetivo() <= 0) throw new EstadoInvalidoException("Ano letivo inválido.");
-        if (aula.getSiglaUC() == null || aula.getSiglaUC().isEmpty())
+        // --- 1. Validações estruturais ---
+        if (aula == null) {
+            throw new EstadoInvalidoException("Aula inválida.");
+        }
+        if (aula.getAnoLetivo() <= 0) {
+            throw new EstadoInvalidoException("Ano letivo inválido.");
+        }
+        if (aula.getSiglaUC() == null || aula.getSiglaUC().isEmpty()) {
             throw new EstadoInvalidoException("UC não especificada.");
-        if (aula.getSiglaDocente() == null || aula.getSiglaDocente().isEmpty())
+        }
+        if (aula.getSiglaDocente() == null || aula.getSiglaDocente().isEmpty()) {
             throw new EstadoInvalidoException("Docente não especificado.");
-        if (aula.getDiaSemana() == null)
-            throw new EstadoInvalidoException("Dia da semana não especificado.");
-        if (aula.getHoraInicio() == null || aula.getHoraFim() == null)
+        }
+        if (aula.getData() == null) {
+            throw new EstadoInvalidoException("Data da aula não especificada.");
+        }
+        if (aula.getHoraInicio() == null || aula.getHoraFim() == null) {
             throw new EstadoInvalidoException("Horário incompleto.");
-
-        // Verificar se a UC existe
-        UnidadeCurricular uc = ucBll.procurarUCCompleta(aula.getSiglaUC());
-        if (uc == null) throw new EstadoInvalidoException("UC não encontrada.");
-
-        // Verificar se o docente existe
-        Docente doc = docenteBll.obterPorSigla(aula.getSiglaDocente());
-        if (doc == null) throw new EstadoInvalidoException("Docente não encontrado.");
-
-        // Verificar bloco
-        if (aula.getBloco() != 1 && aula.getBloco() != 2)
-            throw new EstadoInvalidoException("Bloco deve ser 1 ou 2 horas.");
-
-        // Duração compatível com bloco
-        long duracao = java.time.Duration.between(aula.getHoraInicio(), aula.getHoraFim()).toHours();
-        if (duracao != aula.getBloco())
-            throw new EstadoInvalidoException("A duração da aula (" + duracao + "h) não corresponde ao bloco (" + aula.getBloco() + "h).");
-
-        // --- Regras de horário por dia ---
-        DayOfWeek dia = aula.getDiaSemana();
-
-        // Domingo: proibido
-        if (dia == DayOfWeek.SUNDAY) {
-            throw new EstadoInvalidoException("Não é permitido agendar aulas ao Domingo.");
         }
 
-        // Sábado: 8h-18h, com pausa de almoço 12h-12h30
-        if (dia == DayOfWeek.SATURDAY) {
-            if (aula.getHoraInicio().isBefore(INICIO_PERMITIDO_SABADO) || aula.getHoraFim().isAfter(FIM_PERMITIDO_SABADO)) {
-                throw new EstadoInvalidoException("Horário fora do permitido para sábado (8h-18h).");
-            }
-            // Pausa de almoço (12h-12h30)
-            if (aula.getHoraInicio().isBefore(FIM_ALMOCO) && aula.getHoraFim().isAfter(INICIO_ALMOCO)) {
-                throw new EstadoInvalidoException("Aula não pode sobrepor a pausa de almoço (12h-12h30).");
-            }
+        // --- 2. Verificar se é dia útil (Segunda a Sexta) ---
+        DayOfWeek dia = aula.getData().getDayOfWeek();
+        if (dia == DayOfWeek.SATURDAY || dia == DayOfWeek.SUNDAY) {
+            throw new EstadoInvalidoException("Apenas são permitidas aulas em dias úteis (Segunda a Sexta).");
+        }
+
+        // --- 3. Verificar se a UC existe ---
+        UnidadeCurricular uc = ucBll.procurarUCCompleta(aula.getSiglaUC());
+        if (uc == null) {
+            throw new EstadoInvalidoException("UC não encontrada.");
+        }
+
+        // --- 4. Verificar se o docente existe ---
+        Docente doc = docenteBll.obterPorSigla(aula.getSiglaDocente());
+        if (doc == null) {
+            throw new EstadoInvalidoException("Docente não encontrado.");
+        }
+
+        // --- 5. Verificar bloco (1 ou 2 horas) ---
+        if (aula.getBloco() != 1 && aula.getBloco() != 2) {
+            throw new EstadoInvalidoException("Bloco deve ser 1 ou 2 horas.");
+        }
+
+        // --- 6. Calcular duração em horas (suporta passagem da meia-noite) ---
+        long duracao;
+        if (aula.getHoraFim().isBefore(aula.getHoraInicio())) {
+            // Exemplo: 22:00 -> 00:00 => duração = 24 - (22:00 - 00:00) = 2h
+            // Usamos Duration.between(horaFim, horaInicio) que devolve um valor negativo (ex: -22h)
+            // Subtraímos esse valor a 24 para obter a duração positiva.
+            duracao = 24 - Math.abs(java.time.Duration.between(aula.getHoraFim(), aula.getHoraInicio()).toHours());
         } else {
-            // Dias úteis: 18h-23h30, com pausa de jantar 20h-20h30
-            if (aula.getHoraInicio().isBefore(INICIO_PERMITIDO_SEMANA) || aula.getHoraFim().isAfter(FIM_PERMITIDO_SEMANA)) {
-                throw new EstadoInvalidoException("Horário fora do permitido (18h-23h30) para dias úteis.");
-            }
-            if (aula.getHoraInicio().isBefore(FIM_JANTAR) && aula.getHoraFim().isAfter(INICIO_JANTAR)) {
-                throw new EstadoInvalidoException("Aula não pode sobrepor a pausa de jantar (20h-20h30).");
-            }
+            duracao = java.time.Duration.between(aula.getHoraInicio(), aula.getHoraFim()).toHours();
+        }
+
+        if (duracao != aula.getBloco()) {
+            throw new EstadoInvalidoException(
+                    "Duração (" + duracao + "h) não corresponde ao bloco (" + aula.getBloco() + "h).");
+        }
+
+        // --- 7. Horário permitido (18h-23h30) ---
+        if (aula.getHoraInicio().isBefore(INICIO_PERMITIDO) || aula.getHoraFim().isAfter(FIM_PERMITIDO)) {
+            throw new EstadoInvalidoException("Horário fora do permitido (18h-23h30).");
+        }
+
+        // --- 8. Pausa de jantar (20h-20h30) ---
+        if (aula.getHoraInicio().isBefore(FIM_JANTAR) && aula.getHoraFim().isAfter(INICIO_JANTAR)) {
+            throw new EstadoInvalidoException("Aula não pode sobrepor a pausa de jantar (20h-20h30).");
         }
     }
 
-    /**
-     * Valida sobreposição de horário para o mesmo docente no mesmo dia.
-     * @param aula Aula a validar.
-     * @param isUpdate true se for atualização (exclui a própria aula da verificação).
-     */
     private void validarSobreposicaoDocente(Aula aula, boolean isUpdate) {
-        List<Aula> existentes = dal.listarPorDocenteEDia(
-                aula.getSiglaDocente(), aula.getDiaSemana(), aula.getAnoLetivo());
-
+        List<Aula> existentes = dal.listarPorDataEDocente(aula.getData(), aula.getSiglaDocente());
         for (Aula outra : existentes) {
             if (isUpdate && outra.getId() == aula.getId()) continue;
             if (aula.getHoraInicio().isBefore(outra.getHoraFim()) &&
                     aula.getHoraFim().isAfter(outra.getHoraInicio())) {
                 throw new EstadoInvalidoException(
-                        "Sobreposição de horário: o docente já tem aula das "
-                                + outra.getHoraInicio() + " às " + outra.getHoraFim()
-                                + " neste dia.");
+                        "Sobreposição com outra aula: " + outra.getSiglaUC() +
+                                " das " + outra.getHoraInicio() + " às " + outra.getHoraFim() +
+                                " no dia " + aula.getData());
             }
         }
     }
 
-    /**
-     * Valida que a carga horária diária do docente não excede 5h.
-     */
     private void validarCargaDiariaDocente(Aula aula, boolean isUpdate) {
-        List<Aula> existentes = dal.listarPorDocenteEDia(
-                aula.getSiglaDocente(), aula.getDiaSemana(), aula.getAnoLetivo());
-
+        List<Aula> existentes = dal.listarPorDataEDocente(aula.getData(), aula.getSiglaDocente());
         int totalHoras = existentes.stream()
                 .filter(a -> !isUpdate || a.getId() != aula.getId())
                 .mapToInt(Aula::getBloco)
                 .sum() + aula.getBloco();
-
         if (totalHoras > MAX_HORAS_DIA)
-            throw new EstadoInvalidoException(
-                    "Carga horária diária excede " + MAX_HORAS_DIA + " horas (atual: " + totalHoras + "h).");
+            throw new EstadoInvalidoException("Carga diária excede " + MAX_HORAS_DIA + "h (total: " + totalHoras + "h).");
     }
 
-    /**
-     * Valida que a carga horária semanal da UC não excede 6h.
-     */
     private void validarCargaSemanalUC(Aula aula, boolean isUpdate) {
-        List<Aula> existentes = dal.listarPorUC(aula.getSiglaUC(), aula.getAnoLetivo());
+        LocalDate inicioSemana = aula.getData().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        LocalDate fimSemana = aula.getData().with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
 
-        int totalHoras = existentes.stream()
+        List<Aula> todasUC = dal.listarPorUC(aula.getSiglaUC(), aula.getAnoLetivo());
+        int totalHoras = todasUC.stream()
+                .filter(a -> !a.getData().isBefore(inicioSemana) && !a.getData().isAfter(fimSemana))
                 .filter(a -> !isUpdate || a.getId() != aula.getId())
                 .mapToInt(Aula::getBloco)
                 .sum() + aula.getBloco();
 
         if (totalHoras > MAX_HORAS_UC_SEMANA)
-            throw new EstadoInvalidoException(
-                    "Carga horária semanal da UC excede " + MAX_HORAS_UC_SEMANA + " horas (atual: " + totalHoras + "h).");
+            throw new EstadoInvalidoException("Carga semanal da UC excede " + MAX_HORAS_UC_SEMANA + "h (total: " + totalHoras + "h).");
+    }
+
+    // ============================================================
+    // ORDENAÇÃO
+    // ============================================================
+
+    private void ordenarPorDataEHora(List<Aula> aulas) {
+        aulas.sort((a1, a2) -> {
+            int cmp = a1.getData().compareTo(a2.getData());
+            if (cmp != 0) return cmp;
+            return a1.getHoraInicio().compareTo(a2.getHoraInicio());
+        });
+    }
+
+    public List<Aula> listarPorUCEData(String siglaUC, int anoLetivo, LocalDate data) {
+        List<Aula> todas = dal.listarPorUC(siglaUC, anoLetivo);
+        List<Aula> resultado = new ArrayList<>();
+        for (Aula a : todas) {
+            if (a.getData().equals(data)) {
+                resultado.add(a);
+            }
+        }
+        ordenarPorDataEHora(resultado);
+        return resultado;
     }
 
     /**
-     * Lista as aulas de um estudante com base no curso e ano curricular.
-     * Filtra por siglaCurso e pelo anoCurricular da UC (obtido via UcBLL).
-     * @param siglaCurso    Curso do estudante
-     * @param anoCurricular Ano curricular do estudante (1, 2 ou 3)
-     * @param anoLetivo     Ano letivo a consultar
-     * @return Lista de aulas ordenada por dia e hora
+     * Lista todas as aulas de um docente num ano letivo (sem filtro de datas).
+     * Usado para obter todas as aulas para extrair UCs.
+     */
+    public List<Aula> listarHorarioDocente(String siglaDocente, int anoLetivo) {
+        return dal.listarPorDocente(siglaDocente, anoLetivo);
+    }
+
+    /**
+     * Lista todas as aulas de um estudante (sem filtro de datas).
+     * Usado para obter todas as aulas para extrair UCs.
      */
     public List<Aula> listarHorarioEstudante(String siglaCurso, int anoCurricular, int anoLetivo) {
         List<Aula> todas = dal.listarPorAnoLetivo(anoLetivo);
         List<Aula> resultado = new ArrayList<>();
-        UcBLL ucBll = new UcBLL();
-
         for (Aula aula : todas) {
             if (!aula.getSiglaCurso().equalsIgnoreCase(siglaCurso)) continue;
             UnidadeCurricular uc = ucBll.procurarUCCompleta(aula.getSiglaUC());
@@ -252,31 +374,7 @@ public class HorarioBLL {
                 resultado.add(aula);
             }
         }
-
-        ordenarPorDiaEHora(resultado);
+        ordenarPorDataEHora(resultado);
         return resultado;
-    }
-
-    /**
-     * Lista as aulas de um docente (aulas que leciona).
-     * @param siglaDocente Sigla do docente
-     * @param anoLetivo    Ano letivo a consultar
-     * @return Lista de aulas ordenada por dia e hora
-     */
-    public List<Aula> listarHorarioDocente(String siglaDocente, int anoLetivo) {
-        List<Aula> resultado = dal.listarPorDocente(siglaDocente, anoLetivo);
-        ordenarPorDiaEHora(resultado);
-        return resultado;
-    }
-
-    /**
-     * Ordena a lista de aulas por dia da semana e hora de início.
-     */
-    private void ordenarPorDiaEHora(List<Aula> aulas) {
-        aulas.sort((a1, a2) -> {
-            int cmp = a1.getDiaSemana().compareTo(a2.getDiaSemana());
-            if (cmp != 0) return cmp;
-            return a1.getHoraInicio().compareTo(a2.getHoraInicio());
-        });
     }
 }
