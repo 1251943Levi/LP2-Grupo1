@@ -6,6 +6,7 @@ import model.Docente;
 import model.UnidadeCurricular;
 import utils.Consola;
 
+import java.time.DayOfWeek;
 import java.util.List;
 
 /**
@@ -245,23 +246,36 @@ public class DocenteView {
      */
     public void mostrarHorario(List<Aula> aulas) {
         Consola.imprimirTitulo("Meu Horário Semanal (Aulas que Leciono)");
-        if (aulas.isEmpty()) {
+        if (aulas == null || aulas.isEmpty()) {
             Consola.imprimirInfo("Não tem aulas agendadas para este ano letivo.");
             Consola.pausar();
             return;
         }
 
-        System.out.printf("  %-10s | %-15s | %-8s | %-6s%n", "Dia", "Hora", "UC", "Sala");
+        System.out.printf("  %-10s | %-15s | %-8s%n", "Dia", "Hora", "UC");
         Consola.imprimirLinha();
 
         for (Aula a : aulas) {
-            String dia = a.getDiaSemana().toString().substring(0, 3);
+            String dia = diaEmPortugues(a.getDiaSemana());
             String hora = a.getHoraInicio() + "-" + a.getHoraFim();
-            System.out.printf("  %-10s | %-15s | %-8s | %-6s%n",
-                    dia, hora, a.getSiglaUC(), "N/A");
+            System.out.printf("  %-10s | %-15s | %-8s%n",
+                    dia, hora, a.getSiglaUC());
         }
         Consola.imprimirLinha();
         Consola.pausar();
+    }
+
+    private String diaEmPortugues(DayOfWeek dia) {
+        switch (dia) {
+            case MONDAY:    return "Segunda";
+            case TUESDAY:   return "Terça";
+            case WEDNESDAY: return "Quarta";
+            case THURSDAY:  return "Quinta";
+            case FRIDAY:    return "Sexta";
+            case SATURDAY:  return "Sábado";
+            case SUNDAY:    return "Domingo";
+            default:        return dia.toString();
+        }
     }
 }
 

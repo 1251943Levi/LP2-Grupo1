@@ -655,7 +655,7 @@ public class GestorView {
         for (Aula a : aulas) {
             System.out.printf("  ID: %d | Ano: %d | UC: %s | Curso: %s | Docente: %s | %s | %s-%s | Bloco: %dh%n",
                     a.getId(), a.getAnoLetivo(), a.getSiglaUC(), a.getSiglaCurso(),
-                    a.getSiglaDocente(), a.getDiaSemana(), a.getHoraInicio(),
+                    a.getSiglaDocente(), diaEmPortugues(a.getDiaSemana()), a.getHoraInicio(),
                     a.getHoraFim(), a.getBloco());
         }
         Consola.imprimirLinha();
@@ -665,11 +665,49 @@ public class GestorView {
     public void mostrarAula(Aula a) {
         System.out.printf("  ID: %d | Ano: %d | UC: %s | Curso: %s | Docente: %s | %s | %s-%s | Bloco: %dh%n",
                 a.getId(), a.getAnoLetivo(), a.getSiglaUC(), a.getSiglaCurso(),
-                a.getSiglaDocente(), a.getDiaSemana(), a.getHoraInicio(),
+                a.getSiglaDocente(), diaEmPortugues(a.getDiaSemana()), a.getHoraInicio(),
                 a.getHoraFim(), a.getBloco());
     }
 
-    public int pedirAnoLetivo() {
-        return Consola.lerInt("Ano letivo");
+    public boolean confirmarFimDeSemana() {
+        Consola.imprimirTitulo("Aviso: Sábado");
+        Consola.imprimirInfo("Está a agendar uma aula ao Sábado.");
+        Consola.imprimirInfo("Deseja continuar mesmo assim?");
+        return Consola.lerSimNao("Continuar");
+    }
+
+    /**
+     * Lista as aulas de uma UC específica, mostrando ID, dia, hora e bloco.
+     */
+    public void mostrarAulasPorUC(List<Aula> aulas, String siglaUC) {
+        if (aulas == null || aulas.isEmpty()) {
+            Consola.imprimirInfo("Não há aulas agendadas para a UC " + siglaUC + " neste ano.");
+            Consola.pausar();
+            return;
+        }
+        Consola.imprimirTitulo("Aulas da UC " + siglaUC);
+        for (Aula a : aulas) {
+            System.out.printf("  ID: %d | %s | %s-%s | Bloco: %dh%n",
+                    a.getId(), diaEmPortugues(a.getDiaSemana()),
+                    a.getHoraInicio(), a.getHoraFim(), a.getBloco());
+        }
+        Consola.imprimirLinha();
+    }
+
+    private String diaEmPortugues(DayOfWeek dia) {
+        switch (dia) {
+            case MONDAY:    return "Segunda";
+            case TUESDAY:   return "Terça";
+            case WEDNESDAY: return "Quarta";
+            case THURSDAY:  return "Quinta";
+            case FRIDAY:    return "Sexta";
+            case SATURDAY:  return "Sábado";
+            case SUNDAY:    return "Domingo";
+            default:        return dia.toString();
+        }
+    }
+
+    public String pedirSiglaUcParaHorario() {
+        return Consola.lerString("Sigla da UC (ex: EST, ALG)").toUpperCase().trim();
     }
 }

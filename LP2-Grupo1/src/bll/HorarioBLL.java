@@ -20,11 +20,18 @@ public class HorarioBLL {
     private final UcBLL ucBll = new UcBLL();
     private final DocenteBLL docenteBll = new DocenteBLL();
 
-    // Horário permitido
-    private static final LocalTime INICIO_PERMITIDO = LocalTime.of(18, 0);
-    private static final LocalTime FIM_PERMITIDO = LocalTime.of(23, 30);
+    // Horário permitido para dias úteis (Segunda a Sexta)
+    private static final LocalTime INICIO_PERMITIDO_SEMANA = LocalTime.of(18, 0);
+    private static final LocalTime FIM_PERMITIDO_SEMANA = LocalTime.of(23, 30);
     private static final LocalTime INICIO_JANTAR = LocalTime.of(20, 0);
     private static final LocalTime FIM_JANTAR = LocalTime.of(20, 30);
+
+    // Horário permitido para Sábado
+    private static final LocalTime INICIO_PERMITIDO_SABADO = LocalTime.of(8, 0);
+    private static final LocalTime FIM_PERMITIDO_SABADO = LocalTime.of(18, 0);
+    private static final LocalTime INICIO_ALMOCO = LocalTime.of(12, 0);
+    private static final LocalTime FIM_ALMOCO = LocalTime.of(12, 30);
+
     private static final int MAX_HORAS_DIA = 5;
     private static final int MAX_HORAS_UC_SEMANA = 6;
 
@@ -108,6 +115,11 @@ public class HorarioBLL {
 
     /**
      * Valida as regras básicas da aula (horário, bloco, existência de UC/docente, etc.)
+     * Inclui bloqueio de Domingo e validação de horário consoante o dia.
+     */
+    /**
+     * Valida as regras básicas da aula (horário, bloco, existência de UC/docente, etc.)
+     * @throws EstadoInvalidoException se violar alguma regra.
      */
     private void validarAula(Aula aula) {
         if (aula == null) throw new EstadoInvalidoException("Aula inválida.");
@@ -125,9 +137,6 @@ public class HorarioBLL {
         UnidadeCurricular uc = ucBll.procurarUCCompleta(aula.getSiglaUC());
         if (uc == null) throw new EstadoInvalidoException("UC não encontrada.");
 
-        // Verificar se o curso da aula corresponde ao da UC (opcional: pode ser diferente, mas é mais seguro verificar)
-        // Para simplificar, não forçamos a correspondência, mas podemos verificar se o curso existe.
-
         // Verificar se o docente existe
         Docente doc = docenteBll.obterPorSigla(aula.getSiglaDocente());
         if (doc == null) throw new EstadoInvalidoException("Docente não encontrado.");
@@ -141,13 +150,32 @@ public class HorarioBLL {
         if (duracao != aula.getBloco())
             throw new EstadoInvalidoException("A duração da aula (" + duracao + "h) não corresponde ao bloco (" + aula.getBloco() + "h).");
 
-        // Horário permitido (18h-23h30)
-        if (aula.getHoraInicio().isBefore(INICIO_PERMITIDO) || aula.getHoraFim().isAfter(FIM_PERMITIDO))
-            throw new EstadoInvalidoException("Horário fora do permitido (18h-23h30).");
+        // --- Regras de horário por dia ---
+        DayOfWeek dia = aula.getDiaSemana();
 
-        // Pausa de jantar (20h-20h30)
-        if (aula.getHoraInicio().isBefore(FIM_JANTAR) && aula.getHoraFim().isAfter(INICIO_JANTAR))
-            throw new EstadoInvalidoException("Aula não pode sobrepor a pausa de jantar (20h-20h30).");
+        // Domingo: proibido
+        if (dia == DayOfWeek.SUNDAY) {
+            throw new EstadoInvalidoException("Não é permitido agendar aulas ao Domingo.");
+        }
+
+        // Sábado: 8h-18h, com pausa de almoço 12h-12h30
+        if (dia == DayOfWeek.SATURDAY) {
+            if (aula.getHoraInicio().isBefore(INICIO_PERMITIDO_SABADO) || aula.getHoraFim().isAfter(FIM_PERMITIDO_SABADO)) {
+                throw new EstadoInvalidoException("Horário fora do permitido para sábado (8h-18h).");
+            }
+            // Pausa de almoço (12h-12h30)
+            if (aula.getHoraInicio().isBefore(FIM_ALMOCO) && aula.getHoraFim().isAfter(INICIO_ALMOCO)) {
+                throw new EstadoInvalidoException("Aula não pode sobrepor a pausa de almoço (12h-12h30).");
+            }
+        } else {
+            // Dias úteis: 18h-23h30, com pausa de jantar 20h-20h30
+            if (aula.getHoraInicio().isBefore(INICIO_PERMITIDO_SEMANA) || aula.getHoraFim().isAfter(FIM_PERMITIDO_SEMANA)) {
+                throw new EstadoInvalidoException("Horário fora do permitido (18h-23h30) para dias úteis.");
+            }
+            if (aula.getHoraInicio().isBefore(FIM_JANTAR) && aula.getHoraFim().isAfter(INICIO_JANTAR)) {
+                throw new EstadoInvalidoException("Aula não pode sobrepor a pausa de jantar (20h-20h30).");
+            }
+        }
     }
 
     /**
