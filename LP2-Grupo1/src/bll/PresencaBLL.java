@@ -7,11 +7,10 @@ import model.Estudante;
 import model.Presenca;
 import utils.Config;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 
 public class PresencaBLL {
     private final PresencaDAL dal;
@@ -212,5 +211,76 @@ public class PresencaBLL {
                 break;
             }
         }
+    }
+
+    /**
+     * Devolve uma lista formatada com as presenças do estudante.
+     */
+    public List<String> obterPresencasDoEstudante(int numMec) {
+        List<String> linhas = new ArrayList<>();
+        Estudante estudante = estudanteBll.procurarPorNumMec(numMec);
+        if (estudante == null) {
+            linhas.add("Estudante não encontrado.");
+            return linhas;
+        }
+
+        // 1. Obter TODAS as aulas do estudante (horário)
+        HorarioBLL horarioBll = new HorarioBLL();
+        int anoAtual = Config.getAnoAtual();
+        List<Aula> todasAulas = horarioBll.listarHorarioEstudante(
+                estudante.getSiglaCurso(),
+                estudante.getAnoCurricular(),
+                anoAtual
+        );
+
+        if (todasAulas.isEmpty()) {
+            linhas.add("Não tem aulas agendadas.");
+            return linhas;
+        }
+
+        // 2. Obter as presenças que o estudante já marcou
+        List<Presenca> presencas = dal.listarPorAluno(numMec);
+        Set<Integer> idsPresencas = new HashSet<>();
+        for (Presenca p : presencas) {
+            idsPresencas.add(p.getIdAula());
+        }
+
+        // 3. Filtrar apenas as aulas que já passaram (até hoje)
+        LocalDate hoje = LocalDate.now();
+        List<Aula> aulasPassadas = new ArrayList<>();
+        for (Aula a : todasAulas) {
+            if (a.getData().isBefore(hoje) || a.getData().isEqual(hoje)) {
+                aulasPassadas.add(a);
+            }
+        }
+
+        if (aulasPassadas.isEmpty()) {
+            linhas.add("Ainda não teve nenhuma aula.");
+            return linhas;
+        }
+
+        // 4. Construir relatório
+        DateTimeFormatter fmtData = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        linhas.add(String.format("%-6s | %-12s | %-10s | %-8s", "Aula", "Data", "Hora", "Estado"));
+        linhas.add("─────────────────────────────────────────────────────────────");
+
+        int presentes = 0, faltas = 0;
+        for (Aula a : aulasPassadas) {
+            String estado = idsPresencas.contains(a.getId()) ? "PRESENTE" : "FALTA";
+            if (estado.equals("PRESENTE")) presentes++;
+            else faltas++;
+
+            String data = a.getData().format(fmtData);
+            String hora = a.getHoraInicio() + "-" + a.getHoraFim();
+            linhas.add(String.format("%-6d | %-12s | %-10s | %-8s",
+                    a.getId(), data, hora, estado));
+        }
+
+        // 5. Estatísticas
+        linhas.add("");
+        linhas.add(String.format("  Total de aulas: %d  |  Presentes: %d  |  Faltas: %d",
+                aulasPassadas.size(), presentes, faltas));
+
+        return linhas;
     }
 }

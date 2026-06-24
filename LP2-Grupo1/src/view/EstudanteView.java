@@ -36,7 +36,8 @@ public class EstudanteView {
                 "Ver minhas notas por UC",
                 "Consultar Histórico Académico",
                 "Ver Horário Semanal",
-                "Marcar Presença"
+                "Marcar Presença",
+                "Ver Minhas Presenças"
         }, "Sair / Logout");
         return Consola.lerOpcaoMenu();
     }
