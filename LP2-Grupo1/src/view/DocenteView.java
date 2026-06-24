@@ -7,6 +7,7 @@ import model.UnidadeCurricular;
 import utils.Consola;
 
 import java.time.DayOfWeek;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
@@ -31,7 +32,8 @@ public class DocenteView {
                 "Ver as Minhas Unidades Curriculares",
                 "Consultar Histórico de um Aluno",
                 "Definir Momentos de Avaliação",
-                "Ver Horário Semanal"
+                "Ver Horário Semanal",
+                "Gerir Presenças"
         }, "Sair / Logout");
         return Consola.lerOpcaoMenu();
     }
@@ -245,21 +247,23 @@ public class DocenteView {
      * Exibe o horário semanal do docente.
      */
     public void mostrarHorario(List<Aula> aulas) {
-        Consola.imprimirTitulo("Meu Horário Semanal (Aulas que Leciono)");
+        Consola.imprimirTitulo("Meu Horário (Aulas que Leciono)");
         if (aulas == null || aulas.isEmpty()) {
-            Consola.imprimirInfo("Não tem aulas agendadas para este ano letivo.");
+            Consola.imprimirInfo("Não tem aulas agendadas para este período.");
             Consola.pausar();
             return;
         }
 
-        System.out.printf("  %-10s | %-15s | %-8s%n", "Dia", "Hora", "UC");
+        DateTimeFormatter fmtData = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        System.out.printf("  %-12s | %-12s | %-17s | %-6s%n", "Data", "Dia", "Hora", "UC");
         Consola.imprimirLinha();
 
         for (Aula a : aulas) {
-            String dia = diaEmPortugues(a.getDiaSemana());
+            String data = a.getData().format(fmtData);
+            String dia = diaEmPortugues(a.getData().getDayOfWeek());
             String hora = a.getHoraInicio() + "-" + a.getHoraFim();
-            System.out.printf("  %-10s | %-15s | %-8s%n",
-                    dia, hora, a.getSiglaUC());
+            System.out.printf("  %-12s | %-12s | %-17s | %-6s%n",
+                    data, dia, hora, a.getSiglaUC());
         }
         Consola.imprimirLinha();
         Consola.pausar();
@@ -276,6 +280,27 @@ public class DocenteView {
             case SUNDAY:    return "Domingo";
             default:        return dia.toString();
         }
+    }
+
+    public void mostrarAulasDocente(List<Aula> aulas) {
+        Consola.imprimirTitulo("Minhas Aulas");
+        if (aulas == null || aulas.isEmpty()) {
+            Consola.imprimirInfo("Não tem aulas agendadas.");
+            Consola.pausar();
+            return;
+        }
+
+        DateTimeFormatter fmtData = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        System.out.printf("  %-6s | %-12s | %-17s | %-6s%n", "ID", "Data", "Hora", "UC");
+        Consola.imprimirLinha();
+
+        for (Aula a : aulas) {
+            String data = a.getData().format(fmtData);
+            String hora = a.getHoraInicio() + "-" + a.getHoraFim();
+            System.out.printf("  %-6d | %-12s | %-17s | %-6s%n",
+                    a.getId(), data, hora, a.getSiglaUC());
+        }
+        Consola.imprimirLinha();
     }
 }
 

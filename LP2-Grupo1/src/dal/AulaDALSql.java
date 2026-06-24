@@ -1,15 +1,17 @@
-// dal/AulaDALSql.java
 package dal;
 
 import common.ConfigApp;
 import dal.db.ConnectionManager;
 import dal.db.RowMapper;
 import model.Aula;
-import java.time.DayOfWeek;
+
+import java.sql.Date;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 
 public class AulaDALSql implements AulaDAL {
+
     private static final String TABELA = "aula";
     private final ConnectionManager cm;
 
@@ -22,7 +24,6 @@ public class AulaDALSql implements AulaDAL {
         if (!cm.existeTabela(TABELA)) {
             cm.executarScript(lerSchema());
         }
-        // Não há importação de CSV porque é uma entidade nova sem dados iniciais.
     }
 
     private String lerSchema() {
@@ -32,7 +33,7 @@ public class AulaDALSql implements AulaDAL {
                 + "    siglaUC       NVARCHAR(10) NOT NULL,\n"
                 + "    siglaCurso    NVARCHAR(10) NOT NULL,\n"
                 + "    siglaDocente  NVARCHAR(10) NOT NULL REFERENCES [docente](sigla),\n"
-                + "    diaSemana     NVARCHAR(10) NOT NULL,\n"
+                + "    data          DATE NOT NULL,\n"
                 + "    horaInicio    TIME NOT NULL,\n"
                 + "    horaFim       TIME NOT NULL,\n"
                 + "    bloco         INT NOT NULL,\n"
@@ -47,7 +48,7 @@ public class AulaDALSql implements AulaDAL {
         a.setSiglaUC(rs.getString("siglaUC"));
         a.setSiglaCurso(rs.getString("siglaCurso"));
         a.setSiglaDocente(rs.getString("siglaDocente"));
-        a.setDiaSemana(DayOfWeek.valueOf(rs.getString("diaSemana").toUpperCase()));
+        a.setData(rs.getDate("data").toLocalDate());
         a.setHoraInicio(rs.getTime("horaInicio").toLocalTime());
         a.setHoraFim(rs.getTime("horaFim").toLocalTime());
         a.setBloco(rs.getInt("bloco"));
@@ -56,22 +57,35 @@ public class AulaDALSql implements AulaDAL {
 
     @Override
     public void adicionar(Aula aula) {
-        cm.update("INSERT INTO [aula] (anoLetivo, siglaUC, siglaCurso, siglaDocente, diaSemana, horaInicio, horaFim, bloco) "
+        cm.update(
+                "INSERT INTO [aula] (anoLetivo, siglaUC, siglaCurso, siglaDocente, data, horaInicio, horaFim, bloco) "
                         + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                aula.getAnoLetivo(), aula.getSiglaUC(), aula.getSiglaCurso(),
-                aula.getSiglaDocente(), aula.getDiaSemana().name(),
-                aula.getHoraInicio(), aula.getHoraFim(), aula.getBloco());
-        // Obter o id gerado (opcional)
+                aula.getAnoLetivo(),
+                aula.getSiglaUC(),
+                aula.getSiglaCurso(),
+                aula.getSiglaDocente(),
+                Date.valueOf(aula.getData()),
+                aula.getHoraInicio(),
+                aula.getHoraFim(),
+                aula.getBloco()
+        );
     }
 
     @Override
     public void atualizar(Aula aula) {
-        cm.update("UPDATE [aula] SET anoLetivo=?, siglaUC=?, siglaCurso=?, siglaDocente=?, diaSemana=?, horaInicio=?, horaFim=?, bloco=? "
+        cm.update(
+                "UPDATE [aula] SET anoLetivo=?, siglaUC=?, siglaCurso=?, siglaDocente=?, data=?, horaInicio=?, horaFim=?, bloco=? "
                         + "WHERE id=?",
-                aula.getAnoLetivo(), aula.getSiglaUC(), aula.getSiglaCurso(),
-                aula.getSiglaDocente(), aula.getDiaSemana().name(),
-                aula.getHoraInicio(), aula.getHoraFim(), aula.getBloco(),
-                aula.getId());
+                aula.getAnoLetivo(),
+                aula.getSiglaUC(),
+                aula.getSiglaCurso(),
+                aula.getSiglaDocente(),
+                Date.valueOf(aula.getData()),
+                aula.getHoraInicio(),
+                aula.getHoraFim(),
+                aula.getBloco(),
+                aula.getId()
+        );
     }
 
     @Override
@@ -87,29 +101,29 @@ public class AulaDALSql implements AulaDAL {
 
     @Override
     public List<Aula> listarPorAnoLetivo(int anoLetivo) {
-        return cm.select("SELECT * FROM [aula] WHERE anoLetivo=? ORDER BY diaSemana, horaInicio", mapper, anoLetivo);
+        return cm.select("SELECT * FROM [aula] WHERE anoLetivo=? ORDER BY data, horaInicio", mapper, anoLetivo);
     }
 
     @Override
     public List<Aula> listarPorUC(String siglaUC, int anoLetivo) {
-        return cm.select("SELECT * FROM [aula] WHERE siglaUC=? AND anoLetivo=? ORDER BY diaSemana, horaInicio",
+        return cm.select("SELECT * FROM [aula] WHERE siglaUC=? AND anoLetivo=? ORDER BY data, horaInicio",
                 mapper, siglaUC, anoLetivo);
     }
 
     @Override
     public List<Aula> listarPorDocente(String siglaDocente, int anoLetivo) {
-        return cm.select("SELECT * FROM [aula] WHERE siglaDocente=? AND anoLetivo=? ORDER BY diaSemana, horaInicio",
+        return cm.select("SELECT * FROM [aula] WHERE siglaDocente=? AND anoLetivo=? ORDER BY data, horaInicio",
                 mapper, siglaDocente, anoLetivo);
     }
 
     @Override
-    public List<Aula> listarPorDocenteEDia(String siglaDocente, DayOfWeek dia, int anoLetivo) {
-        return cm.select("SELECT * FROM [aula] WHERE siglaDocente=? AND diaSemana=? AND anoLetivo=? ORDER BY horaInicio",
-                mapper, siglaDocente, dia.name(), anoLetivo);
+    public List<Aula> listarPorDataEDocente(LocalDate data, String siglaDocente) {
+        return cm.select("SELECT * FROM [aula] WHERE data=? AND siglaDocente=? ORDER BY horaInicio",
+                mapper, Date.valueOf(data), siglaDocente);
     }
 
     @Override
     public List<Aula> listarTodas() {
-        return cm.select("SELECT * FROM [aula] ORDER BY anoLetivo, diaSemana, horaInicio", mapper);
+        return cm.select("SELECT * FROM [aula] ORDER BY anoLetivo, data, horaInicio", mapper);
     }
 }

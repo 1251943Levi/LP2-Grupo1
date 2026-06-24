@@ -1,17 +1,18 @@
-// dal/AulaDALFile.java
 package dal;
 
 import common.ConfigApp;
 import model.Aula;
+
 import java.io.File;
-import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
 public class AulaDALFile implements AulaDAL {
+
     private static final String NOME_FICHEIRO = "aulas.csv";
-    private static final String CABECALHO = "id;anoLetivo;siglaUC;siglaCurso;siglaDocente;diaSemana;horaInicio;horaFim;bloco";
+    private static final String CABECALHO = "id;anoLetivo;siglaUC;siglaCurso;siglaDocente;data;horaInicio;horaFim;bloco";
     private final String pastaBase;
 
     public AulaDALFile() {
@@ -42,8 +43,7 @@ public class AulaDALFile implements AulaDAL {
         DALUtil.garantirFicheiroECabecalho(caminho(), CABECALHO);
         int id = proximoId();
         aula.setId(id);
-        String linha = serializar(aula);
-        DALUtil.adicionarLinhaCSV(caminho(), linha);
+        DALUtil.adicionarLinhaCSV(caminho(), serializar(aula));
     }
 
     @Override
@@ -133,13 +133,12 @@ public class AulaDALFile implements AulaDAL {
     }
 
     @Override
-    public List<Aula> listarPorDocenteEDia(String siglaDocente, DayOfWeek dia, int anoLetivo) {
+    public List<Aula> listarPorDataEDocente(LocalDate data, String siglaDocente) {
         List<Aula> resultado = new ArrayList<>();
         for (String linha : DALUtil.lerFicheiro(caminho())) {
             if (linha.equalsIgnoreCase(CABECALHO)) continue;
             Aula a = deserializar(linha);
-            if (a != null && a.getSiglaDocente().equalsIgnoreCase(siglaDocente)
-                    && a.getDiaSemana() == dia && a.getAnoLetivo() == anoLetivo)
+            if (a != null && a.getData().equals(data) && a.getSiglaDocente().equalsIgnoreCase(siglaDocente))
                 resultado.add(a);
         }
         return resultado;
@@ -156,10 +155,11 @@ public class AulaDALFile implements AulaDAL {
         return resultado;
     }
 
-    // ------ Serialização / Deserialização ------
+    // ---------- Serialização / Deserialização ----------
+
     private String serializar(Aula a) {
         return a.getId() + ";" + a.getAnoLetivo() + ";" + a.getSiglaUC() + ";" + a.getSiglaCurso()
-                + ";" + a.getSiglaDocente() + ";" + a.getDiaSemana().name() + ";" + a.getHoraInicio()
+                + ";" + a.getSiglaDocente() + ";" + a.getData() + ";" + a.getHoraInicio()
                 + ";" + a.getHoraFim() + ";" + a.getBloco();
     }
 
@@ -172,11 +172,12 @@ public class AulaDALFile implements AulaDAL {
             String siglaUC = dados[2].trim();
             String siglaCurso = dados[3].trim();
             String siglaDoc = dados[4].trim();
-            DayOfWeek dia = DayOfWeek.valueOf(dados[5].trim().toUpperCase());
+            LocalDate data = LocalDate.parse(dados[5].trim());
             LocalTime inicio = LocalTime.parse(dados[6].trim());
             LocalTime fim = LocalTime.parse(dados[7].trim());
             int bloco = Integer.parseInt(dados[8].trim());
-            Aula a = new Aula(siglaUC, siglaDoc, dia, inicio, fim, bloco, ano);
+
+            Aula a = new Aula(siglaUC, siglaDoc, data, inicio, fim, bloco, ano);
             a.setId(id);
             a.setSiglaCurso(siglaCurso);
             return a;

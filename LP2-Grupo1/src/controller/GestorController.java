@@ -12,8 +12,10 @@ import utils.CancelamentoException;
 import utils.Validador;
 
 import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.List;
+import java.time.temporal.TemporalAdjusters;
+import java.util.*;
 
 /**
  * Controlador responsável por gerir as interações e permissões do Gestor.
@@ -1280,7 +1282,7 @@ public class GestorController {
         while (!voltar) {
             int opcao = view.mostrarSubMenuHorarios();
             switch (opcao) {
-                case 1: adicionarAula(horarioBll); break;
+                case 1: adicionarAulasEmLote(horarioBll); break;
                 case 2: listarAulas(horarioBll); break;
                 case 3: removerAula(horarioBll); break;
                 case 4: editarAula(horarioBll); break;
@@ -1290,25 +1292,16 @@ public class GestorController {
         }
     }
 
-    private void adicionarAula(HorarioBLL bll) {
+    private void adicionarAulasEmLote(HorarioBLL bll) {
         try {
-            view.mostrarTitulo("Adicionar Aula");
-
-            // Ano automático
+            Consola.imprimirTitulo("Adicionar Aulas em Lote");
             int ano = Config.getAnoAtual();
-            view.mostrarMensagem("Ano letivo: " + ano);
+            Consola.imprimirInfo("Ano letivo: " + ano);
 
-            // Verificar se o ano existe
-            AnoLetivoBLL anoBll = new AnoLetivoBLL();
-            if (anoBll.listar().stream().noneMatch(a -> a.getAno() == ano)) {
-                view.mostrarMensagem("[ERRO] Ano letivo " + ano + " não encontrado.");
-                return;
-            }
-
-            // Escolher UC
+            // 1. Escolher UC
             String[] ucs = new UcBLL().obterListaUcs();
             if (ucs.length == 0) {
-                view.mostrarMensagem("[ERRO] Nenhuma UC encontrada.");
+                Consola.imprimirErro("Nenhuma UC encontrada.");
                 return;
             }
             view.mostrarListaUcs(ucs);
@@ -1316,54 +1309,51 @@ public class GestorController {
             if (idxUc == -1) return;
             String siglaUC = ucs[idxUc - 1].split(" - ")[0];
 
-            // Obter UC completa e curso
+            // 2. Obter UC e curso
             UnidadeCurricular uc = new UcBLL().procurarUCCompleta(siglaUC);
             if (uc == null || uc.getCursos().length == 0) {
-                view.mostrarMensagem("[ERRO] UC não tem curso associado.");
+                Consola.imprimirErro("UC não tem curso associado.");
                 return;
             }
             String siglaCurso = uc.getCursos()[0].getSigla();
 
-            // Docente responsável pela UC
+            // 3. Docente responsável
             Docente docente = uc.getDocenteResponsavel();
             if (docente == null) {
-                view.mostrarMensagem("[ERRO] A UC não tem docente responsável atribuído.");
+                Consola.imprimirErro("A UC não tem docente responsável.");
                 return;
             }
             String siglaDoc = docente.getSigla();
-            view.mostrarMensagem("Docente responsável: " + docente.getNome() + " (" + siglaDoc + ")");
+            Consola.imprimirInfo("Docente responsável: " + docente.getNome() + " (" + siglaDoc + ")");
 
-            // Dados da aula
-            DayOfWeek dia = view.pedirDiaSemana();
-
-            // Validação específica para Domingo (já é bloqueado pela BLL, mas avisamos antes)
-            if (dia == DayOfWeek.SUNDAY) {
-                view.mostrarMensagem("[ERRO] Não é permitido agendar aulas ao Domingo.");
+            // 4. Intervalo de datas
+            LocalDate dataInicio = Consola.pedirData("Data de início (DD-MM-AAAA)");
+            LocalDate dataFim = Consola.pedirData("Data de fim (DD-MM-AAAA)");
+            if (dataInicio.isAfter(dataFim)) {
+                Consola.imprimirErro("Data de início não pode ser posterior à data de fim.");
                 return;
             }
 
-            // Sábado: pedir confirmação
-            if (dia == DayOfWeek.SATURDAY) {
-                if (!view.confirmarFimDeSemana()) {
-                    view.mostrarMensagem("Operação cancelada.");
-                    return;
-                }
-            }
+            // 5. Dia da semana (1-5)
+            int diaSemanaNum = view.pedirDiaSemanaNumero();
 
+            // 6. Hora e bloco
             LocalTime horaInicio = view.pedirHoraInicio();
             int bloco = view.pedirBloco();
-            LocalTime horaFim = horaInicio.plusHours(bloco);
 
-            // Criar e adicionar aula
-            Aula aula = new Aula(siglaUC, siglaDoc, dia, horaInicio, horaFim, bloco, ano);
-            aula.setSiglaCurso(siglaCurso);
-            bll.adicionarAula(aula);
-            view.mostrarMensagem("[SUCESSO] Aula adicionada com sucesso!");
+            // 7. Criar aulas em lote (usando a assinatura correta)
+            List<Aula> criadas = bll.criarAulasEmIntervalo(
+                    siglaUC, siglaCurso, siglaDoc,
+                    dataInicio, dataFim,
+                    diaSemanaNum,
+                    horaInicio,
+                    bloco,
+                    ano);
 
-        } catch (utils.CancelamentoException e) {
-            view.mostrarOperacaoCancelada();
-        } catch (bll.EstadoInvalidoException e) {
-            view.mostrarMensagem("[ERRO] " + e.getMessage());
+            Consola.imprimirSucesso(criadas.size() + " aula(s) criada(s) com sucesso!");
+
+        } catch (Exception e) {
+            Consola.imprimirErro(e.getMessage());
         }
     }
 
@@ -1371,10 +1361,60 @@ public class GestorController {
         try {
             int ano = Config.getAnoAtual();
             view.mostrarMensagem("Ano letivo: " + ano);
-            java.util.List<Aula> aulas = bll.listarPorAnoLetivo(ano);
+
+            // 1. Obter todas as aulas do ano para extrair as UCs
+            List<Aula> todas = bll.listarPorAnoLetivo(ano);
+            if (todas.isEmpty()) {
+                view.mostrarMensagem("Não há aulas agendadas para o ano " + ano);
+                return;
+            }
+
+            // 2. Extrair siglas de UC únicas (sem duplicados)
+            Set<String> siglasSet = new HashSet<>();
+            for (Aula a : todas) {
+                siglasSet.add(a.getSiglaUC());
+            }
+            List<String> siglasUC = new ArrayList<>(siglasSet);
+            Collections.sort(siglasUC);
+
+            // 3. Mostrar lista de UCs e pedir escolha
+            Consola.imprimirTitulo("Unidades Curriculares com aulas");
+            for (int i = 0; i < siglasUC.size(); i++) {
+                System.out.println("  [" + (i + 1) + "] " + siglasUC.get(i));
+            }
+            int escolha = Consola.lerInt("Escolha a UC (0 para cancelar)");
+            if (escolha == 0) return;
+            if (escolha < 1 || escolha > siglasUC.size()) {
+                Consola.imprimirErro("Opção inválida.");
+                return;
+            }
+            String siglaEscolhida = siglasUC.get(escolha - 1);
+
+            // 4. Perguntar o período
+            Consola.imprimirInfo("Selecionar período:");
+            Consola.imprimirMenu(new String[]{"Semana atual", "Escolher intervalo"}, "Cancelar");
+            int opcao = Consola.lerOpcaoMenu();
+
+            List<Aula> aulas;
+            if (opcao == 1) {
+                LocalDate hoje = LocalDate.now();
+                LocalDate inicio = hoje.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+                LocalDate fim = hoje.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
+                aulas = bll.listarPorUC(siglaEscolhida, ano, inicio, fim);
+            } else if (opcao == 2) {
+                LocalDate[] intervalo = Consola.pedirIntervaloDatas();
+                aulas = bll.listarPorUC(siglaEscolhida, ano, intervalo[0], intervalo[1]);
+            } else {
+                return; // cancelar
+            }
+
+            // 5. Mostrar as aulas filtradas
             view.mostrarAulas(aulas);
+
         } catch (utils.CancelamentoException e) {
             view.mostrarOperacaoCancelada();
+        } catch (Exception e) {
+            Consola.imprimirErro(e.getMessage());
         }
     }
 
@@ -1430,20 +1470,19 @@ public class GestorController {
 
     private void editarAula(HorarioBLL bll) {
         try {
-            view.mostrarTitulo("Editar Aula");
+            Consola.imprimirTitulo("Editar Aula");
             int ano = Config.getAnoAtual();
-            view.mostrarMensagem("Ano letivo: " + ano);
+            Consola.imprimirInfo("Ano letivo: " + ano);
 
             AnoLetivoBLL anoBll = new AnoLetivoBLL();
             if (anoBll.listar().stream().noneMatch(a -> a.getAno() == ano)) {
-                view.mostrarMensagem("[ERRO] Ano letivo " + ano + " não encontrado.");
+                Consola.imprimirErro("Ano letivo " + ano + " não encontrado.");
                 return;
             }
 
-            // Escolher UC
             String[] ucs = new UcBLL().obterListaUcs();
             if (ucs.length == 0) {
-                view.mostrarMensagem("[ERRO] Nenhuma UC encontrada.");
+                Consola.imprimirErro("Nenhuma UC encontrada.");
                 return;
             }
             view.mostrarListaUcs(ucs);
@@ -1451,62 +1490,48 @@ public class GestorController {
             if (idxUc == -1) return;
             String siglaUC = ucs[idxUc - 1].split(" - ")[0];
 
-            // Listar aulas da UC
-            java.util.List<Aula> aulas = bll.listarPorUC(siglaUC, ano);
+            List<Aula> aulas = bll.listarPorUC(siglaUC, ano);
             view.mostrarAulasPorUC(aulas, siglaUC);
             if (aulas.isEmpty()) return;
 
-            // Pedir ID
-            int id = view.pedirIdAula();
+            int id = Consola.lerInt("ID da Aula a editar");
             Aula existente = bll.buscarPorId(id);
             if (existente == null) {
-                view.mostrarMensagem("[ERRO] Aula não encontrada.");
+                Consola.imprimirErro("Aula não encontrada.");
                 return;
             }
 
             view.mostrarAula(existente);
-            view.mostrarMensagemModoEdicao();
+            Consola.imprimirInfo("Deixe em branco para manter o valor atual.");
 
-            // Editar dia (com validações)
-            DayOfWeek novoDia = view.pedirDiaSemanaOpcional();
-            if (novoDia != null) {
-                // Domingo: bloqueado
-                if (novoDia == DayOfWeek.SUNDAY) {
-                    view.mostrarMensagem("[ERRO] Não é permitido agendar aulas ao Domingo. Alteração de dia cancelada.");
-                    // mantém o dia atual
-                }
-                // Sábado: pedir confirmação
-                else if (novoDia == DayOfWeek.SATURDAY) {
-                    if (view.confirmarFimDeSemana()) {
-                        existente.setDiaSemana(novoDia);
-                    } else {
-                        view.mostrarMensagem("Alteração de dia cancelada. Mantido o anterior.");
-                    }
-                }
-                // Dias úteis: aceitar diretamente
-                else {
-                    existente.setDiaSemana(novoDia);
-                }
+            // --- Editar data (opcional) ---
+            LocalDate novaData = view.pedirDataOpcional("Nova data (DD-MM-AAAA, Enter mantém a atual)");
+            if (novaData != null) {
+                existente.setData(novaData);
             }
 
-            // Editar hora e bloco (sem restrições adicionais, pois as validações são feitas na BLL)
+            // --- Editar hora de início (opcional) ---
             LocalTime novaHora = view.pedirHoraInicioOpcional();
-            if (novaHora != null) existente.setHoraInicio(novaHora);
+            if (novaHora != null) {
+                existente.setHoraInicio(novaHora);
+                // Recalcular hora fim com base no bloco atual
+                existente.setHoraFim(novaHora.plusHours(existente.getBloco()));
+            }
 
+            // --- Editar bloco (opcional) ---
             Integer novoBloco = view.pedirBlocoOpcional();
             if (novoBloco != null) {
                 existente.setBloco(novoBloco);
+                // Recalcular hora fim com base na hora de início atual
                 existente.setHoraFim(existente.getHoraInicio().plusHours(novoBloco));
             }
 
-            // Atualizar (validações completas são aplicadas pela BLL)
+            // Atualizar (a BLL aplica todas as validações)
             bll.atualizarAula(existente);
-            view.mostrarMensagem("[SUCESSO] Aula atualizada com sucesso!");
+            Consola.imprimirSucesso("Aula atualizada com sucesso!");
 
-        } catch (utils.CancelamentoException e) {
-            view.mostrarOperacaoCancelada();
-        } catch (bll.EstadoInvalidoException e) {
-            view.mostrarMensagem("[ERRO] " + e.getMessage());
+        } catch (Exception e) {
+            Consola.imprimirErro(e.getMessage());
         }
     }
 }
