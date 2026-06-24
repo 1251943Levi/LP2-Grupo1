@@ -17,6 +17,10 @@
 
 SET NOCOUNT ON;
 
+-- presenca e aula têm FK para aula/estudante e uc/anoLetivo/docente:
+-- têm de ser removidas ANTES dos respetivos pais.
+DROP TABLE IF EXISTS [presenca];
+DROP TABLE IF EXISTS [aula];
 DROP TABLE IF EXISTS [historicoAcademico];
 DROP TABLE IF EXISTS [pagamento];
 DROP TABLE IF EXISTS [avaliacao];

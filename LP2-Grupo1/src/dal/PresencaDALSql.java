@@ -85,23 +85,23 @@ public class PresencaDALSql implements PresencaDAL {
 
     @Override
     public Presenca buscarPorId(int id) {
-        List<Presenca> r = cm.select("SELECT * FROM [presenca] WHERE id=?", mapper, id);
+        List<Presenca> r = cm.select("SELECT id, idAula, numMec, estado, docenteMarcou, statusDocente, dataHoraRegisto FROM [presenca] WHERE id=?", mapper, id);
         return r.isEmpty() ? null : r.get(0);
     }
 
     @Override
     public List<Presenca> listarPorAula(int idAula) {
-        return cm.select("SELECT * FROM [presenca] WHERE idAula=? ORDER BY numMec", mapper, idAula);
+        return cm.select("SELECT id, idAula, numMec, estado, docenteMarcou, statusDocente, dataHoraRegisto FROM [presenca] WHERE idAula=? ORDER BY numMec", mapper, idAula);
     }
 
     @Override
     public List<Presenca> listarPorAluno(int numMec) {
-        return cm.select("SELECT * FROM [presenca] WHERE numMec=? ORDER BY idAula", mapper, numMec);
+        return cm.select("SELECT id, idAula, numMec, estado, docenteMarcou, statusDocente, dataHoraRegisto FROM [presenca] WHERE numMec=? ORDER BY idAula", mapper, numMec);
     }
 
     @Override
     public List<Presenca> listarPorAlunoEAula(int numMec, int idAula) {
-        return cm.select("SELECT * FROM [presenca] WHERE numMec=? AND idAula=?", mapper, numMec, idAula);
+        return cm.select("SELECT id, idAula, numMec, estado, docenteMarcou, statusDocente, dataHoraRegisto FROM [presenca] WHERE numMec=? AND idAula=?", mapper, numMec, idAula);
     }
 
     @Override
