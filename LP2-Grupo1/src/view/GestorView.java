@@ -37,7 +37,9 @@ public class GestorView {
                 "Consultar Histórico de Anos Anteriores",
                 "Listar Devedores de Propinas",
                 "Alterar Password",
-                "Gerir Horários"
+                "Gerir Horários",
+                "Gerir Tipos de Justificação",
+                "Aprovar Justificações"
         }, "Sair / Logout");
         return Consola.lerOpcaoMenu();
     }
