@@ -74,7 +74,7 @@ public class UcDALSql implements UcDAL {
     @Override
     public String[] obterDadosBrutosUC(String sigla, String pastaBase) {
         List<String[]> r = cm.select(
-                "SELECT TOP 1 * FROM [uc] WHERE sigla = ?", this::mapRaw, sigla);
+                "SELECT TOP 1 sigla, nome, anoCurricular, siglaDocente, siglaCurso, numMomentos FROM [uc] WHERE sigla = ?", this::mapRaw, sigla);
         return r.isEmpty() ? null : r.get(0);
     }
 
@@ -94,7 +94,7 @@ public class UcDALSql implements UcDAL {
 
     @Override
     public UnidadeCurricular procurarUC(String sigla, String pastaBase) {
-        List<String[]> linhas = cm.select("SELECT * FROM [uc] WHERE sigla = ?", this::mapRaw, sigla);
+        List<String[]> linhas = cm.select("SELECT sigla, nome, anoCurricular, siglaDocente, siglaCurso, numMomentos FROM [uc] WHERE sigla = ?", this::mapRaw, sigla);
         UnidadeCurricular ucEncontrada = null;
         for (String[] dados : linhas) {
             if (ucEncontrada == null) {
@@ -139,7 +139,7 @@ public class UcDALSql implements UcDAL {
 
     @Override
     public String listarTodasUc(String pastaBase) {
-        List<String[]> linhas = cm.select("SELECT * FROM [uc] ORDER BY sigla", this::mapRaw);
+        List<String[]> linhas = cm.select("SELECT sigla, nome, anoCurricular, siglaDocente, siglaCurso, numMomentos FROM [uc] ORDER BY sigla", this::mapRaw);
         StringBuilder sb = new StringBuilder("\n--- LISTA DE UNIDADES CURRICULARES ---\n");
         for (String[] dados : linhas) {
             sb.append("Sigla: ").append(dados[0])
@@ -157,7 +157,7 @@ public class UcDALSql implements UcDAL {
     @Override
     public String listarUcsPorCurso(String siglaCurso, String pastaBase) {
         List<String[]> linhas = cm.select(
-                "SELECT * FROM [uc] WHERE siglaCurso = ?", this::mapRaw, siglaCurso);
+                "SELECT sigla, nome, anoCurricular, siglaDocente, siglaCurso, numMomentos FROM [uc] WHERE siglaCurso = ?", this::mapRaw, siglaCurso);
         Map<Integer, List<String>> ucsPorAno = new TreeMap<>();
         for (String[] dados : linhas) {
             try {
@@ -222,7 +222,7 @@ public class UcDALSql implements UcDAL {
 
     @Override
     public String listarUcsDetalhadas(String pastaBase, int anoLetivoAtual) {
-        List<String[]> linhas = cm.select("SELECT * FROM [uc] ORDER BY sigla", this::mapRaw);
+        List<String[]> linhas = cm.select("SELECT sigla, nome, anoCurricular, siglaDocente, siglaCurso, numMomentos FROM [uc] ORDER BY sigla", this::mapRaw);
         StringBuilder sb = new StringBuilder("\n--- PAINEL DE UCS ---\n");
         List<String> ucsProcessadas = new ArrayList<>();
         for (String[] dados : linhas) {

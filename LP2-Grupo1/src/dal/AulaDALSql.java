@@ -95,35 +95,35 @@ public class AulaDALSql implements AulaDAL {
 
     @Override
     public Aula buscarPorId(int id) {
-        List<Aula> r = cm.select("SELECT * FROM [aula] WHERE id=?", mapper, id);
+        List<Aula> r = cm.select("SELECT id, anoLetivo, siglaUC, siglaCurso, siglaDocente, data, horaInicio, horaFim, bloco FROM [aula] WHERE id=?", mapper, id);
         return r.isEmpty() ? null : r.get(0);
     }
 
     @Override
     public List<Aula> listarPorAnoLetivo(int anoLetivo) {
-        return cm.select("SELECT * FROM [aula] WHERE anoLetivo=? ORDER BY data, horaInicio", mapper, anoLetivo);
+        return cm.select("SELECT id, anoLetivo, siglaUC, siglaCurso, siglaDocente, data, horaInicio, horaFim, bloco FROM [aula] WHERE anoLetivo=? ORDER BY data, horaInicio", mapper, anoLetivo);
     }
 
     @Override
     public List<Aula> listarPorUC(String siglaUC, int anoLetivo) {
-        return cm.select("SELECT * FROM [aula] WHERE siglaUC=? AND anoLetivo=? ORDER BY data, horaInicio",
+        return cm.select("SELECT id, anoLetivo, siglaUC, siglaCurso, siglaDocente, data, horaInicio, horaFim, bloco FROM [aula] WHERE siglaUC=? AND anoLetivo=? ORDER BY data, horaInicio",
                 mapper, siglaUC, anoLetivo);
     }
 
     @Override
     public List<Aula> listarPorDocente(String siglaDocente, int anoLetivo) {
-        return cm.select("SELECT * FROM [aula] WHERE siglaDocente=? AND anoLetivo=? ORDER BY data, horaInicio",
+        return cm.select("SELECT id, anoLetivo, siglaUC, siglaCurso, siglaDocente, data, horaInicio, horaFim, bloco FROM [aula] WHERE siglaDocente=? AND anoLetivo=? ORDER BY data, horaInicio",
                 mapper, siglaDocente, anoLetivo);
     }
 
     @Override
     public List<Aula> listarPorDataEDocente(LocalDate data, String siglaDocente) {
-        return cm.select("SELECT * FROM [aula] WHERE data=? AND siglaDocente=? ORDER BY horaInicio",
+        return cm.select("SELECT id, anoLetivo, siglaUC, siglaCurso, siglaDocente, data, horaInicio, horaFim, bloco FROM [aula] WHERE data=? AND siglaDocente=? ORDER BY horaInicio",
                 mapper, Date.valueOf(data), siglaDocente);
     }
 
     @Override
     public List<Aula> listarTodas() {
-        return cm.select("SELECT * FROM [aula] ORDER BY anoLetivo, data, horaInicio", mapper);
+        return cm.select("SELECT id, anoLetivo, siglaUC, siglaCurso, siglaDocente, data, horaInicio, horaFim, bloco FROM [aula] ORDER BY anoLetivo, data, horaInicio", mapper);
     }
 }
