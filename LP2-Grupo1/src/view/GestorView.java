@@ -551,6 +551,10 @@ public class GestorView {
         return Consola.lerStringOpcional(prompt);
     }
 
+// ============================================================
+// =========== Horários, Presenças e Justificações ============
+// ============================================================
+
     // MENU DE HORÁRIOS
     public int mostrarSubMenuHorarios() {
         Consola.imprimirCabecalho("Gestão de Horários");
@@ -568,37 +572,6 @@ public class GestorView {
         return Consola.lerInt("ID da Aula");
     }
 
-    /**
-     * Pede ao utilizador um número de 1 a 5 correspondente aos dias úteis.
-     * @return DayOfWeek (MONDAY a FRIDAY)
-     */
-    public DayOfWeek pedirDiaSemana() {
-        while (true) {
-            int opcao = Consola.lerInt("Dia da semana (1-Segunda, 2-Terça, 3-Quarta, 4-Quinta, 5-Sexta)");
-            switch (opcao) {
-                case 1: return DayOfWeek.MONDAY;
-                case 2: return DayOfWeek.TUESDAY;
-                case 3: return DayOfWeek.WEDNESDAY;
-                case 4: return DayOfWeek.THURSDAY;
-                case 5: return DayOfWeek.FRIDAY;
-                default: Consola.imprimirErro("Opção inválida. Escolha 1 a 5.");
-            }
-        }
-    }
-
-    public DayOfWeek pedirDiaSemanaOpcional() {
-        while (true) {
-            int opcao = Consola.lerInt("Dia da semana (1-Segunda, 2-Terça, 3-Quarta, 4-Quinta, 5-Sexta)");
-            switch (opcao) {
-                case 1: return DayOfWeek.MONDAY;
-                case 2: return DayOfWeek.TUESDAY;
-                case 3: return DayOfWeek.WEDNESDAY;
-                case 4: return DayOfWeek.THURSDAY;
-                case 5: return DayOfWeek.FRIDAY;
-                default: Consola.imprimirErro("Opção inválida. Escolha 1 a 5.");
-            }
-        }
-    }
 
     public LocalTime pedirHoraInicio() {
         while (true) {

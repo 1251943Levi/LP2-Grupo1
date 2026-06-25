@@ -1276,7 +1276,7 @@ public class GestorController {
     }
 
 // ============================================================
-// MENU GERIR HORÁRIOS
+// =========== Horários, Presenças e Justificações ============
 // ============================================================
 
     private void menuGerirHorarios() {
@@ -1507,29 +1507,26 @@ public class GestorController {
             view.mostrarAula(existente);
             Consola.imprimirInfo("Deixe em branco para manter o valor atual.");
 
-            // --- Editar data (opcional) ---
+
             LocalDate novaData = view.pedirDataOpcional("Nova data (DD-MM-AAAA, Enter mantém a atual)");
             if (novaData != null) {
                 existente.setData(novaData);
             }
 
-            // --- Editar hora de início (opcional) ---
-            LocalTime novaHora = view.pedirHoraInicioOpcional();
+                       LocalTime novaHora = view.pedirHoraInicioOpcional();
             if (novaHora != null) {
                 existente.setHoraInicio(novaHora);
-                // Recalcular hora fim com base no bloco atual
                 existente.setHoraFim(novaHora.plusHours(existente.getBloco()));
             }
 
-            // --- Editar bloco (opcional) ---
+
             Integer novoBloco = view.pedirBlocoOpcional();
             if (novoBloco != null) {
                 existente.setBloco(novoBloco);
-                // Recalcular hora fim com base na hora de início atual
                 existente.setHoraFim(existente.getHoraInicio().plusHours(novoBloco));
             }
 
-            // Atualizar (a BLL aplica todas as validações)
+
             bll.atualizarAula(existente);
             Consola.imprimirSucesso("Aula atualizada com sucesso!");
 

@@ -155,6 +155,9 @@ public class EstudanteView {
      * @param aulas Lista de aulas já ordenada
      */
 
+// ============================================================
+// =========== Horários, Presenças e Justificações ============
+// ============================================================
 
     public void mostrarHorario(List<Aula> aulas) {
         Consola.imprimirTitulo("Meu Horário Semanal");

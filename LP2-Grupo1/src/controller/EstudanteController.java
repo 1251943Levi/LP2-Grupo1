@@ -182,6 +182,10 @@ public class EstudanteController {
         }
     }
 
+// ============================================================
+// =========== Horários, Presenças e Justificações ============
+// ============================================================
+
     /**
      * Mostra o horário semanal do estudante.
      */
@@ -277,22 +281,6 @@ public class EstudanteController {
             } else {
                 Consola.imprimirErro("O docente ainda não abriu as presenças para esta aula.");
             }
-        } catch (Exception e) {
-            Consola.imprimirErro(e.getMessage());
-        }
-    }
-
-    private void verPresencas() {
-        try {
-            Consola.imprimirTitulo("Minhas Presenças");
-            PresencaBLL presencaBll = new PresencaBLL();
-            List<String> relatorio = presencaBll.obterPresencasDoEstudante(
-                    estudanteAtivo.getNumeroMecanografico()
-            );
-            for (String linha : relatorio) {
-                System.out.println("  " + linha);
-            }
-            Consola.pausar();
         } catch (Exception e) {
             Consola.imprimirErro(e.getMessage());
         }
