@@ -52,3 +52,14 @@ Legenda: ✅ conforme · n/a não aplicável
   Parametrização segura.
 - **Índices novos:** ver `schema_indices.sql`. Cobrem as colunas filtradas em `WHERE` que não são prefixo
   de uma PK nem já têm índice por `UNIQUE`. Script idempotente — correr uma vez em modo SQL.
+
+## Adenda — revisao de novos DAL (estatutos e justificacoes)
+
+| DAL (SQL) | Abre/fecha via CM | So PreparedStatement | Sem SELECT * | Indices/PK |
+|---|---|---|---|---|
+| TipoJustificacaoDALSql | OK | OK | OK (colunas explicitas) | PK id |
+| JustificacaoDALSql | OK | OK | OK (colunas explicitas) | PK id; FK numMec/idAula/idTipoJustificacao |
+| EstatutoDALSql | OK | OK | OK (colunas explicitas) | PK id; estudante_estatuto PK(numMec,idEstatuto) |
+
+Nota: os SELECT * em TipoJustificacaoDALSql e JustificacaoDALSql foram substituidos por
+listas de colunas explicitas (constante COLUNAS).

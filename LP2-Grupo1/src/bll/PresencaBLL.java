@@ -283,4 +283,25 @@ public class PresencaBLL {
 
         return linhas;
     }
+
+    public void registarJustificacaoPresenca(int numMec, int idAula) {
+        // Verificar se já existe registo de presença para esta aula
+        List<Presenca> presencas = dal.listarPorAlunoEAula(numMec, idAula);
+        if (presencas.isEmpty()) {
+            // Criar novo registo
+            Presenca p = new Presenca();
+            p.setIdAula(idAula);
+            p.setNumMec(numMec);
+            p.setEstado("JUSTIFICADA");
+            p.setDocenteMarcou(false);
+            p.setStatusDocente(null);
+            p.setDataHoraRegisto(LocalDateTime.now());
+            dal.adicionar(p);
+        } else {
+            // Atualizar o existente
+            Presenca p = presencas.get(0);
+            p.setEstado("JUSTIFICADA");
+            dal.atualizar(p);
+        }
+    }
 }

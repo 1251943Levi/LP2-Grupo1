@@ -221,6 +221,17 @@ public class DocenteBLL {
     }
 
     /**
+     * O docente marca presenca numa aula (regista/abre a aula para os alunos).
+     * Cartao "Registo de presencas": marcarPresenca(aula, presente).
+     * Quando presente=true a aula e aberta, permitindo aos estudantes marcar.
+     */
+    public void marcarPresenca(int idAula, boolean presente) {
+        if (presente) {
+            new PresencaBLL().abrirPresencas(idAula);
+        }
+    }
+
+    /**
      * Actualiza os dados de um docente (nome, morada, dataNascimento, NIF).
      */
     public boolean atualizarDocente(Docente docente) {

@@ -37,7 +37,7 @@ public class EstudanteView {
                 "Consultar Histórico Académico",
                 "Ver Horário Semanal",
                 "Marcar Presença",
-                "Ver Minhas Presenças"
+                "Justificações"
         }, "Sair / Logout");
         return Consola.lerOpcaoMenu();
     }
@@ -155,6 +155,9 @@ public class EstudanteView {
      * @param aulas Lista de aulas já ordenada
      */
 
+// ============================================================
+// =========== Horários, Presenças e Justificações ============
+// ============================================================
 
     public void mostrarHorario(List<Aula> aulas) {
         Consola.imprimirTitulo("Meu Horário Semanal");
@@ -223,5 +226,14 @@ public class EstudanteView {
         }
         Consola.imprimirLinha();
         Consola.pausar();
+    }
+
+    public int mostrarSubMenuJustificacoes() {
+        Consola.imprimirCabecalho("Justificações");
+        Consola.imprimirMenu(new String[]{
+                "Justificar Faltas",
+                "Ver Minhas Justificações"
+        }, "Voltar");
+        return Consola.lerOpcaoMenu();
     }
 }
