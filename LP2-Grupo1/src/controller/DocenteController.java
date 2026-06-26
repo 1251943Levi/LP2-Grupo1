@@ -367,6 +367,10 @@ public class DocenteController {
         }
     }
 
+// ============================================================
+// =========== Horários, Presenças e Justificações ============
+// ============================================================
+
     /**
      * Mostra o horário semanal do docente (aulas que leciona).
      */

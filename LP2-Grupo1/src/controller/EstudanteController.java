@@ -1,22 +1,18 @@
 package controller;
 
-import bll.HorarioBLL;
-import bll.PresencaBLL;
+import bll.*;
 import common.ConfigApp;
-import bll.EstudanteBLL;
-import bll.PagamentoBLL;
 import dal.HistoricoDAL;
 import dal.HistoricoDALFile;
 import dal.HistoricoDALSql;
-import model.Aula;
-import model.Estudante;
-import model.RepositorioDados;
+import model.*;
 import utils.Config;
 import utils.Consola;
 import view.EstudanteView;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -69,7 +65,7 @@ public class EstudanteController {
                         break;
                     case 8: verHorario(); break;
                     case 9: marcarPresenca(); break;
-                    case 10: verPresencas(); break;
+                    case 10: menuJustificacoes(); break;
                     case 0:
                         view.mostrarDespedida();
                         repositorio.limparSessao();
@@ -186,6 +182,10 @@ public class EstudanteController {
         }
     }
 
+// ============================================================
+// =========== Horários, Presenças e Justificações ============
+// ============================================================
+
     /**
      * Mostra o horário semanal do estudante.
      */
@@ -286,15 +286,130 @@ public class EstudanteController {
         }
     }
 
-    private void verPresencas() {
+    private void menuJustificacoes() {
+        boolean voltar = false;
+        while (!voltar) {
+            int opcao = view.mostrarSubMenuJustificacoes();
+            switch (opcao) {
+                case 1: justificarFaltas(); break;
+                case 2: verJustificacoes(); break;
+                case 0: voltar = true; break;
+                default: view.mostrarOpcaoInvalida();
+            }
+        }
+    }
+
+    private void justificarFaltas() {
         try {
-            Consola.imprimirTitulo("Minhas Presenças");
-            PresencaBLL presencaBll = new PresencaBLL();
-            List<String> relatorio = presencaBll.obterPresencasDoEstudante(
-                    estudanteAtivo.getNumeroMecanografico()
+            Consola.imprimirTitulo("Justificar Faltas");
+
+            // Obter todas as aulas do estudante (passadas)
+            HorarioBLL horarioBll = new HorarioBLL();
+            int anoAtual = Config.getAnoAtual();
+            List<Aula> todasAulas = horarioBll.listarHorarioEstudante(
+                    estudanteAtivo.getSiglaCurso(),
+                    estudanteAtivo.getAnoCurricular(),
+                    anoAtual
             );
-            for (String linha : relatorio) {
-                System.out.println("  " + linha);
+
+            if (todasAulas.isEmpty()) {
+                Consola.imprimirInfo("Não tem aulas agendadas.");
+                return;
+            }
+
+            // Filtrar aulas passadas e verificar presença
+            LocalDate hoje = LocalDate.now();
+            PresencaBLL presencaBll = new PresencaBLL();
+            JustificacaoBLL justificacaoBll = new JustificacaoBLL();
+
+            List<Aula> faltas = new ArrayList<>();
+            for (Aula a : todasAulas) {
+                if (a.getData().isAfter(hoje)) continue; // futura
+                if (!presencaBll.estudanteMarcouPresenca(estudanteAtivo.getNumeroMecanografico(), a.getId())) {
+                    // Verificar se já tem justificação pendente ou aceite
+                    List<Justificacao> justs = justificacaoBll.listarPorAluno(estudanteAtivo.getNumeroMecanografico());
+                    boolean justificada = false;
+                    for (Justificacao j : justs) {
+                        if (j.getIdAula() == a.getId() && ("PENDENTE".equals(j.getEstado()) || "ACEITE".equals(j.getEstado()))) {
+                            justificada = true;
+                            break;
+                        }
+                    }
+                    if (!justificada) {
+                        faltas.add(a);
+                    }
+                }
+            }
+
+            if (faltas.isEmpty()) {
+                Consola.imprimirInfo("Não tem faltas para justificar.");
+                return;
+            }
+
+            // Mostrar faltas
+            DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            System.out.println("  Aulas com falta (pode justificar):");
+            System.out.printf("  %-6s | %-8s | %-12s%n", "ID", "UC", "Data");
+            for (Aula a : faltas) {
+                System.out.printf("  %-6d | %-8s | %-12s%n", a.getId(), a.getSiglaUC(), a.getData().format(fmt));
+            }
+
+            int idAula = Consola.lerInt("ID da aula a justificar (0 para cancelar)");
+            if (idAula == 0) return;
+
+            // Verificar se a aula está na lista de faltas
+            Aula escolhida = null;
+            for (Aula a : faltas) {
+                if (a.getId() == idAula) {
+                    escolhida = a;
+                    break;
+                }
+            }
+            if (escolhida == null) {
+                Consola.imprimirErro("Aula não encontrada ou não tem falta.");
+                return;
+            }
+
+            // Listar tipos de justificação
+            List<TipoJustificacao> tipos = justificacaoBll.listarTiposJustificacao();
+            if (tipos.isEmpty()) {
+                Consola.imprimirErro("Não existem tipos de justificação. Contacte o gestor.");
+                return;
+            }
+            Consola.imprimirTitulo("Tipos de Justificação");
+            for (int i = 0; i < tipos.size(); i++) {
+                System.out.println("  [" + (i + 1) + "] " + tipos.get(i));
+            }
+            int idxTipo = Consola.lerInt("Escolha o tipo") - 1;
+            if (idxTipo < 0 || idxTipo >= tipos.size()) return;
+            int idTipo = tipos.get(idxTipo).getId();
+
+            justificacaoBll.criarJustificacao(estudanteAtivo.getNumeroMecanografico(), idAula, idTipo);
+            Consola.imprimirSucesso("Justificação enviada para aprovação.");
+
+        } catch (Exception e) {
+            Consola.imprimirErro(e.getMessage());
+        }
+    }
+
+    private void verJustificacoes() {
+        try {
+            Consola.imprimirTitulo("Minhas Justificações");
+            JustificacaoBLL bll = new JustificacaoBLL();
+            List<Justificacao> justs = bll.listarPorAluno(estudanteAtivo.getNumeroMecanografico());
+
+            if (justs.isEmpty()) {
+                Consola.imprimirInfo("Não tem justificações.");
+                return;
+            }
+
+            System.out.printf("  %-6s | %-8s | %-15s | %-10s%n", "Aula", "UC", "Data", "Estado");
+            for (Justificacao j : justs) {
+                Aula a = new HorarioBLL().buscarPorId(j.getIdAula());
+                if (a == null) continue;
+                String data = a.getData().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+                System.out.printf("  %-6d | %-8s | %-15s | %-10s%n",
+                        j.getIdAula(), a.getSiglaUC(), data, j.getEstado());
             }
             Consola.pausar();
         } catch (Exception e) {

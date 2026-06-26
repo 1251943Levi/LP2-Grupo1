@@ -14,6 +14,7 @@ import utils.Validador;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 
@@ -62,6 +63,8 @@ public class GestorController {
                     case 9: listarDevedores(); break;
                     case 10: alterarPassword(); break;
                     case 11: menuGerirHorarios(); break;
+                    case 12: menuGerirTiposJustificacao(); break;
+                    case 13: aprovarJustificacoes(); break;
                     case 0:
                         view.mostrarDespedida();
                         repo.limparSessao();
@@ -1273,7 +1276,7 @@ public class GestorController {
     }
 
 // ============================================================
-// MENU GERIR HORÁRIOS
+// =========== Horários, Presenças e Justificações ============
 // ============================================================
 
     private void menuGerirHorarios() {
@@ -1504,29 +1507,26 @@ public class GestorController {
             view.mostrarAula(existente);
             Consola.imprimirInfo("Deixe em branco para manter o valor atual.");
 
-            // --- Editar data (opcional) ---
+
             LocalDate novaData = view.pedirDataOpcional("Nova data (DD-MM-AAAA, Enter mantém a atual)");
             if (novaData != null) {
                 existente.setData(novaData);
             }
 
-            // --- Editar hora de início (opcional) ---
-            LocalTime novaHora = view.pedirHoraInicioOpcional();
+                       LocalTime novaHora = view.pedirHoraInicioOpcional();
             if (novaHora != null) {
                 existente.setHoraInicio(novaHora);
-                // Recalcular hora fim com base no bloco atual
                 existente.setHoraFim(novaHora.plusHours(existente.getBloco()));
             }
 
-            // --- Editar bloco (opcional) ---
+
             Integer novoBloco = view.pedirBlocoOpcional();
             if (novoBloco != null) {
                 existente.setBloco(novoBloco);
-                // Recalcular hora fim com base na hora de início atual
                 existente.setHoraFim(existente.getHoraInicio().plusHours(novoBloco));
             }
 
-            // Atualizar (a BLL aplica todas as validações)
+
             bll.atualizarAula(existente);
             Consola.imprimirSucesso("Aula atualizada com sucesso!");
 
@@ -1534,4 +1534,143 @@ public class GestorController {
             Consola.imprimirErro(e.getMessage());
         }
     }
+
+    private void menuGerirTiposJustificacao() {
+        boolean voltar = false;
+        JustificacaoBLL bll = new JustificacaoBLL();
+        while (!voltar) {
+            Consola.imprimirCabecalho("Gerir Tipos de Justificação");
+            Consola.imprimirMenu(new String[]{
+                    "Listar Tipos",
+                    "Adicionar Tipo",
+                    "Remover Tipo"
+            }, "Voltar");
+            int op = Consola.lerOpcaoMenu();
+            switch (op) {
+                case 1:
+                    listarTiposJustificacao(bll);
+                    break;
+                case 2:
+                    adicionarTipoJustificacao(bll);
+                    break;
+                case 3:
+                    removerTipoJustificacao(bll);
+                    break;
+                case 0:
+                    voltar = true;
+                    break;
+                default:
+                    Consola.imprimirErro("Opção inválida.");
+            }
+        }
+    }
+
+    private void listarTiposJustificacao(JustificacaoBLL bll) {
+        List<TipoJustificacao> tipos = bll.listarTiposJustificacao();
+        if (tipos.isEmpty()) {
+            Consola.imprimirInfo("Nenhum tipo definido.");
+            Consola.pausar();
+            return;
+        }
+        Consola.imprimirTitulo("Tipos de Justificação");
+        for (TipoJustificacao t : tipos) {
+            System.out.printf("  %d - %s (%s)%n", t.getId(), t.getNome(), t.getDescricao());
+        }
+        Consola.pausar();
+    }
+
+    private void adicionarTipoJustificacao(JustificacaoBLL bll) {
+        try {
+            String nome = view.pedirInput("Nome do tipo");
+            if (nome == null || nome.trim().isEmpty()) {
+                Consola.imprimirErro("Nome é obrigatório.");
+                return;
+            }
+            String desc = view.pedirInput("Descrição (opcional)");
+            TipoJustificacao t = new TipoJustificacao(0, nome.trim(), desc != null ? desc.trim() : "");
+            bll.adicionarTipo(t);
+            Consola.imprimirSucesso("Tipo adicionado com sucesso.");
+        } catch (Exception e) {
+            Consola.imprimirErro(e.getMessage());
+        }
+    }
+
+    private void removerTipoJustificacao(JustificacaoBLL bll) {
+        try {
+            listarTiposJustificacao(bll);
+            int id = Consola.lerInt("ID do tipo a remover (0 cancelar)");
+            if (id == 0) return;
+            bll.removerTipo(id);
+            Consola.imprimirSucesso("Tipo removido.");
+        } catch (Exception e) {
+            Consola.imprimirErro(e.getMessage());
+        }
+    }
+
+    private void aprovarJustificacoes() {
+        try {
+            Consola.imprimirTitulo("Aprovar Justificações");
+            JustificacaoBLL bll = new JustificacaoBLL();
+            List<Justificacao> pendentes = bll.listarPendentes();
+
+            if (pendentes.isEmpty()) {
+                Consola.imprimirInfo("Não há justificações pendentes.");
+                Consola.pausar();
+                return;
+            }
+
+            // Mostrar lista com informação resumida
+            System.out.printf("  %-6s | %-10s | %-12s | %-10s%n", "ID", "Aluno", "Data", "Tipo");
+            for (Justificacao j : pendentes) {
+                Estudante e = estudanteBll.procurarPorNumMec(j.getNumMec());
+                Aula a = new HorarioBLL().buscarPorId(j.getIdAula());
+                if (a == null) continue;
+                String nome = (e != null) ? e.getNome() : "Desconhecido";
+                String data = a.getData().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+                TipoJustificacao t = bll.listarTiposJustificacao().stream()
+                        .filter(tipo -> tipo.getId() == j.getIdTipoJustificacao())
+                        .findFirst().orElse(null);
+                String tipoNome = (t != null) ? t.getNome() : "N/A";
+                System.out.printf("  %-6d | %-10s | %-12s | %-10s%n",
+                        j.getId(), nome, data, tipoNome);
+            }
+
+            int idJust = Consola.lerInt("ID da justificação a processar (0 cancelar)");
+            if (idJust == 0) return;
+
+            Justificacao just = pendentes.stream()
+                    .filter(j -> j.getId() == idJust)
+                    .findFirst().orElse(null);
+            if (just == null) {
+                Consola.imprimirErro("ID inválido.");
+                return;
+            }
+
+            // Mostrar detalhe da justificação selecionada
+            Estudante e = estudanteBll.procurarPorNumMec(just.getNumMec());
+            Aula a = new HorarioBLL().buscarPorId(just.getIdAula());
+            System.out.println();
+            System.out.println("  Detalhe da justificação:");
+            System.out.println("    Aluno: " + (e != null ? e.getNome() + " (" + e.getNumeroMecanografico() + ")" : "N/A"));
+            if (a != null) {
+                System.out.println("    UC: " + a.getSiglaUC());
+                System.out.println("    Data: " + a.getData().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+                System.out.println("    Hora: " + a.getHoraInicio() + "-" + a.getHoraFim());
+            }
+            System.out.println("    Tipo: " + (bll.listarTiposJustificacao().stream()
+                    .filter(t -> t.getId() == just.getIdTipoJustificacao())
+                    .findFirst().map(TipoJustificacao::getNome).orElse("N/A")));
+
+            Consola.imprimirInfo("Aprovar ou recusar?");
+            int op = Consola.lerInt("1 - Aprovar  2 - Recusar");
+            boolean aceite = (op == 1);
+
+            bll.processarJustificacao(idJust, aceite, null);
+            Consola.imprimirSucesso(aceite ? "Justificação aprovada e presença registada!" : "Justificação recusada.");
+
+        } catch (Exception e) {
+            Consola.imprimirErro(e.getMessage());
+        }
+    }
+
 }
