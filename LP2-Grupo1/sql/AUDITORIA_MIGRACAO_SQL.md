@@ -90,3 +90,14 @@ permitiria uma chave de UC independente do curso e, com ela, FKs reais para `sig
 2. Correr `schema_indices.sql` (índices de desempenho).
 3. Correr `simulacao_completa.sql` — Parte A deve devolver **0 linhas** em todas as consultas;
    Parte B imprime os resultados de cada fluxo e termina com ROLLBACK (não altera dados reais).
+
+## Adenda — DAL adicionais com par File/Sql
+
+| DAL | File | Sql | Paridade |
+|---|---|---|---|
+| TipoJustificacaoDAL | OK | OK | igual |
+| JustificacaoDAL | OK | OK | igual |
+| EstatutoDAL | OK | OK | igual |
+
+O EstatutoDAL cobre o catalogo de estatutos e a associacao estudante-estatuto
+(tabela estudante_estatuto com FK para estudante e estatuto).

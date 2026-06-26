@@ -7,7 +7,7 @@ public class Justificacao {
     private int numMec;
     private int idAula;
     private int idTipoJustificacao;
-    private String estado; // PENDENTE, ACEITE, RECUSADO
+    private String estado; // PENDENTE, APROVADA, REJEITADA
     private LocalDateTime dataCriacao;
     private LocalDateTime dataResposta;
     private String observacao;

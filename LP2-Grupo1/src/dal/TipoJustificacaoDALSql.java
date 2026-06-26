@@ -7,6 +7,8 @@ import java.util.List;
 
 public class TipoJustificacaoDALSql implements TipoJustificacaoDAL {
     private static final String TABELA = "tipo_justificacao";
+    // Colunas explicitas - evita SELECT * (revisao de queries, Cartao 1).
+    private static final String COLUNAS = "id, nome, descricao";
     private final ConnectionManager cm;
 
     public TipoJustificacaoDALSql() {
@@ -45,12 +47,12 @@ public class TipoJustificacaoDALSql implements TipoJustificacaoDAL {
 
     @Override
     public List<TipoJustificacao> listarTodos() {
-        return cm.select("SELECT * FROM " + TABELA + " ORDER BY nome", mapper);
+        return cm.select("SELECT " + COLUNAS + " FROM " + TABELA + " ORDER BY nome", mapper);
     }
 
     @Override
     public TipoJustificacao buscarPorId(int id) {
-        List<TipoJustificacao> r = cm.select("SELECT * FROM " + TABELA + " WHERE id = ?", mapper, id);
+        List<TipoJustificacao> r = cm.select("SELECT " + COLUNAS + " FROM " + TABELA + " WHERE id = ?", mapper, id);
         return r.isEmpty() ? null : r.get(0);
     }
 

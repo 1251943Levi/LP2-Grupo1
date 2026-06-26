@@ -7,6 +7,10 @@ import dal.JustificacaoDALSql;
 import dal.TipoJustificacaoDAL;
 import dal.TipoJustificacaoDALFile;
 import dal.TipoJustificacaoDALSql;
+import dal.EstatutoDAL;
+import dal.EstatutoDALFile;
+import dal.EstatutoDALSql;
+import model.EstatutoEstudante;
 import model.Justificacao;
 import model.TipoJustificacao;
 import model.Estudante;
@@ -19,14 +23,27 @@ import java.util.List;
 public class JustificacaoBLL {
     private final JustificacaoDAL justificacaoDAL;
     private final TipoJustificacaoDAL tipoDAL;
+    private final EstatutoDAL estatutoDAL;
     private final EstudanteBLL estudanteBll = new EstudanteBLL();
     private final HorarioBLL horarioBll = new HorarioBLL();
 
     public JustificacaoBLL() {
         this.justificacaoDAL = ConfigApp.isModoSql() ? new JustificacaoDALSql() : new JustificacaoDALFile();
         this.tipoDAL = ConfigApp.isModoSql() ? new TipoJustificacaoDALSql() : new TipoJustificacaoDALFile();
+        this.estatutoDAL = ConfigApp.isModoSql() ? new EstatutoDALSql() : new EstatutoDALFile();
         justificacaoDAL.inicializar();
         tipoDAL.inicializar();
+        estatutoDAL.inicializar();
+    }
+
+    /** Estatutos disponiveis no catalogo (mostrados ao submeter justificacao). */
+    public List<EstatutoEstudante> listarEstatutosDisponiveis() {
+        return estatutoDAL.listarTodos();
+    }
+
+    /** Estatutos atribuidos a um estudante. */
+    public List<EstatutoEstudante> listarEstatutosDoEstudante(int numMec) {
+        return estatutoDAL.listarPorEstudante(numMec);
     }
 
     public List<TipoJustificacao> listarTiposJustificacao() {
@@ -50,7 +67,7 @@ public class JustificacaoBLL {
         // Verificar se já existe justificação para esta aula (pendente ou aceite)
         List<Justificacao> existentes = justificacaoDAL.listarPorAula(idAula);
         for (Justificacao j : existentes) {
-            if (j.getNumMec() == numMec && !"RECUSADO".equalsIgnoreCase(j.getEstado())) {
+            if (j.getNumMec() == numMec && !"REJEITADA".equalsIgnoreCase(j.getEstado())) {
                 throw new EstadoInvalidoException("Já existe uma justificação para esta aula (estado: " + j.getEstado() + ").");
             }
         }
@@ -79,12 +96,12 @@ public class JustificacaoBLL {
         j.setObservacao(observacao);
 
         if (aceite) {
-            j.setEstado("ACEITE");
+            j.setEstado("APROVADA");
             // Registrar presença justificada
             PresencaBLL presencaBll = new PresencaBLL();
             presencaBll.registarJustificacaoPresenca(j.getNumMec(), j.getIdAula());
         } else {
-            j.setEstado("RECUSADO");
+            j.setEstado("REJEITADA");
         }
 
         justificacaoDAL.atualizar(j);

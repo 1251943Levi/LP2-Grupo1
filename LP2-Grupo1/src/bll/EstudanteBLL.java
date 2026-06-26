@@ -101,6 +101,26 @@ public class EstudanteBLL {
         return dal.procurarPorNumMec(numMec);
     }
 
+    // ---- Presencas e justificacoes (API nomeada nos cartoes) ----
+
+    /**
+     * Submete um pedido de justificacao de falta (estado inicial PENDENTE).
+     * Cartao "Gestao de faltas e justificacoes".
+     */
+    public void submeterJustificacao(int numMec, int idAula, int idTipoJustificacao) {
+        new JustificacaoBLL().criarJustificacao(numMec, idAula, idTipoJustificacao);
+    }
+
+    /**
+     * O estudante marca presenca numa aula (so permitido apos o docente registar a aula).
+     * Cartao "Registo de presencas": marcarPresenca(aula, numMec, presente).
+     */
+    public void marcarPresenca(int idAula, int numMec, boolean presente) {
+        if (presente) {
+            new PresencaBLL().marcarPresencaEstudante(numMec, idAula);
+        }
+    }
+
     /** Atualiza a morada do estudante e persiste a alteração. */
     public void atualizarMorada(Estudante estudante, String novaMorada) {
         estudante.setMorada(novaMorada);

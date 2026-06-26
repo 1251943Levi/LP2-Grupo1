@@ -39,7 +39,8 @@ public class GestorView {
                 "Alterar Password",
                 "Gerir Horários",
                 "Gerir Tipos de Justificação",
-                "Aprovar Justificações"
+                "Aprovar Justificações",
+                "Gerir Estatutos de Estudante"
         }, "Sair / Logout");
         return Consola.lerOpcaoMenu();
     }

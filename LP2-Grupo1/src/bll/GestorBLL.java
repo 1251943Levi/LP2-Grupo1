@@ -44,10 +44,13 @@ public class GestorBLL {
             ConfigApp.isModoSql() ? new InscricaoDALSql() : new InscricaoDALFile();
     private final HistoricoDAL historicoDAL =
             ConfigApp.isModoSql() ? new HistoricoDALSql() : new HistoricoDALFile();
+    private final EstatutoDAL estatutoDAL =
+            ConfigApp.isModoSql() ? new EstatutoDALSql() : new EstatutoDALFile();
 
     public GestorBLL() {
         inscricaoDAL.inicializar();
         historicoDAL.inicializar();
+        estatutoDAL.inicializar();
     }
 
     // ─────────────────────────── ANO LETIVO ────────────────────────────
@@ -482,6 +485,62 @@ public class GestorBLL {
      */
     public boolean existeDocente(String sigla) {
         return docenteDAL.existeSigla(sigla);
+    }
+
+    // ---- Estatutos de estudante (Cartao: Gestao de estatutos) ----
+
+    /** Cria um novo estatuto de estudante no catalogo. */
+    public void criarEstatuto(String nome, String descricao) {
+        if (nome == null || nome.trim().isEmpty()) {
+            throw new EstadoInvalidoException("O nome do estatuto e obrigatorio.");
+        }
+        estatutoDAL.adicionar(new EstatutoEstudante(0, nome.trim(),
+                descricao != null ? descricao.trim() : ""));
+    }
+
+    /** Lista todos os estatutos disponiveis no catalogo. */
+    public List<EstatutoEstudante> listarEstatutos() {
+        return estatutoDAL.listarTodos();
+    }
+
+    /** Remove um estatuto do catalogo (e as suas atribuicoes). */
+    public boolean removerEstatuto(int id) {
+        return estatutoDAL.remover(id);
+    }
+
+    /** Associa um estatuto a um estudante. */
+    public void atribuirEstatuto(int numMec, int idEstatuto) {
+        if (moduloEstudante().obterPorNumMec(numMec) == null) {
+            throw new EstadoInvalidoException("Estudante nao encontrado.");
+        }
+        if (estatutoDAL.buscarPorId(idEstatuto) == null) {
+            throw new EstadoInvalidoException("Estatuto nao encontrado.");
+        }
+        if (!estatutoDAL.atribuir(numMec, idEstatuto)) {
+            throw new EstadoInvalidoException("O estudante ja tem este estatuto atribuido.");
+        }
+    }
+
+    /** Remove a associacao de um estatuto a um estudante. */
+    public boolean removerEstatutoEstudante(int numMec, int idEstatuto) {
+        return estatutoDAL.removerAtribuicao(numMec, idEstatuto);
+    }
+
+    /** Estatutos atribuidos a um estudante. */
+    public List<EstatutoEstudante> listarEstatutosDoEstudante(int numMec) {
+        return estatutoDAL.listarPorEstudante(numMec);
+    }
+
+    // ---- Justificacoes (API nomeada no Cartao) ----
+
+    /** Aprova um pedido de justificacao pendente. */
+    public void aprovarJustificacao(int idJustificacao) {
+        new JustificacaoBLL().processarJustificacao(idJustificacao, true, null);
+    }
+
+    /** Rejeita um pedido de justificacao pendente. */
+    public void rejeitarJustificacao(int idJustificacao) {
+        new JustificacaoBLL().processarJustificacao(idJustificacao, false, null);
     }
 
     // ─────────────────────────── UTILITÁRIOS ───────────────────────────

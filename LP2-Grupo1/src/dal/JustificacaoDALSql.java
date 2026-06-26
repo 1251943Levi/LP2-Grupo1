@@ -9,6 +9,9 @@ import java.util.List;
 
 public class JustificacaoDALSql implements JustificacaoDAL {
     private static final String TABELA = "justificacao";
+    // Colunas explicitas - evita SELECT * (revisao de queries, Cartao 1).
+    private static final String COLUNAS =
+            "id, numMec, idAula, idTipoJustificacao, estado, dataCriacao, dataResposta, observacao";
     private final ConnectionManager cm;
 
     public JustificacaoDALSql() {
@@ -78,28 +81,28 @@ public class JustificacaoDALSql implements JustificacaoDAL {
 
     @Override
     public Justificacao buscarPorId(int id) {
-        List<Justificacao> r = cm.select("SELECT * FROM " + TABELA + " WHERE id = ?", mapper, id);
+        List<Justificacao> r = cm.select("SELECT " + COLUNAS + " FROM " + TABELA + " WHERE id = ?", mapper, id);
         return r.isEmpty() ? null : r.get(0);
     }
 
     @Override
     public List<Justificacao> listarPorAluno(int numMec) {
-        return cm.select("SELECT * FROM " + TABELA + " WHERE numMec = ? ORDER BY dataCriacao DESC", mapper, numMec);
+        return cm.select("SELECT " + COLUNAS + " FROM " + TABELA + " WHERE numMec = ? ORDER BY dataCriacao DESC", mapper, numMec);
     }
 
     @Override
     public List<Justificacao> listarPorAula(int idAula) {
-        return cm.select("SELECT * FROM " + TABELA + " WHERE idAula = ?", mapper, idAula);
+        return cm.select("SELECT " + COLUNAS + " FROM " + TABELA + " WHERE idAula = ?", mapper, idAula);
     }
 
     @Override
     public List<Justificacao> listarPendentes() {
-        return cm.select("SELECT * FROM " + TABELA + " WHERE estado = 'PENDENTE' ORDER BY dataCriacao", mapper);
+        return cm.select("SELECT " + COLUNAS + " FROM " + TABELA + " WHERE estado = 'PENDENTE' ORDER BY dataCriacao", mapper);
     }
 
     @Override
     public List<Justificacao> listarTodas() {
-        return cm.select("SELECT * FROM " + TABELA + " ORDER BY dataCriacao DESC", mapper);
+        return cm.select("SELECT " + COLUNAS + " FROM " + TABELA + " ORDER BY dataCriacao DESC", mapper);
     }
 
     @Override

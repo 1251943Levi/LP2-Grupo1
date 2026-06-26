@@ -330,7 +330,7 @@ public class EstudanteController {
                     List<Justificacao> justs = justificacaoBll.listarPorAluno(estudanteAtivo.getNumeroMecanografico());
                     boolean justificada = false;
                     for (Justificacao j : justs) {
-                        if (j.getIdAula() == a.getId() && ("PENDENTE".equals(j.getEstado()) || "ACEITE".equals(j.getEstado()))) {
+                        if (j.getIdAula() == a.getId() && ("PENDENTE".equals(j.getEstado()) || "APROVADA".equals(j.getEstado()))) {
                             justificada = true;
                             break;
                         }
@@ -371,6 +371,24 @@ public class EstudanteController {
             }
 
             // Listar tipos de justificação
+            // Estatutos do estudante (ou disponiveis) - mostrados ao submeter justificacao
+            List<model.EstatutoEstudante> meusEstatutos =
+                    justificacaoBll.listarEstatutosDoEstudante(estudanteAtivo.getNumeroMecanografico());
+            if (!meusEstatutos.isEmpty()) {
+                Consola.imprimirInfo("Os teus estatutos:");
+                for (model.EstatutoEstudante est : meusEstatutos) {
+                    System.out.println("    - " + est.getNome());
+                }
+            } else {
+                List<model.EstatutoEstudante> disponiveis = justificacaoBll.listarEstatutosDisponiveis();
+                if (!disponiveis.isEmpty()) {
+                    Consola.imprimirInfo("Estatutos disponiveis (pede ao gestor para te atribuir):");
+                    for (model.EstatutoEstudante est : disponiveis) {
+                        System.out.println("    - " + est.getNome());
+                    }
+                }
+            }
+
             List<TipoJustificacao> tipos = justificacaoBll.listarTiposJustificacao();
             if (tipos.isEmpty()) {
                 Consola.imprimirErro("Não existem tipos de justificação. Contacte o gestor.");

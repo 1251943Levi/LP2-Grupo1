@@ -65,6 +65,7 @@ public class GestorController {
                     case 11: menuGerirHorarios(); break;
                     case 12: menuGerirTiposJustificacao(); break;
                     case 13: aprovarJustificacoes(); break;
+                    case 14: menuGerirEstatutos(); break;
                     case 0:
                         view.mostrarDespedida();
                         repo.limparSessao();
@@ -1602,6 +1603,116 @@ public class GestorController {
             if (id == 0) return;
             bll.removerTipo(id);
             Consola.imprimirSucesso("Tipo removido.");
+        } catch (Exception e) {
+            Consola.imprimirErro(e.getMessage());
+        }
+    }
+
+    private void menuGerirEstatutos() {
+        boolean voltar = false;
+        while (!voltar) {
+            Consola.imprimirCabecalho("Gerir Estatutos de Estudante");
+            Consola.imprimirMenu(new String[]{
+                    "Listar Estatutos",
+                    "Adicionar Estatuto",
+                    "Remover Estatuto",
+                    "Atribuir Estatuto a Estudante",
+                    "Ver Estatutos de um Estudante"
+            }, "Voltar");
+            int op = Consola.lerOpcaoMenu();
+            switch (op) {
+                case 1: listarEstatutos(); break;
+                case 2: adicionarEstatuto(); break;
+                case 3: removerEstatuto(); break;
+                case 4: atribuirEstatuto(); break;
+                case 5: verEstatutosDeEstudante(); break;
+                case 0: voltar = true; break;
+                default: Consola.imprimirErro("Opcao invalida.");
+            }
+        }
+    }
+
+    private void listarEstatutos() {
+        List<EstatutoEstudante> estatutos = gestorBll.listarEstatutos();
+        if (estatutos.isEmpty()) {
+            Consola.imprimirInfo("Nenhum estatuto definido.");
+            Consola.pausar();
+            return;
+        }
+        Consola.imprimirTitulo("Estatutos Disponiveis");
+        for (EstatutoEstudante e : estatutos) {
+            System.out.printf("  %d - %s (%s)%n", e.getId(), e.getNome(), e.getDescricao());
+        }
+        Consola.pausar();
+    }
+
+    private void adicionarEstatuto() {
+        try {
+            String nome = view.pedirInput("Nome do estatuto");
+            if (nome == null || nome.trim().isEmpty()) {
+                Consola.imprimirErro("Nome e obrigatorio.");
+                return;
+            }
+            String desc = view.pedirInput("Descricao (opcional)");
+            gestorBll.criarEstatuto(nome, desc);
+            Consola.imprimirSucesso("Estatuto adicionado com sucesso.");
+        } catch (Exception e) {
+            Consola.imprimirErro(e.getMessage());
+        }
+    }
+
+    private void removerEstatuto() {
+        try {
+            listarEstatutos();
+            int id = Consola.lerInt("ID do estatuto a remover (0 cancelar)");
+            if (id == 0) return;
+            if (gestorBll.removerEstatuto(id)) {
+                Consola.imprimirSucesso("Estatuto removido.");
+            } else {
+                Consola.imprimirErro("Estatuto nao encontrado.");
+            }
+        } catch (Exception e) {
+            Consola.imprimirErro(e.getMessage());
+        }
+    }
+
+    private void atribuirEstatuto() {
+        try {
+            int numMec = Consola.lerInt("Numero mecanografico do estudante (0 cancelar)");
+            if (numMec == 0) return;
+            List<EstatutoEstudante> estatutos = gestorBll.listarEstatutos();
+            if (estatutos.isEmpty()) {
+                Consola.imprimirErro("Nao ha estatutos definidos.");
+                return;
+            }
+            Consola.imprimirTitulo("Estatutos Disponiveis");
+            for (EstatutoEstudante e : estatutos) {
+                System.out.printf("  %d - %s%n", e.getId(), e.getNome());
+            }
+            int idEstatuto = Consola.lerInt("ID do estatuto a atribuir (0 cancelar)");
+            if (idEstatuto == 0) return;
+            gestorBll.atribuirEstatuto(numMec, idEstatuto);
+            Consola.imprimirSucesso("Estatuto atribuido ao estudante.");
+        } catch (Exception e) {
+            Consola.imprimirErro(e.getMessage());
+        }
+    }
+
+    private void verEstatutosDeEstudante() {
+        try {
+            int numMec = Consola.lerInt("Numero mecanografico do estudante (0 cancelar)");
+            if (numMec == 0) return;
+            List<EstatutoEstudante> estatutos = gestorBll.listarEstatutosDoEstudante(numMec);
+            if (estatutos.isEmpty()) {
+                Consola.imprimirInfo("Este estudante nao tem estatutos atribuidos.");
+                Consola.pausar();
+                return;
+            }
+            Consola.imprimirTitulo("Estatutos do Estudante " + numMec);
+            for (EstatutoEstudante e : estatutos) {
+                System.out.printf("  %d - %s (%s)%n", e.getId(), e.getNome(), e.getDescricao());
+            }
+            Consola.pausar();
         } catch (Exception e) {
             Consola.imprimirErro(e.getMessage());
         }
