@@ -32,11 +32,20 @@ public class EstudanteView {
                 "Ver UCs em que estou inscrito",
                 "Ver minhas notas por UC",
                 "Consultar Histórico Académico",
-                "Ver o Meu Horário",
+                "Ver Horário Semanal",
                 "Marcar Presença numa Aula",
+                "Justificações"
+        }, "Sair / Logout");
+        return Consola.lerOpcaoMenu();
+    }
+
+    /** Submenu de justificações do estudante. */
+    public int mostrarSubMenuJustificacoes() {
+        Consola.imprimirCabecalho("Justificações");
+        Consola.imprimirMenu(new String[]{
                 "Justificar Falta",
                 "Consultar as Minhas Justificações"
-        }, "Sair / Logout");
+        }, "Voltar");
         return Consola.lerOpcaoMenu();
     }
 

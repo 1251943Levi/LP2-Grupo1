@@ -68,11 +68,8 @@ public class DocenteController {
                     case 6: verMinhasUcs(); break;
                     case 7: consultarHistoricoAluno(); break;
                     case 8: definirMomentosAvaliacao(); break;
-                    case 9: criarMomentoTipificado(); break;
-                    case 10: lancarNotaPorMomento(); break;
-                    case 11: verMeuHorario(); break;
-                    case 12: marcarPresencaAula(); break;
-                    case 13: verPresencasAlunos(); break;
+                    case 9: verMeuHorario(); break;
+                    case 10: menuPresencas(); break;
                     case 0:
                         view.mostrarDespedida();
                         repo.limparSessao();
@@ -93,23 +90,128 @@ public class DocenteController {
      */
 
 
-    /** Mostra o horário do docente no ano letivo ativo. */
+    /** Mostra o horário do docente: semana atual ou intervalo à escolha (como no quality). */
     private void verMeuHorario() {
-        int ano = utils.Config.getAnoAtual();
-        view.mostrarHorario(horarioBll().listarHorarioDocente(docente.getSigla(), ano));
+        try {
+            int ano = utils.Config.getAnoAtual();
+            String siglaDocente = docente.getSigla();
+
+            Consola.imprimirInfo("Ver horário:");
+            Consola.imprimirMenu(new String[]{"Semana atual", "Escolher intervalo"}, "Cancelar");
+            int opcao = Consola.lerOpcaoMenu();
+
+            List<Aula> aulas;
+            if (opcao == 1) {
+                java.time.LocalDate hoje = java.time.LocalDate.now();
+                java.time.LocalDate inicio = hoje.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
+                java.time.LocalDate fim = hoje.with(java.time.temporal.TemporalAdjusters.nextOrSame(java.time.DayOfWeek.SUNDAY));
+                aulas = horarioBll().listarHorarioDocente(siglaDocente, ano, inicio, fim);
+            } else if (opcao == 2) {
+                java.time.LocalDate inicio = lerDataHorario("Data de início (DD-MM-AAAA)");
+                java.time.LocalDate fim = lerDataHorario("Data de fim (DD-MM-AAAA)");
+                aulas = horarioBll().listarHorarioDocente(siglaDocente, ano, inicio, fim);
+            } else {
+                return;
+            }
+            view.mostrarHorario(aulas);
+        } catch (CancelamentoException e) {
+            Consola.imprimirInfo("Operacao cancelada.");
+        }
         Consola.pausar();
     }
 
-    /** O docente marca presença (regista a aula), habilitando os alunos a marcarem a seguir. */
-    private void marcarPresencaAula() {
+    /** Lê uma data no formato DD-MM-AAAA (aceita também DD/MM/AAAA). */
+    private java.time.LocalDate lerDataHorario(String prompt) {
+        while (true) {
+            String s = Consola.lerString(prompt);
+            try {
+                String[] p = s.split("[-/]");
+                return java.time.LocalDate.of(Integer.parseInt(p[2].trim()),
+                        Integer.parseInt(p[1].trim()), Integer.parseInt(p[0].trim()));
+            } catch (Exception e) {
+                Consola.imprimirErro("Data invalida. Use o formato DD-MM-AAAA.");
+            }
+        }
+    }
+
+    // ============================================================
+    // ============== Gestão de Presenças (lógica quality) ========
+    // ============================================================
+
+    /** Submenu de gestão de presenças do docente (abrir / fechar / consultar). */
+    private void menuPresencas() {
+        boolean voltar = false;
+        while (!voltar) {
+            Consola.imprimirCabecalho("Gestão de Presenças");
+            Consola.imprimirMenu(new String[]{
+                    "Abrir Presenças",
+                    "Fechar Presenças",
+                    "Consultar Presenças dos Alunos"
+            }, "Voltar");
+            int opcao = Consola.lerOpcaoMenu();
+            switch (opcao) {
+                case 1: abrirPresencas(); break;
+                case 2: fecharPresencas(); break;
+                case 3: consultarPresencas(); break;
+                case 0: voltar = true; break;
+                default: view.mostrarOpcaoInvalida();
+            }
+        }
+    }
+
+    /**
+     * Fluxo comum: escolher UC, escolher data e a aula desse dia.
+     * @return a Aula escolhida, ou null se cancelar / não houver aulas.
+     */
+    private Aula escolherAulaDocente(String acao) {
+        int ano = utils.Config.getAnoAtual();
+        List<Aula> todas = horarioBll().listarHorarioDocente(docente.getSigla(), ano);
+        if (todas.isEmpty()) { Consola.imprimirInfo("Nao tem aulas agendadas."); return null; }
+
+        java.util.Set<String> set = new java.util.LinkedHashSet<>();
+        for (Aula a : todas) set.add(a.getSiglaUC());
+        List<String> ucs = new ArrayList<>(set);
+        Consola.imprimirTitulo("Suas Unidades Curriculares");
+        for (int i = 0; i < ucs.size(); i++) Consola.imprimirInfo("  [" + (i + 1) + "] " + ucs.get(i));
+        int idx = Consola.lerInt("Escolha a UC") - 1;
+        if (idx < 0 || idx >= ucs.size()) return null;
+        String siglaUC = ucs.get(idx);
+
+        java.time.LocalDate data = lerDataHorario("Data da aula (DD-MM-AAAA)");
+        List<Aula> aulasDia = horarioBll().listarPorUCEData(siglaUC, ano, data);
+        if (aulasDia.isEmpty()) { Consola.imprimirInfo("Nao ha aulas da UC " + siglaUC + " nesse dia."); return null; }
+
+        view.mostrarHorario(aulasDia);
+        int idAula = Consola.lerInt("ID da Aula para " + acao);
+        Aula aula = horarioBll().buscarPorId(idAula);
+        if (aula == null) Consola.imprimirErro("Aula nao encontrada.");
+        return aula;
+    }
+
+    /** Abre as presenças de uma aula — habilita os alunos a marcarem. */
+    private void abrirPresencas() {
         try {
-            int ano = utils.Config.getAnoAtual();
-            List<Aula> aulas = horarioBll().listarHorarioDocente(docente.getSigla(), ano);
-            view.mostrarHorario(aulas);
-            if (aulas.isEmpty()) { Consola.pausar(); return; }
-            int idAula = Consola.lerInt("Id da aula em que vai marcar presenca");
-            presencaBll().abrirPresencas(idAula);
-            Consola.imprimirSucesso("Presenca registada. Os alunos ja podem marcar presenca nesta aula.");
+            Consola.imprimirTitulo("Abrir Presenças");
+            Aula aula = escolherAulaDocente("abrir presencas");
+            if (aula == null) { Consola.pausar(); return; }
+            presencaBll().abrirPresencas(aula.getId());
+            Consola.imprimirSucesso("Presencas abertas. Os alunos ja podem marcar.");
+        } catch (CancelamentoException e) {
+            Consola.imprimirInfo("Operacao cancelada.");
+        } catch (EstadoInvalidoException e) {
+            Consola.imprimirErro(e.getMessage());
+        }
+        Consola.pausar();
+    }
+
+    /** Fecha as presenças de uma aula — os alunos deixam de poder marcar. */
+    private void fecharPresencas() {
+        try {
+            Consola.imprimirTitulo("Fechar Presenças");
+            Aula aula = escolherAulaDocente("fechar presencas");
+            if (aula == null) { Consola.pausar(); return; }
+            presencaBll().fecharPresencas(aula.getId());
+            Consola.imprimirSucesso("Presencas fechadas. Os alunos ja nao podem marcar.");
         } catch (CancelamentoException e) {
             Consola.imprimirInfo("Operacao cancelada.");
         } catch (EstadoInvalidoException e) {
@@ -119,14 +221,17 @@ public class DocenteController {
     }
 
     /** Mostra o relatório de presenças/faltas dos alunos de uma aula. */
-    private void verPresencasAlunos() {
+    private void consultarPresencas() {
         try {
-            int ano = utils.Config.getAnoAtual();
-            List<Aula> aulas = horarioBll().listarHorarioDocente(docente.getSigla(), ano);
-            view.mostrarHorario(aulas);
-            if (aulas.isEmpty()) { Consola.pausar(); return; }
-            int idAula = Consola.lerInt("Id da aula para ver presencas/faltas");
-            view.mostrarLinhas("Presencas / Faltas", presencaBll().obterRelatorioPresencas(idAula));
+            Consola.imprimirTitulo("Consultar Presenças");
+            Aula aula = escolherAulaDocente("consultar presencas");
+            if (aula == null) { Consola.pausar(); return; }
+            java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            Consola.imprimirTitulo("Relatorio de Presencas - Aula " + aula.getId()
+                    + " - " + aula.getSiglaUC() + " - " + aula.getData().format(fmt)
+                    + " - " + aula.getHoraInicio() + "-" + aula.getHoraFim());
+            for (String linha : presencaBll().obterRelatorioPresencas(aula.getId()))
+                Consola.imprimirInfo(linha);
         } catch (CancelamentoException e) {
             Consola.imprimirInfo("Operacao cancelada.");
         }

@@ -78,8 +78,10 @@ public class GestorController {
                     case 8: consultarHistoricoAno(); break;
                     case 9: listarDevedores(); break;
                     case 10: alterarPassword(); break;
-                    case 11: menuHorario(); break;
-                    case 12: menuJustificacoes(); break;
+                    case 11: menuGerirHorarios(); break;
+                    case 12: menuGerirTiposJustificacao(); break;
+                    case 13: aprovarJustificacoes(); break;
+                    case 14: menuGerirEstatutos(); break;
                     case 0:
                         view.mostrarDespedida();
                         repo.limparSessao();
@@ -95,15 +97,16 @@ public class GestorController {
     }
 
 
-    /** Submenu de definição do horário do ano letivo. */
-    private void menuHorario() {
+    /** Submenu CRUD da gestão de horários (aulas) do ano letivo. */
+    private void menuGerirHorarios() {
         boolean voltar = false;
         while (!voltar) {
-            int opcao = view.mostrarSubMenuHorario();
+            int opcao = view.mostrarSubMenuHorarios();
             switch (opcao) {
-                case 1: definirHorario(); break;
-                case 2: listarHorario(); break;
-                case 3: removerAula(); break;
+                case 1: definirHorario(); break;   // Adicionar Aula
+                case 2: listarHorario(); break;    // Listar Aulas
+                case 3: removerAula(); break;      // Remover Aula
+                case 4: editarAula(); break;       // Editar Aula
                 case 0: voltar = true; break;
                 default: view.mostrarOpcaoInvalida();
             }
@@ -162,10 +165,20 @@ public class GestorController {
         Consola.pausar();
     }
 
-    /** Lista todas as aulas do ano letivo ativo. */
+    /** Lista as aulas do ano letivo ativo (todas, ou de uma UC à escolha). */
     private void listarHorario() {
-        int anoLetivo = utils.Config.getAnoAtual();
-        view.mostrarHorario(horarioBll().listarPorAnoLetivo(anoLetivo));
+        try {
+            int anoLetivo = utils.Config.getAnoAtual();
+            if (Consola.lerSimNao("Filtrar por uma UC específica?")) {
+                oferecerLista("Deseja ver a lista de UCs?", ucBll.obterListaUcs());
+                String siglaUc = Consola.lerString("Sigla da UC").toUpperCase();
+                view.mostrarHorario(horarioBll().listarPorUC(siglaUc, anoLetivo));
+            } else {
+                view.mostrarHorario(horarioBll().listarPorAnoLetivo(anoLetivo));
+            }
+        } catch (CancelamentoException e) {
+            Consola.imprimirInfo("Operacao cancelada.");
+        }
         Consola.pausar();
     }
 
@@ -179,6 +192,56 @@ public class GestorController {
             else Consola.imprimirErro("Aula nao encontrada.");
         } catch (CancelamentoException e) {
             Consola.imprimirInfo("Operacao cancelada.");
+        }
+        Consola.pausar();
+    }
+
+    /** Edita uma aula existente: data, hora de início e/ou bloco (Enter mantém o valor atual). */
+    private void editarAula() {
+        try {
+            int anoLetivo = utils.Config.getAnoAtual();
+            view.mostrarHorario(horarioBll().listarPorAnoLetivo(anoLetivo));
+            int id = Consola.lerInt("Id da aula a editar");
+            Aula aula = horarioBll().buscarPorId(id);
+            if (aula == null) { Consola.imprimirErro("Aula nao encontrada."); Consola.pausar(); return; }
+
+            Consola.imprimirInfo("Aula atual: " + aula.getData() + " | "
+                    + aula.getHoraInicio() + "-" + aula.getHoraFim()
+                    + " | UC " + aula.getSiglaUC() + " | Bloco " + aula.getBloco() + "h");
+            Consola.imprimirInfo("Deixe em branco (Enter) para manter o valor atual.");
+
+            String sData = Consola.lerStringOpcional("Nova data (DD-MM-AAAA)");
+            if (!sData.isEmpty()) {
+                String[] p = sData.split("[-/]");
+                aula.setData(LocalDate.of(Integer.parseInt(p[2].trim()),
+                        Integer.parseInt(p[1].trim()), Integer.parseInt(p[0].trim())));
+            }
+            String sHora = Consola.lerStringOpcional("Nova hora de inicio (HH:MM)");
+            if (!sHora.isEmpty()) {
+                String[] p = sHora.replace("h", ":").replace("H", ":").split(":");
+                int min = (p.length > 1 && !p[1].trim().isEmpty()) ? Integer.parseInt(p[1].trim()) : 0;
+                LocalTime nova = LocalTime.of(Integer.parseInt(p[0].trim()), min);
+                aula.setHoraInicio(nova);
+                aula.setHoraFim(nova.plusHours(aula.getBloco()));
+            }
+            String sBloco = Consola.lerStringOpcional("Novo bloco em horas (1 ou 2)");
+            if (!sBloco.isEmpty()) {
+                int b = Integer.parseInt(sBloco.trim());
+                if (b == 1 || b == 2) {
+                    aula.setBloco(b);
+                    aula.setHoraFim(aula.getHoraInicio().plusHours(b));
+                } else {
+                    Consola.imprimirErro("Bloco deve ser 1 ou 2. Mantido o anterior.");
+                }
+            }
+            horarioBll().atualizarAula(aula);
+            Consola.imprimirSucesso("Aula atualizada com sucesso.");
+        } catch (CancelamentoException e) {
+            Consola.imprimirInfo("Operacao cancelada.");
+        } catch (EstadoInvalidoException e) {
+            Consola.imprimirErro(e.getMessage());
+        } catch (Exception e) {
+            Consola.imprimirErro("Erro ao editar aula: " + e.getMessage());
         }
         Consola.pausar();
     }
@@ -211,21 +274,29 @@ public class GestorController {
     }
 
 
-    private void menuJustificacoes() {
+    // ---------- TIPOS DE JUSTIFICAÇÃO ----------
+
+    /** Submenu de gestão dos tipos de justificação. */
+    private void menuGerirTiposJustificacao() {
         boolean voltar = false;
         while (!voltar) {
-            int opcao = view.mostrarSubMenuJustificacoes();
+            int opcao = view.mostrarSubMenuTiposJustificacao();
             switch (opcao) {
-                case 1: criarTipoJustificacao(); break;
-                case 2: listarTiposJustificacao(); break;
-                case 3: criarEstatuto(); break;
-                case 4: listarEstatutos(); break;
-                case 5: atribuirEstatuto(); break;
-                case 6: aprovarRejeitarJustificacoes(); break;
+                case 1: listarTiposJustificacao(); break;
+                case 2: criarTipoJustificacao(); break;
+                case 3: removerTipoJustificacao(); break;
                 case 0: voltar = true; break;
                 default: view.mostrarOpcaoInvalida();
             }
         }
+    }
+
+    private void listarTiposJustificacao() {
+        Consola.imprimirTitulo("Tipos de Justificacao");
+        List<TipoJustificacao> tipos = justificacaoBll().listarTiposJustificacao();
+        if (tipos.isEmpty()) Consola.imprimirInfo("Sem tipos definidos.");
+        else for (TipoJustificacao t : tipos) Consola.imprimirInfo(t.getId() + " - " + t.getNome() + " (" + t.getDescricao() + ")");
+        Consola.pausar();
     }
 
     private void criarTipoJustificacao() {
@@ -239,11 +310,93 @@ public class GestorController {
         Consola.pausar();
     }
 
-    private void listarTiposJustificacao() {
-        Consola.imprimirTitulo("Tipos de Justificacao");
-        List<TipoJustificacao> tipos = justificacaoBll().listarTiposJustificacao();
-        if (tipos.isEmpty()) Consola.imprimirInfo("Sem tipos definidos.");
-        else for (TipoJustificacao t : tipos) Consola.imprimirInfo(t.getId() + " - " + t.getNome() + " (" + t.getDescricao() + ")");
+    private void removerTipoJustificacao() {
+        try {
+            listarTiposJustificacao();
+            int id = Consola.lerInt("Id do tipo a remover (0 cancelar)");
+            if (id == 0) return;
+            justificacaoBll().removerTipo(id);
+            Consola.imprimirSucesso("Tipo removido.");
+        } catch (CancelamentoException e) { Consola.imprimirInfo("Operacao cancelada."); }
+        catch (EstadoInvalidoException e) { Consola.imprimirErro(e.getMessage()); }
+        Consola.pausar();
+    }
+
+    // ---------- APROVAÇÃO DE JUSTIFICAÇÕES ----------
+
+    /** Lista as justificações pendentes com detalhe (aluno, UC, data, tipo) e processa uma. */
+    private void aprovarJustificacoes() {
+        try {
+            Consola.imprimirTitulo("Aprovar Justificacoes");
+            List<Justificacao> pendentes = justificacaoBll().listarPendentes();
+            if (pendentes.isEmpty()) { Consola.imprimirInfo("Nao ha justificacoes pendentes."); Consola.pausar(); return; }
+
+            List<TipoJustificacao> tipos = justificacaoBll().listarTiposJustificacao();
+            System.out.printf("  %-6s | %-22s | %-12s | %-15s%n", "ID", "Aluno", "Data", "Tipo");
+            for (Justificacao j : pendentes) {
+                Estudante e = estudanteBll.procurarPorNumMec(j.getNumMec());
+                Aula a = horarioBll().buscarPorId(j.getIdAula());
+                String nome = (e != null) ? e.getNome() : ("#" + j.getNumMec());
+                String data = (a != null) ? a.getData().toString() : "—";
+                String tipoNome = nomeTipo(tipos, j.getIdTipoJustificacao());
+                System.out.printf("  %-6d | %-22s | %-12s | %-15s%n", j.getId(), nome, data, tipoNome);
+            }
+
+            int id = Consola.lerInt("Id da justificacao a processar (0 cancelar)");
+            if (id == 0) return;
+            Justificacao escolhida = null;
+            for (Justificacao j : pendentes) if (j.getId() == id) { escolhida = j; break; }
+            if (escolhida == null) { Consola.imprimirErro("Id invalido."); Consola.pausar(); return; }
+
+            Estudante e = estudanteBll.procurarPorNumMec(escolhida.getNumMec());
+            Aula a = horarioBll().buscarPorId(escolhida.getIdAula());
+            Consola.imprimirInfo("Detalhe da justificacao:");
+            Consola.imprimirInfo("  Aluno: " + (e != null ? e.getNome() + " (" + e.getNumeroMecanografico() + ")" : "#" + escolhida.getNumMec()));
+            if (a != null) {
+                Consola.imprimirInfo("  UC: " + a.getSiglaUC());
+                Consola.imprimirInfo("  Data: " + a.getData() + " | Hora: " + a.getHoraInicio() + "-" + a.getHoraFim());
+            }
+            Consola.imprimirInfo("  Tipo: " + nomeTipo(tipos, escolhida.getIdTipoJustificacao()));
+
+            boolean aceite = Consola.lerSimNao("Aprovar esta justificacao?");
+            String obs = Consola.lerStringOpcional("Observacao (Enter para nenhuma)");
+            justificacaoBll().processarJustificacao(id, aceite, obs);
+            Consola.imprimirSucesso(aceite ? "Justificacao aprovada." : "Justificacao rejeitada.");
+        } catch (CancelamentoException e) { Consola.imprimirInfo("Operacao cancelada."); }
+        catch (EstadoInvalidoException e) { Consola.imprimirErro(e.getMessage()); }
+        Consola.pausar();
+    }
+
+    /** Nome de um tipo de justificação a partir do seu id (ou "N/A"). */
+    private String nomeTipo(List<TipoJustificacao> tipos, int idTipo) {
+        for (TipoJustificacao t : tipos) if (t.getId() == idTipo) return t.getNome();
+        return "N/A";
+    }
+
+    // ---------- ESTATUTOS DE ESTUDANTE ----------
+
+    /** Submenu de gestão dos estatutos de estudante. */
+    private void menuGerirEstatutos() {
+        boolean voltar = false;
+        while (!voltar) {
+            int opcao = view.mostrarSubMenuEstatutos();
+            switch (opcao) {
+                case 1: listarEstatutos(); break;
+                case 2: criarEstatuto(); break;
+                case 3: removerEstatuto(); break;
+                case 4: atribuirEstatuto(); break;
+                case 5: verEstatutosDeEstudante(); break;
+                case 0: voltar = true; break;
+                default: view.mostrarOpcaoInvalida();
+            }
+        }
+    }
+
+    private void listarEstatutos() {
+        Consola.imprimirTitulo("Estatutos");
+        List<EstatutoEstudante> ests = justificacaoBll().listarEstatutosDisponiveis();
+        if (ests.isEmpty()) Consola.imprimirInfo("Sem estatutos definidos.");
+        else for (EstatutoEstudante es : ests) Consola.imprimirInfo(es.getId() + " - " + es.getNome() + " (" + es.getDescricao() + ")");
         Consola.pausar();
     }
 
@@ -258,11 +411,15 @@ public class GestorController {
         Consola.pausar();
     }
 
-    private void listarEstatutos() {
-        Consola.imprimirTitulo("Estatutos");
-        List<EstatutoEstudante> ests = justificacaoBll().listarEstatutosDisponiveis();
-        if (ests.isEmpty()) Consola.imprimirInfo("Sem estatutos definidos.");
-        else for (EstatutoEstudante es : ests) Consola.imprimirInfo(es.getId() + " - " + es.getNome() + " (" + es.getDescricao() + ")");
+    private void removerEstatuto() {
+        try {
+            listarEstatutos();
+            int id = Consola.lerInt("Id do estatuto a remover (0 cancelar)");
+            if (id == 0) return;
+            justificacaoBll().removerEstatuto(id);
+            Consola.imprimirSucesso("Estatuto removido.");
+        } catch (CancelamentoException e) { Consola.imprimirInfo("Operacao cancelada."); }
+        catch (EstadoInvalidoException e) { Consola.imprimirErro(e.getMessage()); }
         Consola.pausar();
     }
 
@@ -283,24 +440,20 @@ public class GestorController {
         Consola.pausar();
     }
 
-    private void aprovarRejeitarJustificacoes() {
+    /** Mostra os estatutos atribuídos a um estudante. */
+    private void verEstatutosDeEstudante() {
         try {
-            List<Justificacao> pendentes = justificacaoBll().listarPendentes();
-            Consola.imprimirTitulo("Justificacoes Pendentes");
-            if (pendentes.isEmpty()) { Consola.imprimirInfo("Nao ha justificacoes pendentes."); Consola.pausar(); return; }
-            for (Justificacao j : pendentes)
-                Consola.imprimirInfo("#" + j.getId() + " | Aluno " + j.getNumMec() + " | Aula " + j.getIdAula() + " | Tipo " + j.getIdTipoJustificacao());
-            int id = Consola.lerInt("Id da justificacao a processar");
-            boolean aceite = Consola.lerSimNao("Aprovar esta justificacao?");
-            String obs = Consola.lerStringOpcional("Observacao (Enter para nenhuma)");
-            justificacaoBll().processarJustificacao(id, aceite, obs);
-            Consola.imprimirSucesso(aceite ? "Justificacao aprovada." : "Justificacao rejeitada.");
+            int numMec = Consola.lerInt("Numero mecanografico do estudante (0 cancelar)");
+            if (numMec == 0) return;
+            List<EstatutoEstudante> ests = justificacaoBll().listarEstatutosDoEstudante(numMec);
+            if (ests.isEmpty()) { Consola.imprimirInfo("Este estudante nao tem estatutos atribuidos."); Consola.pausar(); return; }
+            Consola.imprimirTitulo("Estatutos do Estudante " + numMec);
+            for (EstatutoEstudante es : ests) Consola.imprimirInfo(es.getId() + " - " + es.getNome() + " (" + es.getDescricao() + ")");
+            Consola.pausar();
         } catch (CancelamentoException e) { Consola.imprimirInfo("Operacao cancelada."); }
-        catch (EstadoInvalidoException e) { Consola.imprimirErro(e.getMessage()); }
-        Consola.pausar();
     }
 
-    /** Consistência de UX: oferece ver uma lista antes de pedir um identificador dela. */
+    /** Oferece ver uma lista antes de pedir um identificador dela (consistência de UX). */
     private void oferecerLista(String pergunta, String[] itens) {
         if (Consola.lerSimNao(pergunta)) {
             if (itens == null || itens.length == 0) { Consola.imprimirInfo("(lista vazia)"); return; }

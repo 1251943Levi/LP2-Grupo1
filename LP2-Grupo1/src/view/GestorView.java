@@ -31,35 +31,48 @@ public class GestorView {
                 "Consultar Histórico de Anos Anteriores",
                 "Listar Devedores de Propinas",
                 "Alterar Password",
-                "Definir Horário",
-                "Gerir Justificações e Estatutos",
+                "Gerir Horários",
+                "Gerir Tipos de Justificação",
+                "Aprovar Justificações",
+                "Gerir Estatutos de Estudante"
         }, "Sair / Logout");
         return Consola.lerOpcaoMenu();
     }
 
     // ---------- SUBMENUS ----------
 
-    /** Submenu de definição do horário do ano letivo. */
-    public int mostrarSubMenuHorario() {
-        Consola.imprimirCabecalho("Horário — Definição do Gestor");
+    /** Submenu CRUD da gestão de horários (aulas) do ano letivo. */
+    public int mostrarSubMenuHorarios() {
+        Consola.imprimirCabecalho("Gestão de Horários");
         Consola.imprimirMenu(new String[]{
-                "Definir Horário",
-                "Listar Horário do Ano Letivo",
-                "Remover Aula"
+                "Adicionar Aula",
+                "Listar Aulas",
+                "Remover Aula",
+                "Editar Aula"
         }, "Voltar");
         return Consola.lerOpcaoMenu();
     }
 
-    /** Submenu de gestão de justificações e estatutos. */
-    public int mostrarSubMenuJustificacoes() {
-        Consola.imprimirCabecalho("Justificações e Estatutos");
+    /** Submenu de gestão de tipos de justificação. */
+    public int mostrarSubMenuTiposJustificacao() {
+        Consola.imprimirCabecalho("Gerir Tipos de Justificação");
         Consola.imprimirMenu(new String[]{
-                "Criar Tipo de Justificação",
-                "Listar Tipos de Justificação",
-                "Criar Estatuto",
+                "Listar Tipos",
+                "Adicionar Tipo",
+                "Remover Tipo"
+        }, "Voltar");
+        return Consola.lerOpcaoMenu();
+    }
+
+    /** Submenu de gestão de estatutos de estudante. */
+    public int mostrarSubMenuEstatutos() {
+        Consola.imprimirCabecalho("Gerir Estatutos de Estudante");
+        Consola.imprimirMenu(new String[]{
                 "Listar Estatutos",
+                "Adicionar Estatuto",
+                "Remover Estatuto",
                 "Atribuir Estatuto a Estudante",
-                "Aprovar/Rejeitar Justificações Pendentes"
+                "Ver Estatutos de um Estudante"
         }, "Voltar");
         return Consola.lerOpcaoMenu();
     }

@@ -75,9 +75,7 @@ public class EstudanteController {
                         break;
                     case 9: marcarPresenca();
                         break;
-                    case 10: justificarFalta();
-                        break;
-                    case 11: consultarJustificacoes();
+                    case 10: menuJustificacoes();
                         break;
                     case 0:
                         view.mostrarDespedida();
@@ -94,12 +92,63 @@ public class EstudanteController {
     }
 
 
-    /** Mostra o horário do estudante no ano letivo ativo. */
+    /** Mostra o horário do estudante: semana atual ou intervalo à escolha. */
     private void verMeuHorario() {
-        int ano = utils.Config.getAnoAtual();
-        view.mostrarHorario(horarioBll().listarHorarioEstudante(
-                estudanteAtivo.getSiglaCurso(), estudanteAtivo.getAnoCurricular(), ano));
+        try {
+            int ano = utils.Config.getAnoAtual();
+            String siglaCurso = estudanteAtivo.getSiglaCurso();
+            int anoCurricular = estudanteAtivo.getAnoCurricular();
+
+            Consola.imprimirInfo("Ver horário:");
+            Consola.imprimirMenu(new String[]{"Semana atual", "Escolher intervalo"}, "Cancelar");
+            int opcao = Consola.lerOpcaoMenu();
+
+            List<Aula> aulas;
+            if (opcao == 1) {
+                java.time.LocalDate hoje = java.time.LocalDate.now();
+                java.time.LocalDate inicio = hoje.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
+                java.time.LocalDate fim = hoje.with(java.time.temporal.TemporalAdjusters.nextOrSame(java.time.DayOfWeek.SUNDAY));
+                aulas = horarioBll().listarHorarioEstudante(siglaCurso, anoCurricular, ano, inicio, fim);
+            } else if (opcao == 2) {
+                java.time.LocalDate inicio = lerData("Data de início (DD-MM-AAAA)");
+                java.time.LocalDate fim = lerData("Data de fim (DD-MM-AAAA)");
+                aulas = horarioBll().listarHorarioEstudante(siglaCurso, anoCurricular, ano, inicio, fim);
+            } else {
+                return;
+            }
+            view.mostrarHorario(aulas);
+        } catch (CancelamentoException e) {
+            Consola.imprimirInfo("Operacao cancelada.");
+        }
         Consola.pausar();
+    }
+
+    /** Lê uma data no formato DD-MM-AAAA (aceita também DD/MM/AAAA). */
+    private java.time.LocalDate lerData(String prompt) {
+        while (true) {
+            String s = Consola.lerString(prompt);
+            try {
+                String[] p = s.split("[-/]");
+                return java.time.LocalDate.of(Integer.parseInt(p[2].trim()),
+                        Integer.parseInt(p[1].trim()), Integer.parseInt(p[0].trim()));
+            } catch (Exception e) {
+                Consola.imprimirErro("Data invalida. Use o formato DD-MM-AAAA.");
+            }
+        }
+    }
+
+    /** Submenu de justificações do estudante (vista agrupada como no quality). */
+    private void menuJustificacoes() {
+        boolean voltar = false;
+        while (!voltar) {
+            int opcao = view.mostrarSubMenuJustificacoes();
+            switch (opcao) {
+                case 1: justificarFalta(); break;
+                case 2: consultarJustificacoes(); break;
+                case 0: voltar = true; break;
+                default: view.mostrarOpcaoInvalida();
+            }
+        }
     }
 
     /** Marca presença numa aula — só permitido depois de o docente registar a aula. */
@@ -135,6 +184,21 @@ public class EstudanteController {
                     estudanteAtivo.getSiglaCurso(), estudanteAtivo.getAnoCurricular(), ano);
             view.mostrarHorario(aulas);
             int idAula = Consola.lerInt("Id da aula a justificar");
+
+            // Mostra os estatutos do estudante (ou os disponíveis), como no quality.
+            List<model.EstatutoEstudante> meusEstatutos =
+                    justificacaoBll().listarEstatutosDoEstudante(estudanteAtivo.getNumeroMecanografico());
+            if (!meusEstatutos.isEmpty()) {
+                Consola.imprimirInfo("Os teus estatutos:");
+                for (model.EstatutoEstudante est : meusEstatutos) Consola.imprimirInfo("   - " + est.getNome());
+            } else {
+                List<model.EstatutoEstudante> disponiveis = justificacaoBll().listarEstatutosDisponiveis();
+                if (!disponiveis.isEmpty()) {
+                    Consola.imprimirInfo("Estatutos disponiveis (pede ao gestor para te atribuir):");
+                    for (model.EstatutoEstudante est : disponiveis) Consola.imprimirInfo("   - " + est.getNome());
+                }
+            }
+
             Consola.imprimirTitulo("Tipos de Justificacao");
             for (TipoJustificacao t : tipos) Consola.imprimirInfo(t.getId() + " - " + t.getNome());
             int idTipo = Consola.lerInt("Id do tipo de justificacao");

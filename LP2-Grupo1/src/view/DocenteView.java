@@ -29,11 +29,8 @@ public class DocenteView {
                 "Ver as Minhas Unidades Curriculares",
                 "Consultar Histórico de um Aluno",
                 "Definir Momentos de Avaliação",
-                "Criar Momento de Avaliação (tipo/peso/data)",
-                "Lançar Nota por Momento",
-                "Ver o Meu Horário",
-                "Marcar Presença numa Aula",
-                "Ver Presenças/Faltas dos Alunos"
+                "Ver Horário Semanal",
+                "Gerir Presenças"
         }, "Sair / Logout");
         return Consola.lerOpcaoMenu();
     }
