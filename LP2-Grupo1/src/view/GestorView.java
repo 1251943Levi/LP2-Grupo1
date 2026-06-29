@@ -1,11 +1,17 @@
 package view;
 
-import model.Docente;
-import model.Estudante;
+import model.*;
 import utils.CancelamentoException;
 import utils.Consola;
-import model.Departamento;
-import model.Curso;
+
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.Map;
+import java.util.HashMap;
+
+import java.time.DayOfWeek;
+import java.time.LocalTime;
 import java.util.List;
 
 
@@ -31,6 +37,10 @@ public class GestorView {
                 "Consultar Histórico de Anos Anteriores",
                 "Listar Devedores de Propinas",
                 "Alterar Password",
+                "Gerir Horários",
+                "Gerir Tipos de Justificação",
+                "Aprovar Justificações",
+                "Gerir Estatutos de Estudante"
         }, "Sair / Logout");
         return Consola.lerOpcaoMenu();
     }
@@ -540,5 +550,179 @@ public class GestorView {
         // Criar um novo Scanner(System.in) a cada chamada perde input por
         // read-ahead, partindo edições com vários campos seguidos.
         return Consola.lerStringOpcional(prompt);
+    }
+
+// ============================================================
+// =========== Horários, Presenças e Justificações ============
+// ============================================================
+
+    // MENU DE HORÁRIOS
+    public int mostrarSubMenuHorarios() {
+        Consola.imprimirCabecalho("Gestão de Horários");
+        Consola.imprimirMenu(new String[]{
+                "Adicionar Aula",
+                "Listar Aulas",
+                "Remover Aula",
+                "Editar Aula"
+        }, "Voltar");
+        return Consola.lerOpcaoMenu();
+    }
+
+    // INPUTS
+    public int pedirIdAula() {
+        return Consola.lerInt("ID da Aula");
+    }
+
+
+    public LocalTime pedirHoraInicio() {
+        while (true) {
+            String hora = Consola.lerString("Hora de início (HH:mm)");
+            try {
+                return LocalTime.parse(hora);
+            } catch (Exception e) {
+                Consola.imprimirErro("Formato inválido. Use HH:mm.");
+            }
+        }
+    }
+
+    public LocalTime pedirHoraInicioOpcional() {
+        String hora = Consola.lerStringOpcional("Nova hora de início (HH:mm, Enter mantém a atual)");
+        if (hora.isEmpty()) return null;
+        try {
+            return LocalTime.parse(hora);
+        } catch (Exception e) {
+            Consola.imprimirErro("Formato inválido. Mantido o anterior.");
+            return null;
+        }
+    }
+
+    public int pedirBloco() {
+        return Consola.lerInt("Bloco (1 ou 2 horas)");
+    }
+
+    public Integer pedirBlocoOpcional() {
+        String input = Consola.lerStringOpcional("Novo bloco (1 ou 2, Enter mantém o atual)");
+        if (input.isEmpty()) return null;
+        try {
+            int b = Integer.parseInt(input);
+            if (b == 1 || b == 2) return b;
+            Consola.imprimirErro("Bloco deve ser 1 ou 2. Mantido o anterior.");
+            return null;
+        } catch (NumberFormatException e) {
+            Consola.imprimirErro("Valor inválido. Mantido o anterior.");
+            return null;
+        }
+    }
+
+    // LISTAGEM DE AULAS
+    public void mostrarAulas(java.util.List<Aula> aulas) {
+        if (aulas == null || aulas.isEmpty()) {
+            Consola.imprimirInfo("Nenhuma aula agendada para esta UC.");
+            Consola.pausar();
+            return;
+        }
+        // Título com a sigla da UC (assumindo que todas as aulas são da mesma UC)
+        String siglaUC = aulas.get(0).getSiglaUC();
+        Consola.imprimirTitulo("Lista de Aulas da UC " + siglaUC);
+
+        DateTimeFormatter fmtData = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+        // Cabeçalho com colunas de largura fixa
+        System.out.printf("  %-6s | %-10s | %-10s | %-17s | %-6s | %-6s | %-6s | %-6s%n",
+                "ID", "Data", "Dia", "Hora", "UC", "Curso", "Docente", "Bloco");
+        Consola.imprimirLinha();
+
+        for (Aula a : aulas) {
+            String dia = diaEmPortugues(a.getData().getDayOfWeek());
+            String hora = a.getHoraInicio() + "-" + a.getHoraFim();
+            System.out.printf("  %-6d | %-10s | %-10s | %-17s | %-6s | %-6s | %-6s | %dh%n",
+                    a.getId(),
+                    a.getData().format(fmtData),
+                    dia,
+                    hora,
+                    a.getSiglaUC(),
+                    a.getSiglaCurso(),
+                    a.getSiglaDocente(),
+                    a.getBloco());
+        }
+        Consola.imprimirLinha();
+        Consola.pausar();
+    }
+
+    public void mostrarAula(Aula a) {
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        System.out.printf("  ID: %d | Ano: %d | UC: %s | Curso: %s | Docente: %s | %s | %s-%s | Bloco: %dh%n",
+                a.getId(), a.getAnoLetivo(), a.getSiglaUC(), a.getSiglaCurso(),
+                a.getSiglaDocente(), a.getData().format(fmt),
+                a.getHoraInicio(), a.getHoraFim(), a.getBloco());
+    }
+
+    public void mostrarAulasPorUC(List<Aula> aulas, String siglaUC) {
+        if (aulas == null || aulas.isEmpty()) {
+            Consola.imprimirInfo("Não há aulas agendadas para a UC " + siglaUC + " neste ano.");
+            Consola.pausar();
+            return;
+        }
+        Consola.imprimirTitulo("Aulas da UC " + siglaUC);
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        System.out.printf("  %-6s | %-12s | %-17s | %-6s%n", "ID", "Data", "Hora", "Bloco");
+        Consola.imprimirLinha();
+        for (Aula a : aulas) {
+            System.out.printf("  %-6d | %-12s | %-17s | %dh%n",
+                    a.getId(), a.getData().format(fmt),
+                    a.getHoraInicio() + "-" + a.getHoraFim(), a.getBloco());
+        }
+        Consola.imprimirLinha();
+    }
+
+    private String diaEmPortugues(DayOfWeek dia) {
+        switch (dia) {
+            case MONDAY:    return "Segunda";
+            case TUESDAY:   return "Terça";
+            case WEDNESDAY: return "Quarta";
+            case THURSDAY:  return "Quinta";
+            case FRIDAY:    return "Sexta";
+            case SATURDAY:  return "Sábado";
+            case SUNDAY:    return "Domingo";
+            default:        return dia.toString();
+        }
+    }
+
+    public String pedirSiglaUcParaHorario() {
+        return Consola.lerString("Sigla da UC (ex: EST, ALG)").toUpperCase().trim();
+    }
+
+    public LocalDate pedirData(String mensagem) {
+        while (true) {
+            String dataStr = Consola.lerString(mensagem);
+            try {
+                return LocalDate.parse(dataStr, DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+            } catch (DateTimeParseException e) {
+                Consola.imprimirErro("Formato inválido. Use DD-MM-AAAA.");
+            }
+        }
+    }
+
+    public int pedirDiaSemanaNumero() {
+        while (true) {
+            int dia = Consola.lerInt("Dia da semana (1-Segunda, 2-Terça, 3-Quarta, 4-Quinta, 5-Sexta)");
+            if (dia >= 1 && dia <= 5) return dia;
+            Consola.imprimirErro("Opção inválida. Escolha 1 a 5.");
+        }
+    }
+
+    /**
+     * Pede uma data opcional (Enter para manter).
+     * @return null se o utilizador premir Enter, ou a LocalDate introduzida.
+     */
+    public LocalDate pedirDataOpcional(String mensagem) {
+        String input = Consola.lerStringOpcional(mensagem);
+        if (input.isEmpty()) return null;
+        try {
+            return LocalDate.parse(input, DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+        } catch (DateTimeParseException e) {
+            Consola.imprimirErro("Formato inválido. Mantido o valor anterior.");
+            return null;
+        }
     }
 }

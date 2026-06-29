@@ -124,11 +124,7 @@ public class DocenteDALFile implements DocenteDAL {
 
     @Override
     public boolean removerDocente(String sigla) {
-        Docente d = procurarPorSigla(sigla);
-        if (d == null) return false;
-
-        CredencialDAL.removerCredencial(d.getEmail(), pastaBase);
-
+        // A6: a credencial é removida pelo módulo de login (em DocenteBLL), não aqui.
         List<String> antigas = DALUtil.lerFicheiro(caminho());
         List<String> novas   = new ArrayList<>();
         boolean encontrou    = false;

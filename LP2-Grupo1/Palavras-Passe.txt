@@ -1,0 +1,17 @@
+GESTOR:
+backoffice@issmf.ipp.pt: admin123
+
+DOCENTES:
+MFP - mfp@issmf.ipp.pt  Ix4f80#NC8V2
+AVN - avn@issmf.ipp.pt  PLrnLuM$y!NO
+AVA - ava@issmf.ipp.pt  ftJ7!nc7n5$g
+
+
+ESTUDANTES:
+Estudante A - 20260012@issmf.ipp.pt  4FAuIhcXztjj
+Estudante B - 20260013@issmf.ipp.pt  KaFeOTYwZpBO
+Estudante C - 20260014@issmf.ipp.pt  Qg3GGfpGE@cu
+Estudante D - 20260015@issmf.ipp.pt  p0KxvTAS0Ezm
+Estudante E - 20260016@issmf.ipp.pt  5ea0GNgjKrjk
+Estudante F - 20260017@issmf.ipp.pt  apd0TDb5WcA5
+Estudante G - 20260018@issmf.ipp.pt  HgJaVk$8leUM

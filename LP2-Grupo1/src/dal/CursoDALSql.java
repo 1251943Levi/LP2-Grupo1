@@ -69,11 +69,29 @@ public class CursoDALSql implements CursoDAL {
 
     @Override
     public void inicializar() {
+        garantirTabelaEstados();              // F1/F2: lookup [estado_curso] antes de [curso] (FK)
         if (!cm.existeTabela(TABELA)) {
             cm.executarScript(lerSchema());
         }
         if (contar() == 0) {
             importarDeCsv();
+        }
+    }
+
+    /**
+     * F1/F2: garante a tabela lookup [estado_curso] criada e semeada com os
+     * estados canónicos (Ativo, Inativo, Pendente). Idempotente — corre sempre.
+     */
+    private void garantirTabelaEstados() {
+        if (!cm.existeTabela("estado_curso")) {
+            cm.executarScript("CREATE TABLE [estado_curso] (nome NVARCHAR(20) NOT NULL PRIMARY KEY);");
+        }
+        for (String estado : new String[]{"Ativo", "Inativo", "Pendente"}) {
+            List<Integer> r = cm.select(
+                    "SELECT COUNT(*) AS t FROM [estado_curso] WHERE nome = ?", rs -> rs.getInt("t"), estado);
+            if (r.isEmpty() || r.get(0) == 0) {
+                cm.update("INSERT INTO [estado_curso] (nome) VALUES (?)", estado);
+            }
         }
     }
 
@@ -108,7 +126,7 @@ public class CursoDALSql implements CursoDAL {
     @Override
     public String[] obterDadosBrutosCurso(String sigla, String pastaBase) {
         List<String[]> r = cm.select(
-                "SELECT * FROM [curso] WHERE sigla = ?",
+                "SELECT sigla, nome, siglaDepartamento, propina, estado FROM [curso] WHERE sigla = ?",
                 rs -> new String[]{
                         rs.getString("sigla"), rs.getString("nome"),
                         rs.getString("siglaDepartamento"),
@@ -119,7 +137,7 @@ public class CursoDALSql implements CursoDAL {
 
     @Override
     public Curso procurarCurso(String sigla, String pastaBase) {
-        List<Curso> r = cm.select("SELECT * FROM [curso] WHERE sigla = ?", this::mapRow, sigla);
+        List<Curso> r = cm.select("SELECT sigla, nome, siglaDepartamento, propina, estado FROM [curso] WHERE sigla = ?", this::mapRow, sigla);
         return r.isEmpty() ? null : r.get(0);
     }
 
@@ -162,7 +180,7 @@ public class CursoDALSql implements CursoDAL {
 
     @Override
     public List<Curso> carregarTodos(String pastaBase) {
-        return cm.select("SELECT * FROM [curso] ORDER BY sigla", this::mapRow);
+        return cm.select("SELECT sigla, nome, siglaDepartamento, propina, estado FROM [curso] ORDER BY sigla", this::mapRow);
     }
 
     // ------------------------------------------------------------------
@@ -195,7 +213,7 @@ public class CursoDALSql implements CursoDAL {
                 + "    nome              NVARCHAR(150) NOT NULL,\n"
                 + "    siglaDepartamento NVARCHAR(10)  NOT NULL REFERENCES [departamento](sigla),\n"
                 + "    propina           DECIMAL(10,2) NOT NULL DEFAULT 0,\n"
-                + "    estado            NVARCHAR(20)  NOT NULL DEFAULT 'Ativo'\n"
+                + "    estado            NVARCHAR(20)  NOT NULL DEFAULT 'Pendente' REFERENCES [estado_curso](nome)\n"
                 + ");\n";
     }
 }

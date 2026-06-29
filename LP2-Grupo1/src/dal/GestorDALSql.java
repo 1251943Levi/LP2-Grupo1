@@ -63,7 +63,7 @@ public class GestorDALSql implements GestorDAL {
     @Override
     public Gestor procurarPorEmail(String email, String hash) {
         List<Gestor> r = cm.select(
-                "SELECT * FROM [gestor] WHERE email = ?",
+                "SELECT email, nome, nif, morada, dataNascimento FROM [gestor] WHERE email = ?",
                 rs -> mapRow(rs, hash),
                 email);
         return r.isEmpty() ? null : r.get(0);
@@ -93,7 +93,7 @@ public class GestorDALSql implements GestorDAL {
             if (email.isEmpty()) continue;
             // Verifica se já existe para evitar duplicados
             List<Gestor> check = cm.select(
-                    "SELECT * FROM [gestor] WHERE email = ?", rs -> mapRow(rs, ""), email);
+                    "SELECT email, nome, nif, morada, dataNascimento FROM [gestor] WHERE email = ?", rs -> mapRow(rs, ""), email);
             if (!check.isEmpty()) continue;
             cm.update(
                     "INSERT INTO [gestor] (email, nome, nif, morada, dataNascimento) VALUES (?, ?, ?, ?, ?)",

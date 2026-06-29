@@ -108,7 +108,7 @@ public class EstudanteDALSql implements EstudanteDAL {
     public Estudante carregarPerfil(String email, String hash) {
         if (email == null) return null;
         List<Estudante> r = cm.select(
-                "SELECT * FROM [estudante] WHERE email = ?",
+                "SELECT numMec, email, nome, nif, morada, dataNascimento, anoInscricao, siglaCurso, saldoDevedor, anoCurricular FROM [estudante] WHERE email = ?",
                 rs -> mapRow(rs, hash), email);
         return r.isEmpty() ? null : r.get(0);
     }
@@ -116,13 +116,13 @@ public class EstudanteDALSql implements EstudanteDAL {
     @Override
     public Estudante procurarPorNumMec(int numMec) {
         List<Estudante> r = cm.select(
-                "SELECT * FROM [estudante] WHERE numMec = ?", MAPPER, numMec);
+                "SELECT numMec, email, nome, nif, morada, dataNascimento, anoInscricao, siglaCurso, saldoDevedor, anoCurricular FROM [estudante] WHERE numMec = ?", MAPPER, numMec);
         return r.isEmpty() ? null : r.get(0);
     }
 
     @Override
     public List<Estudante> carregarTodos() {
-        return cm.select("SELECT * FROM [estudante] ORDER BY numMec", MAPPER);
+        return cm.select("SELECT numMec, email, nome, nif, morada, dataNascimento, anoInscricao, siglaCurso, saldoDevedor, anoCurricular FROM [estudante] ORDER BY numMec", MAPPER);
     }
 
     @Override

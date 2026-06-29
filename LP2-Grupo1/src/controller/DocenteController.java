@@ -1,14 +1,25 @@
 package controller;
 
+import bll.HorarioBLL;
+import bll.PresencaBLL;
 import common.ConfigApp;
 import model.*;
+import utils.Config;
 import utils.Consola;
 import view.DocenteView;
 import bll.DocenteBLL;
+import bll.EstudanteBLL;
 import utils.CancelamentoException;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+
 import dal.InscricaoDAL;
 import dal.EstudanteDAL;
 import dal.EstudanteDALFile;
@@ -28,7 +39,12 @@ public class DocenteController {
     private final Docente docente;
     private final DocenteView view;
     private final DocenteBLL docenteBll;
-    private final EstudanteDAL estudanteDAL = ConfigApp.isModoSql() ? new EstudanteDALSql() : new EstudanteDALFile();
+    // A7: acesso ao módulo do estudante (lazy — evita efeitos colaterais no arranque)
+    private EstudanteBLL moduloEstudante;
+    private EstudanteBLL moduloEstudante() {
+        if (moduloEstudante == null) moduloEstudante = new EstudanteBLL();
+        return moduloEstudante;
+    }
     private final HistoricoDAL historicoDAL =
             ConfigApp.isModoSql() ? new HistoricoDALSql() : new HistoricoDALFile();
 
@@ -55,6 +71,8 @@ public class DocenteController {
                     case 6: verMinhasUcs(); break;
                     case 7: consultarHistoricoAluno(); break;
                     case 8: definirMomentosAvaliacao(); break;
+                    case 9: verHorario(); break;
+                    case 10: menuPresencas(); break;
                     case 0:
                         view.mostrarDespedida();
                         repo.limparSessao();
@@ -130,7 +148,7 @@ public class DocenteController {
             boolean alunoValido = false;
             while (!alunoValido) {
                 numMec = view.pedirNumeroAluno();
-                if (estudanteDAL.procurarPorNumMec(numMec) != null) {
+                if (moduloEstudante().procurarPorNumMec(numMec) != null) {
                     alunoValido = true;
                     break;
                 } else {
@@ -254,7 +272,7 @@ public class DocenteController {
 
             // Função que pergunta a nota para cada aluno
             java.util.function.Function<Integer, Double> obterNota = (numMec) -> {
-                Estudante e = estudanteDAL.procurarPorNumMec(numMec);
+                Estudante e = moduloEstudante().procurarPorNumMec(numMec);
                 String nome = (e != null) ? e.getNome() : "Desconhecido";
                 view.mostrarPedidoNotaParaAluno(numMec, nome);
                 try {
@@ -346,6 +364,230 @@ public class DocenteController {
             }
         } catch (CancelamentoException e) {
             view.mostrarOperacaoCancelada();
+        }
+    }
+
+// ============================================================
+// =========== Horários, Presenças e Justificações ============
+// ============================================================
+
+    /**
+     * Mostra o horário semanal do docente (aulas que leciona).
+     */
+    private void verHorario() {
+        try {
+            int anoAtual = Config.getAnoAtual();
+            String siglaDocente = docente.getSigla();
+
+            Consola.imprimirInfo("Ver horário:");
+            Consola.imprimirMenu(new String[]{"Semana atual", "Escolher intervalo"}, "Cancelar");
+            int opcao = Consola.lerOpcaoMenu();
+
+            HorarioBLL horarioBll = new HorarioBLL();
+            List<Aula> aulas;
+
+            if (opcao == 1) {
+                LocalDate hoje = LocalDate.now();
+                LocalDate inicio = hoje.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+                LocalDate fim = hoje.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
+                aulas = horarioBll.listarHorarioDocente(siglaDocente, anoAtual, inicio, fim);
+            } else if (opcao == 2) {
+                LocalDate[] intervalo = Consola.pedirIntervaloDatas();
+                aulas = horarioBll.listarHorarioDocente(siglaDocente, anoAtual, intervalo[0], intervalo[1]);
+            } else {
+                return;
+            }
+
+            view.mostrarHorario(aulas);
+        } catch (Exception e) {
+            Consola.imprimirErro(e.getMessage());
+        }
+    }
+
+    private void menuPresencas() {
+        boolean voltar = false;
+        while (!voltar) {
+            Consola.imprimirCabecalho("Gestão de Presenças");
+            Consola.imprimirMenu(new String[]{
+                    "Abrir Presenças",
+                    "Fechar Presenças",
+                    "Consultar Presenças dos Alunos"
+            }, "Voltar");
+            int opcao = Consola.lerOpcaoMenu();
+            switch (opcao) {
+                case 1: abrirPresencas(); break;
+                case 2: fecharPresencas(); break;
+                case 3: consultarPresencas(); break;
+                case 0: voltar = true; break;
+                default: Consola.imprimirErro("Opção inválida.");
+            }
+        }
+    }
+
+    private void abrirPresencas() {
+        try {
+            Consola.imprimirTitulo("Abrir Presenças");
+            int ano = Config.getAnoAtual();
+            HorarioBLL horarioBll = new HorarioBLL();
+
+            // 1. Obter todas as aulas do docente (com 2 parâmetros)
+            List<Aula> todasAulas = horarioBll.listarHorarioDocente(docente.getSigla(), ano);
+            if (todasAulas.isEmpty()) {
+                Consola.imprimirInfo("Não tem aulas agendadas.");
+                return;
+            }
+
+            // 2. Extrair UCs únicas (sem duplicados)
+            Set<String> siglasSet = new HashSet<>();
+            for (Aula a : todasAulas) siglasSet.add(a.getSiglaUC());
+            List<String> siglasUC = new ArrayList<>(siglasSet);
+
+            // 3. Mostrar UCs e pedir escolha
+            Consola.imprimirTitulo("Suas Unidades Curriculares");
+            for (int i = 0; i < siglasUC.size(); i++) {
+                System.out.println("  [" + (i + 1) + "] " + siglasUC.get(i));
+            }
+            int idx = Consola.lerInt("Escolha a UC") - 1;
+            if (idx < 0 || idx >= siglasUC.size()) return;
+            String siglaUC = siglasUC.get(idx);
+
+            // 4. Pedir a data
+            LocalDate data = Consola.pedirData("Data da aula (DD-MM-YYYY)");
+
+            // 5. Listar apenas as aulas dessa UC nesse dia
+            List<Aula> aulasDia = horarioBll.listarPorUCEData(siglaUC, ano, data);
+            if (aulasDia.isEmpty()) {
+                Consola.imprimirInfo("Não há aulas da UC " + siglaUC + " nesse dia.");
+                return;
+            }
+
+            // 6. Mostrar as aulas desse dia e pedir o ID
+            view.mostrarAulasDocente(aulasDia);
+            int idAula = Consola.lerInt("ID da Aula para abrir presenças");
+
+            // 7. Abrir
+            PresencaBLL presencaBll = new PresencaBLL();
+            presencaBll.abrirPresencas(idAula);
+            Consola.imprimirSucesso("Presenças abertas. Os alunos já podem marcar.");
+
+        } catch (Exception e) {
+            Consola.imprimirErro(e.getMessage());
+        }
+    }
+
+    private void fecharPresencas() {
+        try {
+            Consola.imprimirTitulo("Fechar Presenças");
+            int ano = Config.getAnoAtual();
+            HorarioBLL horarioBll = new HorarioBLL();
+
+            // 1. Obter todas as aulas do docente
+            List<Aula> todasAulas = horarioBll.listarHorarioDocente(docente.getSigla(), ano);
+            if (todasAulas.isEmpty()) {
+                Consola.imprimirInfo("Não tem aulas agendadas.");
+                return;
+            }
+
+            // 2. Extrair UCs únicas
+            Set<String> siglasSet = new HashSet<>();
+            for (Aula a : todasAulas) siglasSet.add(a.getSiglaUC());
+            List<String> siglasUC = new ArrayList<>(siglasSet);
+
+            Consola.imprimirTitulo("Suas Unidades Curriculares");
+            for (int i = 0; i < siglasUC.size(); i++) {
+                System.out.println("  [" + (i + 1) + "] " + siglasUC.get(i));
+            }
+            int idx = Consola.lerInt("Escolha a UC") - 1;
+            if (idx < 0 || idx >= siglasUC.size()) return;
+            String siglaUC = siglasUC.get(idx);
+
+            // 3. Pedir data
+            LocalDate data = Consola.pedirData("Data da aula (DD-MM-YYYY)");
+
+            // 4. Listar aulas desse dia
+            List<Aula> aulasDia = horarioBll.listarPorUCEData(siglaUC, ano, data);
+            if (aulasDia.isEmpty()) {
+                Consola.imprimirInfo("Não há aulas da UC " + siglaUC + " nesse dia.");
+                return;
+            }
+
+            view.mostrarAulasDocente(aulasDia);
+            int idAula = Consola.lerInt("ID da Aula para fechar presenças");
+
+            // 5. Fechar
+            PresencaBLL presencaBll = new PresencaBLL();
+            presencaBll.fecharPresencas(idAula);
+            Consola.imprimirSucesso("Presenças fechadas. Os alunos já não podem marcar.");
+
+        } catch (Exception e) {
+            Consola.imprimirErro(e.getMessage());
+        }
+    }
+
+    // controller/DocenteController.java
+
+    private void consultarPresencas() {
+        try {
+            Consola.imprimirTitulo("Consultar Presenças");
+            int ano = Config.getAnoAtual();
+            HorarioBLL horarioBll = new HorarioBLL();
+
+            // 1. Obter todas as aulas do docente
+            List<Aula> todasAulas = horarioBll.listarHorarioDocente(docente.getSigla(), ano);
+            if (todasAulas.isEmpty()) {
+                Consola.imprimirInfo("Não tem aulas agendadas.");
+                return;
+            }
+
+            // 2. Extrair UCs únicas
+            Set<String> siglasSet = new HashSet<>();
+            for (Aula a : todasAulas) siglasSet.add(a.getSiglaUC());
+            List<String> siglasUC = new ArrayList<>(siglasSet);
+
+            Consola.imprimirTitulo("Suas Unidades Curriculares");
+            for (int i = 0; i < siglasUC.size(); i++) {
+                System.out.println("  [" + (i + 1) + "] " + siglasUC.get(i));
+            }
+            int idx = Consola.lerInt("Escolha a UC") - 1;
+            if (idx < 0 || idx >= siglasUC.size()) return;
+            String siglaUC = siglasUC.get(idx);
+
+            // 3. Pedir data
+            LocalDate data = Consola.pedirData("Data da aula (DD-MM-YYYY)");
+
+            // 4. Listar aulas dessa UC nesse dia
+            List<Aula> aulasDia = horarioBll.listarPorUCEData(siglaUC, ano, data);
+            if (aulasDia.isEmpty()) {
+                Consola.imprimirInfo("Não há aulas da UC " + siglaUC + " nesse dia.");
+                return;
+            }
+
+            view.mostrarAulasDocente(aulasDia);
+            int idAula = Consola.lerInt("ID da Aula para consultar presenças");
+
+            // 5. Gerar relatório
+            PresencaBLL presencaBll = new PresencaBLL();
+            List<String> relatorio = presencaBll.obterRelatorioPresencas(idAula);
+
+            // 6. Mostrar informações da aula com caixa
+            Aula aula = horarioBll.buscarPorId(idAula);
+            if (aula != null) {
+                DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+                String titulo = "Relatório de Presenças - Aula " + idAula +
+                        " - " + aula.getSiglaUC() +
+                        " - " + aula.getData().format(fmt) +
+                        " - " + aula.getHoraInicio() + "-" + aula.getHoraFim();
+                Consola.imprimirTitulo(titulo);
+            }
+
+            // 7. Exibir relatório formatado
+            for (String linha : relatorio) {
+                System.out.println("  " + linha);
+            }
+            Consola.pausar();
+
+        } catch (Exception e) {
+            Consola.imprimirErro(e.getMessage());
         }
     }
 }
