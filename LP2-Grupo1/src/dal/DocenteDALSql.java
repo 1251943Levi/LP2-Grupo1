@@ -72,7 +72,7 @@ public class DocenteDALSql implements DocenteDAL {
     @Override
     public Docente procurarPorEmail(String email, String hash) {
         List<Docente> r = cm.select(
-                "SELECT sigla, email, nome, nif, morada, dataNascimento FROM [docente] WHERE email = ?",
+                "SELECT * FROM [docente] WHERE email = ?",
                 rs -> mapRow(rs, hash), email);
         return r.isEmpty() ? null : r.get(0);
     }
@@ -80,13 +80,13 @@ public class DocenteDALSql implements DocenteDAL {
     @Override
     public Docente procurarPorSigla(String sigla) {
         List<Docente> r = cm.select(
-                "SELECT sigla, email, nome, nif, morada, dataNascimento FROM [docente] WHERE sigla = ?", MAPPER, sigla);
+                "SELECT * FROM [docente] WHERE sigla = ?", MAPPER, sigla);
         return r.isEmpty() ? null : r.get(0);
     }
 
     @Override
     public List<Docente> carregarTodos() {
-        return cm.select("SELECT sigla, email, nome, nif, morada, dataNascimento FROM [docente] ORDER BY sigla", MAPPER);
+        return cm.select("SELECT * FROM [docente] ORDER BY sigla", MAPPER);
     }
 
     @Override

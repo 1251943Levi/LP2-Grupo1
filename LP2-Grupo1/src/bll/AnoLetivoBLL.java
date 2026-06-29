@@ -41,6 +41,8 @@ import java.util.List;
 public class AnoLetivoBLL {
     private final CursoDAL cursoDAL = ConfigApp.isModoSql() ? new CursoDALSql() : new CursoDALFile();
     private final UcDAL ucDAL = ConfigApp.isModoSql() ? new UcDALSql() : new UcDALFile();
+    // Unificação: decisão única de aprovação/nota (ponderada com fallback ao sistema antigo).
+    private final AvaliacaoBLL avaliacaoBll = new AvaliacaoBLL();
 
     private final AnoLetivoDAL dal;
     private final HistoricoAnoLetivoDAL historicoDAL;
@@ -144,7 +146,7 @@ public class AnoLetivoBLL {
             if (a1 > 0 && a1 < 5) {
                 Curso curso = cursoBll.procurarCursoCompleto(sigla);
                 if (curso != null) {
-                    curso.setEstadoCurso(EstadoCurso.PENDENTE); // não reúne quórum para abrir
+                    curso.setEstadoCurricular(EstadoCurricular.SEM_CONDICOES); // não reúne quórum para abrir
                     cursoDAL.atualizarCurso(curso, ConfigApp.PASTA_BD);
                     cursosInativados.add(sigla);
                 }
@@ -193,21 +195,18 @@ public class AnoLetivoBLL {
 
         System.out.println("A calcular o aproveitamento e a guardar o histórico académico do ano " + ano + "...");
 
-        List<Estudante> listaAlunos = new EstudanteBLL().carregarTodosCompleto();
+        // Unificação: o histórico é calculado por UC inscrita, usando a nota final
+        // (ponderada se a UC tiver momentos; senão, média do sistema antigo) e a
+        // decisão única de aprovação.
+        List<Estudante> listaAlunos = moduloEstudante().carregarTodos();
         for (Estudante e : listaAlunos) {
             if (e == null) continue;
-            for (int i = 0; i < e.getPercurso().getTotalAvaliacoes(); i++) {
-                model.Avaliacao av = e.getPercurso().getHistoricoAvaliacoes()[i];
-                if (av != null && av.getAnoLetivo() == ano) {
-                    String notas = "";
-                    for (int n = 0; n < av.getTotalAvaliacoesLancadas(); n++) {
-                        notas += av.getResultados()[n] + " ";
-                    }
-                    String estado = av.isAprovado() ? "APROVADO" : "REPROVADO";
-                    historicoAcademicoDAL.guardarRegistoHistorico(
-                            ano, e.getNumeroMecanografico(),
-                            av.getUc().getSigla(), notas.trim(), estado);
-                }
+            int numMec = e.getNumeroMecanografico();
+            for (String siglaUc : inscricaoDAL.obterSiglasUcsPorAluno(numMec, ano)) {
+                double notaFinal = avaliacaoBll.notaFinal(numMec, siglaUc, ano);
+                String estado = avaliacaoBll.aprovadoNaUc(numMec, siglaUc, ano) ? "APROVADO" : "REPROVADO";
+                historicoAcademicoDAL.guardarRegistoHistorico(
+                        ano, numMec, siglaUc, String.format("%.1f", notaFinal), estado);
             }
         }
         System.out.println("Histórico académico fechado com sucesso!");
@@ -374,14 +373,12 @@ public class AnoLetivoBLL {
             List<String> siglasInscritas = inscricaoDAL.obterSiglasUcsPorAluno(
                     e.getNumeroMecanografico(), anoLetivo);
             for (String siglaUc : siglasInscritas) {
-                int momentos = ucDAL.obterMomentos(siglaUc, ConfigApp.PASTA_BD);
-                Avaliacao av = avaliacaoDAL.obterAvaliacao(
-                        e.getNumeroMecanografico(), siglaUc, anoLetivo);
-                int lancadas = (av == null) ? 0 : av.getTotalAvaliacoesLancadas();
-                if (lancadas < momentos)
-                    pendentes.add(String.format(
-                            "Aluno %d (%s) — UC %s: %d de %d momentos de avaliação lançados.",
-                            e.getNumeroMecanografico(), e.getNome(), siglaUc, lancadas, momentos));
+                // Unificação: pendente se faltarem notas (momentos por avaliar, ou notas
+                // por lançar no sistema antigo).
+                if (avaliacaoBll.temNotasPendentes(e.getNumeroMecanografico(), siglaUc, anoLetivo)) {
+                    pendentes.add(String.format("Aluno %d (%s) — UC %s: notas por lançar.",
+                            e.getNumeroMecanografico(), e.getNome(), siglaUc));
+                }
             }
         }
         return pendentes;

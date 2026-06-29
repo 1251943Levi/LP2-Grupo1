@@ -5,5 +5,6 @@ CREATE TABLE [uc] (
     siglaDocente  NVARCHAR(10)  REFERENCES [docente](sigla),
     siglaCurso    NVARCHAR(10)  NOT NULL REFERENCES [curso](sigla),
     numMomentos   INT           NOT NULL DEFAULT 1,
+    estado        NVARCHAR(20)  NOT NULL DEFAULT 'SEM_CONDICOES' REFERENCES [EstadoCurricular](nome),
     PRIMARY KEY (sigla, siglaCurso)
 );

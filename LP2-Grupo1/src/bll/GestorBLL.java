@@ -44,13 +44,10 @@ public class GestorBLL {
             ConfigApp.isModoSql() ? new InscricaoDALSql() : new InscricaoDALFile();
     private final HistoricoDAL historicoDAL =
             ConfigApp.isModoSql() ? new HistoricoDALSql() : new HistoricoDALFile();
-    private final EstatutoDAL estatutoDAL =
-            ConfigApp.isModoSql() ? new EstatutoDALSql() : new EstatutoDALFile();
 
     public GestorBLL() {
         inscricaoDAL.inicializar();
         historicoDAL.inicializar();
-        estatutoDAL.inicializar();
     }
 
     // ─────────────────────────── ANO LETIVO ────────────────────────────
@@ -108,12 +105,12 @@ public class GestorBLL {
 
             if (a1 > 0 && a1 < 5) {
                 view.mostrarErroQuorum(sigla, a1);
-                curso.setEstadoCurso(model.EstadoCurso.PENDENTE); // não reúne quórum
+                curso.setEstadoCurricular(model.EstadoCurricular.SEM_CONDICOES); // não reúne quórum
             } else if (a1 >= 5 || a2 >= 1 || a3 >= 1) {
                 view.mostrarSucessoQuorum(sigla);
-                curso.setEstadoCurso(model.EstadoCurso.ATIVO);
+                curso.setEstadoCurricular(model.EstadoCurricular.ATIVO);
             } else {
-                curso.setEstadoCurso(model.EstadoCurso.PENDENTE); // sem alunos: sem condições
+                curso.setEstadoCurricular(model.EstadoCurricular.SEM_CONDICOES); // sem alunos: sem condições
             }
             cursoDAL.atualizarCurso(curso, PASTA_BD);
         }
@@ -179,12 +176,7 @@ public class GestorBLL {
     public String registarEstudante(String nome, String nif, String morada,
                                     String dataNasc, String siglaCurso, int anoInscricao) {
 
-        AnoLetivoBLL anoBll = new AnoLetivoBLL();
-        EstadoAnoLetivo estado = anoBll.getEstadoAnoAtual();
-        if (estado != EstadoAnoLetivo.PLANEAMENTO) {
-            System.err.println(">> Registo de estudante bloqueado: ano letivo não está em PLANEAMENTO (estado atual: " + estado + ").");
-            return null;
-        }
+        // O registo e permitido mesmo com o ano letivo iniciado (o aluno fica num curso inativo).
 
         // Chamada atualizada usando a instância estudanteDAL
         int    numMec    = moduloEstudante().obterProximoNumeroMecanografico(anoInscricao);
@@ -203,6 +195,7 @@ public class GestorBLL {
         for (String siglaUc : ucDAL.obterSiglasUcsPorCursoEAno(siglaCurso, 1, PASTA_BD)) {
             inscricaoDAL.adicionarInscricao(numMec, siglaUc, anoInscricao);
         }
+        new CursoBLL().atualizarEstadoCurricular(siglaCurso);
         return email;
     }
 
@@ -237,8 +230,13 @@ public class GestorBLL {
             }
         }
         Docente doc = docenteDAL.procurarPorSigla(siglaDocente);
-        String cursoParaGuardar = (siglaCurso == null || siglaCurso.isEmpty()) ? "N/A" : siglaCurso;
-        ucDAL.adicionarUC(new UnidadeCurricular(siglaUc, nomeUc, anoUc, doc), cursoParaGuardar, PASTA_BD);
+        // Card 2: cria a UC sem duplicar (dedup por sigla) e associa-a ao curso (M:N).
+        UcBLL ucBll = new UcBLL();
+        ucBll.criarUC(new UnidadeCurricular(siglaUc, nomeUc, anoUc, doc), siglaCurso);
+        if (siglaCurso != null && !siglaCurso.equals("N/A") && !siglaCurso.isEmpty()) {
+            ucBll.associarUCaCurso(siglaUc, siglaCurso, anoUc, utils.Config.getAnoAtual());
+            new CursoBLL().atualizarEstadoCurricular(siglaCurso);
+        }
         return true;
     }
 
@@ -295,6 +293,7 @@ public class GestorBLL {
         UnidadeCurricular novaAssociacao = new UnidadeCurricular(
                 uc.getSigla(), uc.getNome(), ano, uc.getDocenteResponsavel(), uc.getEcts());
         ucDAL.adicionarUC(novaAssociacao, siglaCurso, PASTA_BD);
+        new CursoBLL().atualizarEstadoCurricular(siglaCurso);
         return true;
     }
 
@@ -309,8 +308,46 @@ public class GestorBLL {
     public void adicionarCurso(String sigla, String nome, String siglaDep, double propina) {
         Departamento dep = departamentoDAL.procurarPorSigla(siglaDep);
         Curso c = new Curso(sigla, nome, dep, propina);
-        c.setEstadoCurso(model.EstadoCurso.PENDENTE); // criado sem condições para abrir
+        c.setEstadoCurricular(model.EstadoCurricular.SEM_CONDICOES); // criado sem condições para abrir
         cursoDAL.adicionarCurso(c, PASTA_BD);
+    }
+
+    /**
+     * Card 1: altera o estado de um curso com validação das condições.
+     *  - INATIVO: desativação manual (sempre permitida);
+     *  - ATIVO: só permitido se o curso reunir todas as condições (avaliarEstado == ATIVO);
+     *  - SEM_CONDICOES: sempre permitido.
+     * @return true se o estado foi alterado; false se o curso não existe ou a transição é inválida.
+     */
+    public boolean alterarEstadoCurso(String sigla, model.EstadoCurricular novoEstado) {
+        CursoBLL cursoBll = new CursoBLL();
+        Curso curso = cursoBll.procurarCursoCompleto(sigla);
+        if (curso == null || novoEstado == null) return false;
+        if (novoEstado == model.EstadoCurricular.ATIVO
+                && cursoBll.avaliarEstado(sigla) != model.EstadoCurricular.ATIVO) {
+            return false; // não reúne condições para ficar ATIVO
+        }
+        curso.setEstadoCurricular(novoEstado);
+        cursoDAL.atualizarCurso(curso, PASTA_BD);
+        return true;
+    }
+
+    /**
+     * Card 1: altera o estado de uma UC com validação das condições.
+     *  - ATIVO só é permitido se a UC tiver docente responsável e momentos definidos;
+     *  - INATIVO e SEM_CONDICOES são sempre permitidos.
+     * @return true se alterou; false se a UC não existe ou não reúne condições.
+     */
+    public boolean alterarEstadoUC(String siglaUc, model.EstadoCurricular novoEstado) {
+        UnidadeCurricular uc = new UcBLL().procurarUCCompleta(siglaUc);
+        if (uc == null || novoEstado == null) return false;
+        if (novoEstado == model.EstadoCurricular.ATIVO) {
+            boolean temDocente = uc.getDocenteResponsavel() != null;
+            boolean temMomentos = uc.getNumMomentos() > 0;
+            if (!temDocente || !temMomentos) return false; // não reúne condições para ficar ATIVO
+        }
+        ucDAL.atualizarEstadoUc(siglaUc, novoEstado.etiqueta(), PASTA_BD);
+        return true;
     }
 
     /**
@@ -485,62 +522,6 @@ public class GestorBLL {
      */
     public boolean existeDocente(String sigla) {
         return docenteDAL.existeSigla(sigla);
-    }
-
-    // ---- Estatutos de estudante (Cartao: Gestao de estatutos) ----
-
-    /** Cria um novo estatuto de estudante no catalogo. */
-    public void criarEstatuto(String nome, String descricao) {
-        if (nome == null || nome.trim().isEmpty()) {
-            throw new EstadoInvalidoException("O nome do estatuto e obrigatorio.");
-        }
-        estatutoDAL.adicionar(new EstatutoEstudante(0, nome.trim(),
-                descricao != null ? descricao.trim() : ""));
-    }
-
-    /** Lista todos os estatutos disponiveis no catalogo. */
-    public List<EstatutoEstudante> listarEstatutos() {
-        return estatutoDAL.listarTodos();
-    }
-
-    /** Remove um estatuto do catalogo (e as suas atribuicoes). */
-    public boolean removerEstatuto(int id) {
-        return estatutoDAL.remover(id);
-    }
-
-    /** Associa um estatuto a um estudante. */
-    public void atribuirEstatuto(int numMec, int idEstatuto) {
-        if (moduloEstudante().obterPorNumMec(numMec) == null) {
-            throw new EstadoInvalidoException("Estudante nao encontrado.");
-        }
-        if (estatutoDAL.buscarPorId(idEstatuto) == null) {
-            throw new EstadoInvalidoException("Estatuto nao encontrado.");
-        }
-        if (!estatutoDAL.atribuir(numMec, idEstatuto)) {
-            throw new EstadoInvalidoException("O estudante ja tem este estatuto atribuido.");
-        }
-    }
-
-    /** Remove a associacao de um estatuto a um estudante. */
-    public boolean removerEstatutoEstudante(int numMec, int idEstatuto) {
-        return estatutoDAL.removerAtribuicao(numMec, idEstatuto);
-    }
-
-    /** Estatutos atribuidos a um estudante. */
-    public List<EstatutoEstudante> listarEstatutosDoEstudante(int numMec) {
-        return estatutoDAL.listarPorEstudante(numMec);
-    }
-
-    // ---- Justificacoes (API nomeada no Cartao) ----
-
-    /** Aprova um pedido de justificacao pendente. */
-    public void aprovarJustificacao(int idJustificacao) {
-        new JustificacaoBLL().processarJustificacao(idJustificacao, true, null);
-    }
-
-    /** Rejeita um pedido de justificacao pendente. */
-    public void rejeitarJustificacao(int idJustificacao) {
-        new JustificacaoBLL().processarJustificacao(idJustificacao, false, null);
     }
 
     // ─────────────────────────── UTILITÁRIOS ───────────────────────────

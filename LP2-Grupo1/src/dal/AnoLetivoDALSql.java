@@ -65,19 +65,19 @@ public class AnoLetivoDALSql implements AnoLetivoDAL {
     @Override
     public AnoLetivo procurarPorAno(int ano) {
         List<AnoLetivo> r = cm.select(
-                "SELECT ano, estado FROM [anoLetivo] WHERE ano = ?", MAPPER, ano);
+                "SELECT * FROM [anoLetivo] WHERE ano = ?", MAPPER, ano);
         return r.isEmpty() ? null : r.get(0);
     }
 
     @Override
     public List<AnoLetivo> listarTodos() {
-        return cm.select("SELECT ano, estado FROM [anoLetivo] ORDER BY ano", MAPPER);
+        return cm.select("SELECT * FROM [anoLetivo] ORDER BY ano", MAPPER);
     }
 
     @Override
     public AnoLetivo obterAnoAtivo() {
         List<AnoLetivo> r = cm.select(
-                "SELECT TOP 1 ano, estado FROM [anoLetivo] ORDER BY ano DESC", MAPPER);
+                "SELECT TOP 1 * FROM [anoLetivo] ORDER BY ano DESC", MAPPER);
         return r.isEmpty() ? null : r.get(0);
     }
 

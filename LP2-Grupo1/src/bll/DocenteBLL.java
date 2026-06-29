@@ -46,6 +46,11 @@ public class DocenteBLL {
             ConfigApp.isModoSql() ? new InscricaoDALSql() : new InscricaoDALFile();
     private final AvaliacaoDAL avaliacaoDAL =
             ConfigApp.isModoSql() ? new AvaliacaoDALSql() : new AvaliacaoDALFile();
+    private final dal.MomentoDAL momentoDAL =
+            ConfigApp.isModoSql() ? new dal.MomentoDALSql() : new dal.MomentoDALFile();
+    private final dal.NotaDAL notaDAL =
+            ConfigApp.isModoSql() ? new dal.NotaDALSql() : new dal.NotaDALFile();
+    private final AvaliacaoBLL avaliacaoBll = new AvaliacaoBLL();
 
     public DocenteBLL() {
         inscricaoDAL.inicializar();
@@ -85,6 +90,11 @@ public class DocenteBLL {
 
         if (!lecionaEstaUC(d, siglaUc))
             return "ERRO: A UC '" + siglaUc + "' não pertence às suas unidades curriculares.";
+
+        // Card 4: só se aceita nota a estudantes inscritos na UC nesse ano letivo.
+        if (!inscricaoDAL.obterAlunosPorUc(siglaUc, ano).contains(numMec))
+            return "ERRO: O aluno " + numMec + " não está inscrito na UC '" + siglaUc
+                    + "' no ano letivo " + ano + ".";
 
         UnidadeCurricular uc = new UcBLL().procurarUCCompleta(siglaUc);
         if (uc == null)
@@ -221,17 +231,6 @@ public class DocenteBLL {
     }
 
     /**
-     * O docente marca presenca numa aula (regista/abre a aula para os alunos).
-     * Cartao "Registo de presencas": marcarPresenca(aula, presente).
-     * Quando presente=true a aula e aberta, permitindo aos estudantes marcar.
-     */
-    public void marcarPresenca(int idAula, boolean presente) {
-        if (presente) {
-            new PresencaBLL().abrirPresencas(idAula);
-        }
-    }
-
-    /**
      * Actualiza os dados de um docente (nome, morada, dataNascimento, NIF).
      */
     public boolean atualizarDocente(Docente docente) {
@@ -318,6 +317,14 @@ public class DocenteBLL {
         return formatados;
     }
 
+    /**
+     * Card 4: lista os estudantes inscritos numa UC num ano letivo (numMec + nome).
+     * Assinatura canónica para o lançamento de notas por momento de avaliação.
+     */
+    public List<String> listarEstudantesPorUC(String siglaUC, int anoLetivo) {
+        return obterAlunosFormatados(siglaUC, anoLetivo);
+    }
+
     // ── Métodos privados ──────────────────────────────────────────────
 
     /**
@@ -325,13 +332,8 @@ public class DocenteBLL {
      * FIX: usava "carregarAvaliacoesPorAluno" → correto é "obterAvaliacoesPorAluno".
      */
     private double calcularMediaAlunoNaUc(Estudante aluno, String siglaUc) {
-        for (int i = 0; i < aluno.getPercurso().getTotalAvaliacoes(); i++) {
-            Avaliacao av = aluno.getPercurso().getHistoricoAvaliacoes()[i];
-            if (av != null && av.getUc() != null && av.getUc().getSigla().equalsIgnoreCase(siglaUc)) {
-                return av.calcularMedia();
-            }
-        }
-        return 0.0;
+        // Unificação: nota final (ponderada se a UC tiver momentos; senão, média do sistema antigo).
+        return avaliacaoBll.notaFinal(aluno.getNumeroMecanografico(), siglaUc, Config.getAnoAtual());
     }
 
     /**
@@ -366,6 +368,114 @@ public class DocenteBLL {
         }
         ucDAL.atualizarMomentos(siglaUc, numMomentos, PASTA_BD);
         return null;
+    }
+
+    /**
+     * Card 3: define um momento de avaliação tipificado (com tipo, peso e data).
+     * Valida: tipo obrigatório; peso entre 0 e 100; soma dos pesos da UC ≤ 100%.
+     * @return null em caso de sucesso; mensagem de erro caso contrário.
+     */
+    public String definirMomento(String siglaUC, String nome, model.TipoMomento tipo,
+                                 double peso, String dataRealizacao) {
+        if (siglaUC == null || siglaUC.trim().isEmpty()) return "ERRO: UC inválida.";
+        if (nome == null || nome.trim().isEmpty()) return "ERRO: o nome do momento é obrigatório.";
+        if (tipo == null) return "ERRO: o tipo de momento é obrigatório.";
+        if (peso <= 0 || peso > 100) return "ERRO: o peso deve estar entre 0 e 100.";
+        double soma = momentoDAL.somaPesos(siglaUC);
+        if (soma + peso > 100.0001) {
+            return String.format("ERRO: a soma dos pesos excede 100%% (atual: %.0f%%, a adicionar: %.0f%%).", soma, peso);
+        }
+        momentoDAL.adicionar(new model.Momento(siglaUC, nome.trim(), tipo, peso, dataRealizacao));
+        return null;
+    }
+
+    /** Card 3: tipos de momento disponíveis (para listagem ao criar um momento). */
+    public model.TipoMomento[] tiposMomentoDisponiveis() {
+        return model.TipoMomento.values();
+    }
+
+    /** Card 3: momentos de avaliação definidos para uma UC. */
+    public java.util.List<model.Momento> listarMomentos(String siglaUC) {
+        return momentoDAL.listarPorUc(siglaUC);
+    }
+
+    // ==================================================================
+    // Card 5: notas por momento + nota final ponderada
+    // ==================================================================
+
+    /**
+     * Lança a nota de um estudante num momento de avaliação.
+     * Valida: ano não em PLANEAMENTO; docente leciona a UC; aluno inscrito;
+     * nota 0–20; momento válido para a UC; e momento já realizado (data não futura).
+     * @return null em caso de sucesso; mensagem de erro caso contrário.
+     */
+    public String lancarNotaMomento(int numMec, String siglaUC, int idMomento, double nota, Docente d) {
+        AnoLetivoBLL anoBll = new AnoLetivoBLL();
+        if (anoBll.getEstadoAnoAtual() == EstadoAnoLetivo.PLANEAMENTO)
+            return "ERRO: não é possível lançar notas com o ano letivo em PLANEAMENTO.";
+        if (!lecionaEstaUC(d, siglaUC))
+            return "ERRO: a UC '" + siglaUC + "' não pertence às suas unidades curriculares.";
+        int ano = Config.getAnoAtual();
+        if (!inscricaoDAL.obterAlunosPorUc(siglaUC, ano).contains(numMec))
+            return "ERRO: o aluno " + numMec + " não está inscrito na UC '" + siglaUC + "'.";
+        if (nota < 0 || nota > 20)
+            return "ERRO: a nota deve estar entre 0 e 20.";
+        model.Momento m = momentoDAL.procurarPorId(idMomento);
+        if (m == null || !m.getSiglaUC().equalsIgnoreCase(siglaUC))
+            return "ERRO: momento inválido para a UC '" + siglaUC + "'.";
+        if (momentoAindaNaoOcorreu(m))
+            return "ERRO: o momento '" + m.getNome() + "' ainda não ocorreu (data: " + m.getDataRealizacao() + ").";
+        notaDAL.guardar(new model.Nota(numMec, idMomento, siglaUC, nota));
+        return null;
+    }
+
+    /** Edita uma nota já lançada (valida 0–20). */
+    public String editarNota(int numMec, int idMomento, double novaNota) {
+        if (novaNota < 0 || novaNota > 20) return "ERRO: a nota deve estar entre 0 e 20.";
+        model.Nota existente = notaDAL.procurar(numMec, idMomento);
+        if (existente == null) return "ERRO: não existe nota para editar.";
+        existente.setValor(novaNota);
+        notaDAL.guardar(existente);
+        return null;
+    }
+
+    /** Consulta as notas de um aluno numa UC (por momento). */
+    public java.util.List<model.Nota> consultarNotas(int numMec, String siglaUC) {
+        return notaDAL.listarPorAlunoEUc(numMec, siglaUC);
+    }
+
+    /**
+     * Nota final de uma UC = média ponderada das notas dos momentos pelos pesos.
+     * Momentos sem nota são ignorados (a ponderação usa só os momentos avaliados).
+     */
+    public double calcularNotaFinalPonderada(int numMec, String siglaUC) {
+        double somaPesos = 0, somaPond = 0;
+        for (model.Momento m : momentoDAL.listarPorUc(siglaUC)) {
+            model.Nota n = notaDAL.procurar(numMec, m.getId());
+            if (n != null) {
+                somaPond += n.getValor() * m.getPeso();
+                somaPesos += m.getPeso();
+            }
+        }
+        return somaPesos == 0 ? 0.0 : somaPond / somaPesos;
+    }
+
+    /** Aprovado na UC se a nota final ponderada for >= 9,5. */
+    public boolean isAprovadoPonderado(int numMec, String siglaUC) {
+        return calcularNotaFinalPonderada(numMec, siglaUC) >= 9.5;
+    }
+
+    /** true se o momento tem data futura (ainda não ocorreu). */
+    private boolean momentoAindaNaoOcorreu(model.Momento m) {
+        String data = m.getDataRealizacao();
+        if (data == null || data.trim().isEmpty()) return false; // sem data: não bloqueia
+        try {
+            java.time.LocalDate d = java.time.LocalDate.parse(data.trim(),
+                    java.time.format.DateTimeFormatter.ofPattern("dd-MM-uuuu"));
+            return d.isAfter(java.time.LocalDate.now());
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     /**

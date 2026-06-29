@@ -175,6 +175,9 @@ public class AnoLetivoController {
      */
     private void alterarMomentosUc() {
         try {
+            if (Consola.lerSimNao("Deseja ver a lista de UCs?")) {
+                for (String u : new bll.UcBLL().obterListaUcs()) Consola.imprimirInfo(u);
+            }
             String siglaUc = view.pedirSiglaUc("Sigla da UC a alterar");
 
             int momentosAtuais = bll.obterMomentosUc(siglaUc);
