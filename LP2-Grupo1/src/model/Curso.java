@@ -20,7 +20,7 @@ public class Curso {
     // ---------- CONSTRUTOR ----------
 
     /**
-     * Cria um curso no estado PENDENTE por omissão (criado mas sem condições para abrir).
+     * Cria um curso no estado SEM_CONDICOES por omissão (criado mas sem condições para abrir).
      * @param sigla             Sigla identificadora do curso.
      * @param nome              Nome completo do curso.
      * @param departamento      Departamento ao qual o curso pertence.
@@ -31,7 +31,7 @@ public class Curso {
         this.nome              = nome;
         this.departamento      = departamento;
         this.valorPropinaAnual = valorPropinaAnual;
-        this.estado            = EstadoCurso.PENDENTE.etiqueta();
+        this.estado            = EstadoCurricular.SEM_CONDICOES.etiqueta();
     }
 
     // ---------- GETTERS ----------
@@ -51,8 +51,8 @@ public class Curso {
     /** @return Estado atual do curso na forma textual ("Ativo", "Inativo" ou "Pendente"). */
     public String getEstado(){ return estado; }
 
-    /** @return Estado atual como enum {@link EstadoCurso}. */
-    public EstadoCurso getEstadoCurso(){ return EstadoCurso.fromString(estado); }
+    /** @return Estado atual como enum {@link EstadoCurricular}. */
+    public EstadoCurricular getEstadoCurricular(){ return EstadoCurricular.fromString(estado); }
 
 
     // ---------- SETTERS ----------
@@ -69,6 +69,6 @@ public class Curso {
     /** @param estado Novo estado ("Ativo", "Inativo" ou "Pendente"). */
     public void setEstado(String estado){ this.estado = estado; }
 
-    /** @param estado Novo estado como enum {@link EstadoCurso}. */
-    public void setEstadoCurso(EstadoCurso estado){ this.estado = estado.etiqueta(); }
+    /** @param estado Novo estado como enum {@link EstadoCurricular}. */
+    public void setEstadoCurricular(EstadoCurricular estado){ this.estado = estado.etiqueta(); }
 }

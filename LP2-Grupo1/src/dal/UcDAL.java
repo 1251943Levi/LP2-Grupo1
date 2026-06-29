@@ -49,6 +49,9 @@ public interface UcDAL {
 
     void atualizarMomentos(String siglaUc, int numMomentos, String pastaBase);
 
+    /** Card 1: atualiza o estado curricular de uma UC. */
+    void atualizarEstadoUc(String siglaUc, String estado, String pastaBase);
+
     boolean removerUC(String siglaUc, String pastaBase);
 
     boolean removerAssociacaoUcCurso(String siglaUc, String siglaCurso, String pastaBase);

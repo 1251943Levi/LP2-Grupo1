@@ -42,6 +42,8 @@ public class EstudanteBLL {
             ConfigApp.isModoSql() ? new AvaliacaoDALSql() : new AvaliacaoDALFile();
     private final PagamentoDAL pagamentoDAL =
             ConfigApp.isModoSql() ? new PagamentoDALSql() : new PagamentoDALFile();
+    // Unificação: nota final (ponderada com fallback ao sistema antigo).
+    private final AvaliacaoBLL avaliacaoBll = new AvaliacaoBLL();
 
     public EstudanteBLL() {
         inscricaoDAL.inicializar();
@@ -99,26 +101,6 @@ public class EstudanteBLL {
     /** Obtém um estudante pelo número mecanográfico. */
     public Estudante obterPorNumMec(int numMec) {
         return dal.procurarPorNumMec(numMec);
-    }
-
-    // ---- Presencas e justificacoes (API nomeada nos cartoes) ----
-
-    /**
-     * Submete um pedido de justificacao de falta (estado inicial PENDENTE).
-     * Cartao "Gestao de faltas e justificacoes".
-     */
-    public void submeterJustificacao(int numMec, int idAula, int idTipoJustificacao) {
-        new JustificacaoBLL().criarJustificacao(numMec, idAula, idTipoJustificacao);
-    }
-
-    /**
-     * O estudante marca presenca numa aula (so permitido apos o docente registar a aula).
-     * Cartao "Registo de presencas": marcarPresenca(aula, numMec, presente).
-     */
-    public void marcarPresenca(int idAula, int numMec, boolean presente) {
-        if (presente) {
-            new PresencaBLL().marcarPresencaEstudante(numMec, idAula);
-        }
     }
 
     /** Atualiza a morada do estudante e persiste a alteração. */
@@ -252,36 +234,19 @@ public class EstudanteBLL {
         sb.append(String.format("Notas do aluno: %s (%d)\n", e.getNome(), e.getNumeroMecanografico()));
         sb.append("------------------------------------------------------------\n");
 
-        int totalAvaliacoes = e.getPercurso().getTotalAvaliacoes();
-        if (totalAvaliacoes == 0) {
-            sb.append("Nenhuma avaliação registada.\n");
+        // Unificação: nota final por UC inscrita no ano corrente (ponderada se a UC
+        // tiver momentos definidos; senão, do sistema antigo).
+        int ano = Config.getAnoAtual();
+        List<String> ucs = inscricaoDAL.obterSiglasUcsPorAluno(e.getNumeroMecanografico(), ano);
+        if (ucs.isEmpty()) {
+            sb.append("Nenhuma UC inscrita no ano letivo " + ano + ".\n");
             return sb.toString();
         }
-
-        Avaliacao[] historico = e.getPercurso().getHistoricoAvaliacoes();
-        for (int i = 0; i < totalAvaliacoes; i++) {
-            Avaliacao av = historico[i];
-            if (av == null || av.getUc() == null) continue;
-
-            String sigla = av.getUc().getSigla();
-            String nomeUC = av.getUc().getNome();
-            int ano = av.getAnoLetivo();
-            double[] notas = av.getResultados();
-            int totalNotas = av.getTotalAvaliacoesLancadas();
-
-            sb.append(String.format("UC: %s - %s (Ano %d)\n", sigla, nomeUC, ano));
-            if (totalNotas == 0) {
-                sb.append("  Sem notas lançadas.\n");
-            } else {
-                sb.append("  Notas: ");
-                for (int j = 0; j < totalNotas; j++) {
-                    sb.append(String.format("%.1f", notas[j]));
-                    if (j < totalNotas - 1) sb.append(", ");
-                }
-                double media = av.calcularMedia();
-                sb.append(String.format(" | Média: %.1f | %s\n", media, av.isAprovado() ? "APROVADO" : "REPROVADO"));
-            }
-            sb.append("\n");
+        for (String sigla : ucs) {
+            double notaFinal = avaliacaoBll.notaFinal(e.getNumeroMecanografico(), sigla, ano);
+            boolean aprovado = avaliacaoBll.aprovadoNaUc(e.getNumeroMecanografico(), sigla, ano);
+            sb.append(String.format("UC: %-8s | Nota final: %.1f | %s%n",
+                    sigla, notaFinal, aprovado ? "APROVADO" : "REPROVADO"));
         }
         return sb.toString();
     }

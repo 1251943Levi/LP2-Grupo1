@@ -78,6 +78,20 @@ public class HorarioBLL {
     }
 
     /**
+     * Total de horas semanais de uma UC (na semana de {@code data}).
+     * Serve para avisar quando a UC fica abaixo do mínimo de 2h.
+     */
+    public int horasSemanaisUC(String siglaUC, int anoLetivo, LocalDate data) {
+        LocalDate ini = data.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        LocalDate fim = data.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
+        int total = 0;
+        for (Aula a : dal.listarPorUC(siglaUC, anoLetivo)) {
+            if (!a.getData().isBefore(ini) && !a.getData().isAfter(fim)) total += a.getBloco();
+        }
+        return total;
+    }
+
+    /**
      * Lista as aulas de uma UC num intervalo de datas.
      */
     public List<Aula> listarPorUC(String siglaUC, int anoLetivo, LocalDate inicio, LocalDate fim) {
@@ -110,9 +124,9 @@ public class HorarioBLL {
         }
         DayOfWeek diaEscolhido = DayOfWeek.of(diaSemanaNum);
 
-        List<Aula> criadas = new ArrayList<>();
+        // 1) Construir as aulas candidatas (uma por cada ocorrência do dia da semana no intervalo).
+        List<Aula> candidatas = new ArrayList<>();
         LocalDate data = dataInicio;
-
         while (!data.isAfter(dataFim)) {
             if (data.getDayOfWeek() == diaEscolhido) {
                 Aula aula = new Aula();
@@ -124,14 +138,24 @@ public class HorarioBLL {
                 aula.setHoraFim(horaInicio.plusHours(bloco));
                 aula.setBloco(bloco);
                 aula.setAnoLetivo(anoLetivo);
-
-                // adicionar com validações
-                adicionarAula(aula);
-                criadas.add(aula);
+                candidatas.add(aula);
             }
             data = data.plusDays(1);
         }
-        return criadas;
+
+        // 2) Validar TODAS antes de gravar qualquer uma (atómico: ou cria tudo, ou nada).
+        for (Aula aula : candidatas) {
+            validarAula(aula);
+            validarSobreposicaoDocente(aula, false);
+            validarCargaDiariaDocente(aula, false);
+            validarCargaSemanalUC(aula, false);
+        }
+
+        // 3) Só depois de tudo validado é que se persiste.
+        for (Aula aula : candidatas) {
+            dal.adicionar(aula);
+        }
+        return candidatas;
     }
 
     // ============================================================

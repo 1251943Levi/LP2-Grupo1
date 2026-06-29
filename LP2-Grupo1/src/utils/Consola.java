@@ -1,13 +1,7 @@
 package utils;
 
 import java.io.Console;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
-import java.time.format.ResolverStyle;
 import java.util.Scanner;
-import utils.Validador;
-
 
 /**
  * Classe utilitária centralizada para toda a interação com a consola.
@@ -24,9 +18,6 @@ public final class Consola {
 
     private static final Scanner SCANNER    = new Scanner(System.in);
     private static final int     LARGURA    = 78;
-    private static final DateTimeFormatter DATE_FORMATTER_STRICT =
-            DateTimeFormatter.ofPattern("dd-MM-uuuu").withResolverStyle(ResolverStyle.STRICT);
-
 
     private Consola() {}
 
@@ -293,33 +284,4 @@ public final class Consola {
         }
         return input;
     }
-
-    /**
-     * Lê uma data no formato DD-MM-AAAA com validação de existência (dias, meses, anos bissextos).
-     * @throws CancelamentoException se o utilizador escrever "sair"
-     */
-    public static LocalDate pedirData(String mensagem) {
-        while (true) {
-            String input = lerString(mensagem);
-            if (Validador.isDataReal(input)) {
-                return LocalDate.parse(input, DATE_FORMATTER_STRICT);
-            }
-            imprimirErro("Data inválida. Use o formato DD-MM-AAAA com dias e meses válidos (ex: 15-10-2025).");
-        }
-    }
-
-    /**
-     * Pede um intervalo de datas (início e fim) e valida que o início não é posterior ao fim.
-     */
-    public static LocalDate[] pedirIntervaloDatas() {
-        LocalDate inicio = pedirData("Data de início (DD-MM-AAAA)");
-        LocalDate fim = pedirData("Data de fim (DD-MM-AAAA)");
-        if (inicio.isAfter(fim)) {
-            imprimirErro("A data de início não pode ser posterior à data de fim.");
-            return pedirIntervaloDatas();
-        }
-        return new LocalDate[]{inicio, fim};
-    }
-
-
 }

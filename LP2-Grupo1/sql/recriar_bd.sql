@@ -4,7 +4,7 @@
 --
 --  PORQUÊ: as alterações de schema mais recentes não se aplicam a
 --  tabelas já existentes —
---    * [estado_curso] (lookup) + FK [curso].estado -> [estado_curso](nome)
+--    * [EstadoCurricular] (lookup) + FK [curso].estado -> [EstadoCurricular](nome)
 --    * coluna [inscricao].anoLetivoRealizacao (A1)
 --  Apagar as tabelas faz com que a aplicação as RECRIE com o schema
 --  novo e REIMPORTE dos CSV no próximo arranque em modo SQL.
@@ -17,10 +17,18 @@
 
 SET NOCOUNT ON;
 
--- presenca e aula têm FK para aula/estudante e uc/anoLetivo/docente:
--- têm de ser removidas ANTES dos respetivos pais.
+-- Parte III + Card 2/3 (tabelas-filho) — apagar ANTES dos pais para nao violar FKs
+DROP TABLE IF EXISTS [nota];
 DROP TABLE IF EXISTS [presenca];
+DROP TABLE IF EXISTS [justificacao];
+DROP TABLE IF EXISTS [estudante_estatuto];
 DROP TABLE IF EXISTS [aula];
+DROP TABLE IF EXISTS [momento];
+DROP TABLE IF EXISTS [curso_uc];
+DROP TABLE IF EXISTS [tipo_momento];
+DROP TABLE IF EXISTS [tipo_justificacao];
+DROP TABLE IF EXISTS [estatuto];
+
 DROP TABLE IF EXISTS [historicoAcademico];
 DROP TABLE IF EXISTS [pagamento];
 DROP TABLE IF EXISTS [avaliacao];
@@ -28,7 +36,7 @@ DROP TABLE IF EXISTS [inscricao];
 DROP TABLE IF EXISTS [uc];
 DROP TABLE IF EXISTS [estudante];
 DROP TABLE IF EXISTS [curso];
-DROP TABLE IF EXISTS [estado_curso];
+DROP TABLE IF EXISTS [EstadoCurricular];
 DROP TABLE IF EXISTS [anoLetivoHistorico];
 DROP TABLE IF EXISTS [anoLetivo];
 DROP TABLE IF EXISTS [departamento];

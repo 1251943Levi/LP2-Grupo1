@@ -69,13 +69,13 @@ public class LoginDALSql implements LoginDAL {
     @Override
     public LoginModel procurarPorEmail(String email) {
         List<LoginModel> r = cm.select(
-                "SELECT id, email, passwordHash, passwordSalt, tipoUtilizador, ativo, createdAt, updatedAt FROM [login] WHERE email = ?", MAPPER, email);
+                "SELECT * FROM [login] WHERE email = ?", MAPPER, email);
         return r.isEmpty() ? null : r.get(0);
     }
 
     @Override
     public List<LoginModel> listarTodos() {
-        return cm.select("SELECT id, email, passwordHash, passwordSalt, tipoUtilizador, ativo, createdAt, updatedAt FROM [login] ORDER BY id", MAPPER);
+        return cm.select("SELECT * FROM [login] ORDER BY id", MAPPER);
     }
 
     @Override

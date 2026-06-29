@@ -6,6 +6,9 @@ import common.ConfigApp;
 import dal.UcDAL;
 import dal.UcDALFile;
 import dal.UcDALSql;
+import dal.CursoUcDAL;
+import dal.CursoUcDALFile;
+import dal.CursoUcDALSql;
 import dal.CursoDAL;
 import dal.CursoDALFile;
 import dal.CursoDALSql;
@@ -115,9 +118,29 @@ public class MainController {
         CursoDAL cursoDAL = ConfigApp.isModoSql() ? new CursoDALSql() : new CursoDALFile();
         cursoDAL.inicializar();
         ucDAL.inicializar();
+        // Card 2: tabela intermédia curso_uc (após curso, por causa da FK)
+        CursoUcDAL cursoUcDAL = ConfigApp.isModoSql() ? new CursoUcDALSql() : new CursoUcDALFile();
+        cursoUcDAL.inicializar();
+        // Card 3: tipos de momento + momentos de avaliação
+        dal.MomentoDAL momentoDAL = ConfigApp.isModoSql() ? new dal.MomentoDALSql() : new dal.MomentoDALFile();
+        momentoDAL.inicializar();
         EstudanteDAL estudanteDAL = ConfigApp.isModoSql() ? new EstudanteDALSql() : new EstudanteDALFile();
         estudanteDAL.inicializar();
+        // Card 5: notas por momento (após estudante e momento, pelas FKs)
+        dal.NotaDAL notaDAL = ConfigApp.isModoSql() ? new dal.NotaDALSql() : new dal.NotaDALFile();
+        notaDAL.inicializar();
         new bll.AnoLetivoBLL();
+        // Inicializa os suportes de dados de horarios, presencas, justificacoes e estatutos.
+        dal.AulaDAL aulaDAL = ConfigApp.isModoSql() ? new dal.AulaDALSql() : new dal.AulaDALFile();
+        aulaDAL.inicializar();
+        dal.PresencaDAL presencaDAL = ConfigApp.isModoSql() ? new dal.PresencaDALSql() : new dal.PresencaDALFile();
+        presencaDAL.inicializar();
+        dal.EstatutoDAL estatutoDAL = ConfigApp.isModoSql() ? new dal.EstatutoDALSql() : new dal.EstatutoDALFile();
+        estatutoDAL.inicializar();
+        dal.TipoJustificacaoDAL tipoJustDAL = ConfigApp.isModoSql() ? new dal.TipoJustificacaoDALSql() : new dal.TipoJustificacaoDALFile();
+        tipoJustDAL.inicializar();
+        dal.JustificacaoDAL justificacaoDAL = ConfigApp.isModoSql() ? new dal.JustificacaoDALSql() : new dal.JustificacaoDALFile();
+        justificacaoDAL.inicializar();
     }
 
     /**
@@ -221,18 +244,28 @@ public class MainController {
                 }
             } while (!dataValida);
 
+            // Com o ano letivo iniciado mostram-se os cursos inativos; em planeamento, os cursos com plano completo.
+            model.EstadoAnoLetivo estadoAno = new bll.AnoLetivoBLL().getEstadoAnoAtual();
+            boolean anoIniciado = (estadoAno != null && estadoAno != model.EstadoAnoLetivo.PLANEAMENTO);
+            bll.CursoBLL cursoBllMatricula = new bll.CursoBLL();
+
             String[] todosCursos = bll.obterListaCursos();
             java.util.List<String> cursosValidos = new java.util.ArrayList<>();
 
             for (String cursoStr : todosCursos) {
                 String sigla = cursoStr.split(" - ")[0];
 
-                boolean temAno1 = ucDAL.contarUcsPorCursoEAno(sigla, 1, PASTA_BD) > 0;
-                boolean temAno2 = ucDAL.contarUcsPorCursoEAno(sigla, 2, PASTA_BD) > 0;
-                boolean temAno3 = ucDAL.contarUcsPorCursoEAno(sigla, 3, PASTA_BD) > 0;
-
-                if (temAno1 && temAno2 && temAno3) {
-                    cursosValidos.add(cursoStr);
+                if (anoIniciado) {
+                    if (cursoBllMatricula.avaliarEstado(sigla) != model.EstadoCurricular.ATIVO) {
+                        cursosValidos.add(cursoStr);
+                    }
+                } else {
+                    boolean temAno1 = ucDAL.contarUcsPorCursoEAno(sigla, 1, PASTA_BD) > 0;
+                    boolean temAno2 = ucDAL.contarUcsPorCursoEAno(sigla, 2, PASTA_BD) > 0;
+                    boolean temAno3 = ucDAL.contarUcsPorCursoEAno(sigla, 3, PASTA_BD) > 0;
+                    if (temAno1 && temAno2 && temAno3) {
+                        cursosValidos.add(cursoStr);
+                    }
                 }
             }
 

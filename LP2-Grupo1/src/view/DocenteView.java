@@ -1,13 +1,10 @@
 package view;
 
-import model.Aula;
 import model.Avaliacao;
 import model.Docente;
 import model.UnidadeCurricular;
 import utils.Consola;
 
-import java.time.DayOfWeek;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
@@ -32,10 +29,57 @@ public class DocenteView {
                 "Ver as Minhas Unidades Curriculares",
                 "Consultar Histórico de um Aluno",
                 "Definir Momentos de Avaliação",
-                "Ver Horário Semanal",
-                "Gerir Presenças"
+                "Criar Momento de Avaliação (tipo/peso/data)",
+                "Lançar Nota por Momento",
+                "Ver o Meu Horário",
+                "Marcar Presença numa Aula",
+                "Ver Presenças/Faltas dos Alunos"
         }, "Sair / Logout");
         return Consola.lerOpcaoMenu();
+    }
+
+    /** Imprime o horário em tabela. */
+    public void mostrarHorario(List<model.Aula> aulas) {
+        if (aulas == null || aulas.isEmpty()) {
+            Consola.imprimirInfo("Sem aulas registadas para este ano letivo.");
+            return;
+        }
+        Consola.imprimirTitulo("Horário");
+        java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        System.out.printf("  %-5s | %-10s | %-8s | %-13s | %-6s | %-6s | %-6s | %-5s%n",
+                "ID", "Data", "Dia", "Hora", "UC", "Curso", "Doc", "Bloco");
+        Consola.imprimirLinha();
+        for (model.Aula a : aulas) {
+            System.out.printf("  %-5d | %-10s | %-8s | %-13s | %-6s | %-6s | %-6s | %dh%n",
+                    a.getId(), a.getData().format(fmt), diaEmPortugues(a.getData().getDayOfWeek()),
+                    a.getHoraInicio() + "-" + a.getHoraFim(), a.getSiglaUC(), a.getSiglaCurso(),
+                    a.getSiglaDocente(), a.getBloco());
+        }
+        Consola.imprimirLinha();
+    }
+
+    /** Nome do dia da semana em português. */
+    private String diaEmPortugues(java.time.DayOfWeek dia) {
+        switch (dia) {
+            case MONDAY:    return "Segunda";
+            case TUESDAY:   return "Terça";
+            case WEDNESDAY: return "Quarta";
+            case THURSDAY:  return "Quinta";
+            case FRIDAY:    return "Sexta";
+            case SATURDAY:  return "Sábado";
+            case SUNDAY:    return "Domingo";
+            default:        return dia.toString();
+        }
+    }
+
+    /** Parte III — imprime um relatório linha-a-linha (presenças/faltas). */
+    public void mostrarLinhas(String titulo, List<String> linhas) {
+        Consola.imprimirTitulo(titulo);
+        if (linhas == null || linhas.isEmpty()) {
+            Consola.imprimirInfo("Sem dados.");
+            return;
+        }
+        for (String l : linhas) System.out.println("  " + l);
     }
 
     /**
@@ -241,70 +285,6 @@ public class DocenteView {
         } else {
             Consola.imprimirInfo("UC " + siglaUc + ": momentos atuais = " + momentosAtuais + ".");
         }
-    }
-
-// ============================================================
-// =========== Horários, Presenças e Justificações ============
-// ============================================================
-
-    /**
-     * Exibe o horário semanal do docente.
-     */
-    public void mostrarHorario(List<Aula> aulas) {
-        Consola.imprimirTitulo("Meu Horário (Aulas que Leciono)");
-        if (aulas == null || aulas.isEmpty()) {
-            Consola.imprimirInfo("Não tem aulas agendadas para este período.");
-            Consola.pausar();
-            return;
-        }
-
-        DateTimeFormatter fmtData = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-        System.out.printf("  %-12s | %-12s | %-17s | %-6s%n", "Data", "Dia", "Hora", "UC");
-        Consola.imprimirLinha();
-
-        for (Aula a : aulas) {
-            String data = a.getData().format(fmtData);
-            String dia = diaEmPortugues(a.getData().getDayOfWeek());
-            String hora = a.getHoraInicio() + "-" + a.getHoraFim();
-            System.out.printf("  %-12s | %-12s | %-17s | %-6s%n",
-                    data, dia, hora, a.getSiglaUC());
-        }
-        Consola.imprimirLinha();
-        Consola.pausar();
-    }
-
-    private String diaEmPortugues(DayOfWeek dia) {
-        switch (dia) {
-            case MONDAY:    return "Segunda";
-            case TUESDAY:   return "Terça";
-            case WEDNESDAY: return "Quarta";
-            case THURSDAY:  return "Quinta";
-            case FRIDAY:    return "Sexta";
-            case SATURDAY:  return "Sábado";
-            case SUNDAY:    return "Domingo";
-            default:        return dia.toString();
-        }
-    }
-
-    public void mostrarAulasDocente(List<Aula> aulas) {
-        Consola.imprimirTitulo("Minhas Aulas");
-        if (aulas == null || aulas.isEmpty()) {
-            Consola.imprimirInfo("Não tem aulas agendadas.");
-            Consola.pausar();
-            return;
-        }
-
-        DateTimeFormatter fmtData = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-        System.out.printf("  %-6s | %-12s | %-17s | %-6s%n", "ID", "Data", "Hora", "UC");
-        Consola.imprimirLinha();
-
-        for (Aula a : aulas) {
-            String data = a.getData().format(fmtData);
-            String hora = a.getHoraInicio() + "-" + a.getHoraFim();
-            System.out.printf("  %-6d | %-12s | %-17s | %-6s%n",
-                    a.getId(), data, hora, a.getSiglaUC());
-        }
-        Consola.imprimirLinha();
     }
 }
 

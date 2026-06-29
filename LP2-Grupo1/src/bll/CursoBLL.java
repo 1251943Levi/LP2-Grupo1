@@ -14,7 +14,8 @@ import dal.EstudanteDALFile;
 import dal.EstudanteDALSql;
 import model.Curso;
 import model.Departamento;
-import model.EstadoCurso;
+import model.EstadoCurricular;
+import model.UnidadeCurricular;
 import dal.CursoDAL;
 import dal.UcDAL;
 
@@ -87,21 +88,32 @@ public class CursoBLL {
      *  - INATIVO se foi desativado manualmente (mantém-se);
      *  - ATIVO se tem UCs no 1.º ano, propina definida (>0) e quórum cumprido
      *    (sem alunos no 1.º ano, ou pelo menos 5);
-     *  - PENDENTE caso contrário (criado mas sem condições para abrir).
+     *  - SEM_CONDICOES caso contrário (criado mas sem condições para abrir).
      * @param siglaCurso Sigla do curso a avaliar.
-     * @return O {@link EstadoCurso} calculado.
+     * @return O {@link EstadoCurricular} calculado.
      */
-    public EstadoCurso avaliarEstado(String siglaCurso) {
+    public EstadoCurricular avaliarEstado(String siglaCurso) {
         Curso curso = procurarCursoCompleto(siglaCurso);
-        if (curso == null) return EstadoCurso.PENDENTE;
-        if (curso.getEstadoCurso() == EstadoCurso.INATIVO) return EstadoCurso.INATIVO;
+        if (curso == null) return EstadoCurricular.SEM_CONDICOES;
+        if (curso.getEstadoCurricular() == EstadoCurricular.INATIVO) return EstadoCurricular.INATIVO;
 
         boolean temUcs    = ucDAL.contarUcsPorCursoEAno(siglaCurso, 1, PASTA_BD) > 0;
         boolean propinaOk = curso.getValorPropinaAnual() > 0;
         int a1            = moduloEstudante().contarEstudantesPorCursoEAno(siglaCurso, 1);
         boolean quorumOk  = (a1 == 0) || (a1 >= 5);
+        boolean ucsProntas = ucsDoPrimeiroAnoProntas(siglaCurso);
 
-        return (temUcs && propinaOk && quorumOk) ? EstadoCurso.ATIVO : EstadoCurso.PENDENTE;
+        return (temUcs && propinaOk && quorumOk && ucsProntas) ? EstadoCurricular.ATIVO : EstadoCurricular.SEM_CONDICOES;
+    }
+
+    /** As UCs do 1.º ano têm docente responsável e momentos definidos? */
+    private boolean ucsDoPrimeiroAnoProntas(String siglaCurso) {
+        UcBLL ucBll = new UcBLL();
+        for (String siglaUc : ucDAL.obterSiglasUcsPorCursoEAno(siglaCurso, 1, PASTA_BD)) {
+            UnidadeCurricular uc = ucBll.procurarUCCompleta(siglaUc);
+            if (uc == null || uc.getDocenteResponsavel() == null || uc.getNumMomentos() <= 0) return false;
+        }
+        return true;
     }
 
     /**
@@ -109,10 +121,10 @@ public class CursoBLL {
      * Deve ser chamado após operações que alterem as condições (UCs, propina, alunos).
      * @param siglaCurso Sigla do curso a atualizar.
      */
-    public void atualizarEstadoCurso(String siglaCurso) {
+    public void atualizarEstadoCurricular(String siglaCurso) {
         Curso curso = procurarCursoCompleto(siglaCurso);
         if (curso == null) return;
-        curso.setEstadoCurso(avaliarEstado(siglaCurso));
+        curso.setEstadoCurricular(avaliarEstado(siglaCurso));
         cursoDAL.atualizarCurso(curso, PASTA_BD);
     }
 
@@ -123,13 +135,14 @@ public class CursoBLL {
     public String motivoNaoApto(String siglaCurso) {
         Curso curso = procurarCursoCompleto(siglaCurso);
         if (curso == null) return "curso inexistente";
-        if (curso.getEstadoCurso() == EstadoCurso.INATIVO) return "curso inativo (desativado manualmente)";
+        if (curso.getEstadoCurricular() == EstadoCurricular.INATIVO) return "curso inativo (desativado manualmente)";
 
         java.util.List<String> motivos = new java.util.ArrayList<>();
         if (ucDAL.contarUcsPorCursoEAno(siglaCurso, 1, PASTA_BD) == 0) motivos.add("sem UCs no 1.º ano");
         if (curso.getValorPropinaAnual() <= 0) motivos.add("propina por definir");
         int a1 = moduloEstudante().contarEstudantesPorCursoEAno(siglaCurso, 1);
         if (a1 > 0 && a1 < 5) motivos.add("quórum insuficiente no 1.º ano (" + a1 + "/5)");
+        if (!ucsDoPrimeiroAnoProntas(siglaCurso)) motivos.add("UCs do 1.º ano sem docente/momentos definidos");
 
         return motivos.isEmpty() ? "" : String.join("; ", motivos);
     }
@@ -174,7 +187,7 @@ public class CursoBLL {
         if (dep == null) return false; // departamento obrigatório
 
         Curso curso = new Curso(sigla, nome, dep, propina);
-        curso.setEstadoCurso(EstadoCurso.PENDENTE); // criado sem condições para abrir
+        curso.setEstadoCurricular(EstadoCurricular.SEM_CONDICOES); // criado sem condições para abrir
         cursoDAL.adicionarCurso(curso, PASTA_BD);
         return true;
     }
