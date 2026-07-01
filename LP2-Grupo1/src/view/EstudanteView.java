@@ -1,13 +1,10 @@
 package view;
 
-import model.Aula;
 import model.Avaliacao;
 import model.Estudante;
 import model.Pagamento;
 import utils.Consola;
 
-import java.time.DayOfWeek;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
@@ -36,10 +33,54 @@ public class EstudanteView {
                 "Ver minhas notas por UC",
                 "Consultar Histórico Académico",
                 "Ver Horário Semanal",
-                "Marcar Presença",
+                "Marcar Presença numa Aula",
                 "Justificações"
         }, "Sair / Logout");
         return Consola.lerOpcaoMenu();
+    }
+
+    /** Submenu de justificações do estudante. */
+    public int mostrarSubMenuJustificacoes() {
+        Consola.imprimirCabecalho("Justificações");
+        Consola.imprimirMenu(new String[]{
+                "Justificar Falta",
+                "Consultar as Minhas Justificações"
+        }, "Voltar");
+        return Consola.lerOpcaoMenu();
+    }
+
+    /** Imprime o horário em tabela. */
+    public void mostrarHorario(List<model.Aula> aulas) {
+        if (aulas == null || aulas.isEmpty()) {
+            Consola.imprimirInfo("Sem aulas registadas para este ano letivo.");
+            return;
+        }
+        Consola.imprimirTitulo("O Meu Horário");
+        java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        System.out.printf("  %-5s | %-10s | %-8s | %-13s | %-6s | %-6s | %-6s | %-5s%n",
+                "ID", "Data", "Dia", "Hora", "UC", "Curso", "Doc", "Bloco");
+        Consola.imprimirLinha();
+        for (model.Aula a : aulas) {
+            System.out.printf("  %-5d | %-10s | %-8s | %-13s | %-6s | %-6s | %-6s | %dh%n",
+                    a.getId(), a.getData().format(fmt), diaEmPortugues(a.getData().getDayOfWeek()),
+                    a.getHoraInicio() + "-" + a.getHoraFim(), a.getSiglaUC(), a.getSiglaCurso(),
+                    a.getSiglaDocente(), a.getBloco());
+        }
+        Consola.imprimirLinha();
+    }
+
+    /** Nome do dia da semana em português. */
+    private String diaEmPortugues(java.time.DayOfWeek dia) {
+        switch (dia) {
+            case MONDAY:    return "Segunda";
+            case TUESDAY:   return "Terça";
+            case WEDNESDAY: return "Quarta";
+            case THURSDAY:  return "Quinta";
+            case FRIDAY:    return "Sexta";
+            case SATURDAY:  return "Sábado";
+            case SUNDAY:    return "Domingo";
+            default:        return dia.toString();
+        }
     }
 
     public void mostrarDadosPessoais(Estudante e) {
@@ -148,92 +189,4 @@ public class EstudanteView {
     public void mostrarOpcaoInvalida()           { Consola.imprimirErro("Opção inválida."); }
     public void mostrarDespedida()               { Consola.imprimirInfo("Logout efetuado. Até breve!"); }
     public void mostrarOperacaoCancelada()       { Consola.imprimirInfo("Operação cancelada. A regressar ao menu..."); }
-
-    public void mostrarMensagem(String msg)           { System.out.println("  " + msg); }
-    /**
-     * Exibe o horário semanal do estudante.
-     * @param aulas Lista de aulas já ordenada
-     */
-
-// ============================================================
-// =========== Horários, Presenças e Justificações ============
-// ============================================================
-
-    public void mostrarHorario(List<Aula> aulas) {
-        Consola.imprimirTitulo("Meu Horário Semanal");
-        if (aulas == null || aulas.isEmpty()) {
-            Consola.imprimirInfo("Não tem aulas agendadas para este período.");
-            Consola.pausar();
-            return;
-        }
-
-        DateTimeFormatter fmtData = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-        System.out.printf("  %-12s | %-12s | %-17s | %-6s%n", "Data", "Dia", "Hora", "UC");
-        Consola.imprimirLinha();
-
-        for (Aula a : aulas) {
-            String data = a.getData().format(fmtData);
-            String dia = diaEmPortugues(a.getData().getDayOfWeek());
-            String hora = a.getHoraInicio() + "-" + a.getHoraFim();
-            System.out.printf("  %-12s | %-12s | %-17s | %-6s%n",
-                    data, dia, hora, a.getSiglaUC());
-        }
-        Consola.imprimirLinha();
-        Consola.pausar();
-    }
-
-    private String diaEmPortugues(DayOfWeek dia) {
-        switch (dia) {
-            case MONDAY:    return "Segunda";
-            case TUESDAY:   return "Terça";
-            case WEDNESDAY: return "Quarta";
-            case THURSDAY:  return "Quinta";
-            case FRIDAY:    return "Sexta";
-            case SATURDAY:  return "Sábado";
-            case SUNDAY:    return "Domingo";
-            default:        return dia.toString();
-        }
-    }
-
-
-    public int pedirIdAula() {
-        return Consola.lerInt("ID da Aula para marcar presença");
-    }
-
-
-    /**
-     * Mostra as aulas de um dia com ID para o estudante poder escolher.
-     * Usado na marcação de presença.
-     */
-    public void mostrarAulasParaPresenca(List<Aula> aulas) {
-        Consola.imprimirTitulo("Aulas disponíveis para marcar presença");
-        if (aulas == null || aulas.isEmpty()) {
-            Consola.imprimirInfo("Não há aulas neste dia.");
-            Consola.pausar();
-            return;
-        }
-
-        DateTimeFormatter fmtData = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-        System.out.printf("  %-6s | %-12s | %-12s | %-17s | %-6s%n", "ID", "Data", "Dia", "Hora", "UC");
-        Consola.imprimirLinha();
-
-        for (Aula a : aulas) {
-            String data = a.getData().format(fmtData);
-            String dia = diaEmPortugues(a.getData().getDayOfWeek());
-            String hora = a.getHoraInicio() + "-" + a.getHoraFim();
-            System.out.printf("  %-6d | %-12s | %-12s | %-17s | %-6s%n",
-                    a.getId(), data, dia, hora, a.getSiglaUC());
-        }
-        Consola.imprimirLinha();
-        Consola.pausar();
-    }
-
-    public int mostrarSubMenuJustificacoes() {
-        Consola.imprimirCabecalho("Justificações");
-        Consola.imprimirMenu(new String[]{
-                "Justificar Faltas",
-                "Ver Minhas Justificações"
-        }, "Voltar");
-        return Consola.lerOpcaoMenu();
-    }
 }

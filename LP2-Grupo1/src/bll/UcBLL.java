@@ -13,6 +13,9 @@ import dal.UcDAL;
 import dal.DocenteDALFile;
 import dal.DocenteDALSql;
 import dal.CursoDAL;
+import dal.CursoUcDAL;
+import dal.CursoUcDALFile;
+import dal.CursoUcDALSql;
 
 /**
  * Lógica de negócio para a entidade UnidadeCurricular.
@@ -24,6 +27,42 @@ public class UcBLL {
     private static final String PASTA_BD = ConfigApp.PASTA_BD;
     private final CursoDAL cursoDAL = ConfigApp.isModoSql() ? new CursoDALSql() : new CursoDALFile();
     private final UcDAL ucDAL = ConfigApp.isModoSql() ? new UcDALSql() : new UcDALFile();
+    private final CursoUcDAL cursoUcDAL = ConfigApp.isModoSql() ? new CursoUcDALSql() : new CursoUcDALFile();
+
+    // ==================================================================
+    // Card 2: UC independente + relação M:N com cursos (curso_uc)
+    // ==================================================================
+
+    /**
+     * Cria a UC apenas se a sigla ainda não existir (evita duplicados).
+     * Se já existir, não cria nova — fica disponível para ser associada.
+     * @return true se a UC existe (criada agora ou já existente).
+     */
+    public boolean criarUC(UnidadeCurricular uc, String siglaCursoPrimario) {
+        if (uc == null || uc.getSigla() == null || uc.getSigla().trim().isEmpty()) return false;
+        if (procurarUCCompleta(uc.getSigla()) != null) return true; // já existe — não duplica
+        String curso = (siglaCursoPrimario == null || siglaCursoPrimario.isEmpty()) ? "N/A" : siglaCursoPrimario;
+        ucDAL.adicionarUC(uc, curso, PASTA_BD);
+        return true;
+    }
+
+    /**
+     * Associa uma UC (existente) a um curso num ano letivo.
+     * @return true se associou; false se já existia a associação (rejeita duplicado).
+     */
+    public boolean associarUCaCurso(String siglaUC, String siglaCurso, int anoCurricular, int anoLetivo) {
+        return cursoUcDAL.associar(siglaCurso, siglaUC, anoCurricular, anoLetivo);
+    }
+
+    /** Remove a associação UC-curso num ano letivo; a UC continua a existir. */
+    public boolean removerAssociacaoUcCurso(String siglaUC, String siglaCurso, int anoLetivo) {
+        return cursoUcDAL.removerAssociacao(siglaCurso, siglaUC, anoLetivo);
+    }
+
+    /** Cursos a que uma UC está associada num ano letivo. */
+    public java.util.List<String> obterCursosDaUc(String siglaUC, int anoLetivo) {
+        return cursoUcDAL.obterCursosPorUc(siglaUC, anoLetivo);
+    }
 
     /**
      * Constrói e devolve uma UC com docente e cursos associados.
@@ -58,6 +97,11 @@ public class UcBLL {
                     int momentos = Integer.parseInt(dados[6].trim());
                     if (momentos > 0) uc.setNumMomentos(momentos);
                 } catch (NumberFormatException ignored) {}
+            }
+
+            // Ler estado curricular (coluna 7, retrocompatível) — Card 1
+            if (dados.length >= 8 && !dados[7].trim().isEmpty()) {
+                uc.setEstadoCurricular(model.EstadoCurricular.fromString(dados[7].trim()));
             }
 
             return uc;

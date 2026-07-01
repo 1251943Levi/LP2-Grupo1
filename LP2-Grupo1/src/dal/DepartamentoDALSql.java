@@ -52,13 +52,13 @@ public class DepartamentoDALSql implements DepartamentoDAL {
     @Override
     public Departamento procurarPorSigla(String sigla) {
         List<Departamento> r = cm.select(
-                "SELECT sigla, nome FROM [departamento] WHERE sigla = ?", MAPPER, sigla);
+                "SELECT * FROM [departamento] WHERE sigla = ?", MAPPER, sigla);
         return r.isEmpty() ? null : r.get(0);
     }
 
     @Override
     public List<Departamento> listarTodos() {
-        return cm.select("SELECT sigla, nome FROM [departamento] ORDER BY sigla", MAPPER);
+        return cm.select("SELECT * FROM [departamento] ORDER BY sigla", MAPPER);
     }
 
     @Override

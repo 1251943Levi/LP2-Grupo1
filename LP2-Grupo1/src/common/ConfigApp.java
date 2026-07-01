@@ -34,7 +34,7 @@ public final class ConfigApp {
     public static final String LOGIN_PERSISTENCE_MODE = get("login.persistence.mode", "file").trim().toLowerCase();
 
     public static final String ADMIN_EMAIL         = get("admin.email", "admin@issmf.pt");
-    /** Credencial do admin no formato salt:hash (ver common.PasswordHasher). */
+    /** Credencial do admin no formato salt:hash (hashing ativo: utils.SegurancaPasswords). */
     public static final String ADMIN_PASSWORD_HASH = get("admin.password.hash", "");
 
     /**

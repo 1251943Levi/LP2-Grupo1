@@ -23,6 +23,8 @@ public class InscricaoBLL {
             ConfigApp.isModoSql() ? new InscricaoDALSql() : new InscricaoDALFile();
     private final AvaliacaoDAL avaliacaoDAL =
             ConfigApp.isModoSql() ? new AvaliacaoDALSql() : new AvaliacaoDALFile();
+    // Unificação: decisão única de aprovação (ponderada com fallback ao sistema antigo).
+    private final AvaliacaoBLL avaliacaoBll = new AvaliacaoBLL();
 
     public InscricaoBLL() {
         inscricaoDAL.inicializar();
@@ -49,8 +51,9 @@ public class InscricaoBLL {
             List<String> aprovadas = new ArrayList<>();
             List<String> reprovadas = new ArrayList<>();
             for (String sigla : ucsInscritas) {
-                Avaliacao av = avaliacaoDAL.obterAvaliacao(e.getNumeroMecanografico(), sigla, anoAtual.getAno());
-                if (av != null && av.isAprovado()) {
+                // Unificação: decisão única de aprovação (ponderada se a UC tiver
+                // momentos definidos; senão, fallback ao sistema antigo).
+                if (avaliacaoBll.aprovadoNaUc(e.getNumeroMecanografico(), sigla, anoAtual.getAno())) {
                     aprovadas.add(sigla);
                 } else {
                     reprovadas.add(sigla);

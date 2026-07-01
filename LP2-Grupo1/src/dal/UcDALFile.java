@@ -19,7 +19,10 @@ public class UcDALFile implements UcDAL {
 
     private static final String NOME_FICHEIRO = "ucs.csv";
     private static final String CABECALHO =
-            "sigla;nome;anoCurricular;siglaDocenteResponsavel;siglaCurso;ects;momentos";
+            "sigla;nome;anoCurricular;siglaDocenteResponsavel;siglaCurso;ects;momentos;estado";
+
+    // A relação UC<->Curso é mantida na tabela intermédia curso_uc.csv.
+    private static final String FICH_CURSO_UC = "curso_uc.csv";
 
     private InscricaoDAL inscricaoDALInstance;
     private CursoDAL cursoDALInstance;
@@ -37,6 +40,18 @@ public class UcDALFile implements UcDAL {
             cursoDALInstance = ConfigApp.isModoSql() ? new CursoDALSql() : new CursoDALFile();
         }
         return cursoDALInstance;
+    }
+
+    /** Card 2: lê as linhas de curso_uc.csv (siglaCurso;siglaUC;anoCurricular;anoLetivo). */
+    private List<String[]> lerAssociacoes() {
+        String caminho = ConfigApp.PASTA_BD + File.separator + FICH_CURSO_UC;
+        List<String[]> assoc = new ArrayList<>();
+        for (String linha : DALUtil.lerFicheiro(caminho)) {
+            if (linha.toLowerCase().startsWith("siglacurso")) continue;
+            String[] d = linha.split(";", -1);
+            if (d.length >= 4) assoc.add(d);
+        }
+        return assoc;
     }
 
     @Override
@@ -217,6 +232,22 @@ public class UcDALFile implements UcDAL {
 
     @Override
     public List<String> obterSiglasUcsPorCursoEAno(String siglaCurso, int ano, String pastaBase) {
+        // Relação via curso_uc.csv; fallback ao ucs.csv.
+        List<String> viaAssoc = new ArrayList<>();
+        for (String[] d : lerAssociacoes()) {
+            try {
+                if (d[0].trim().equalsIgnoreCase(siglaCurso) && Integer.parseInt(d[2].trim()) == ano) {
+                    String sg = d[1].trim();
+                    if (!viaAssoc.contains(sg)) viaAssoc.add(sg);
+                }
+            } catch (NumberFormatException ignored) {}
+        }
+        if (!viaAssoc.isEmpty()) return viaAssoc;
+        return obterSiglasUcsPorCursoEAnoLegado(siglaCurso, ano, pastaBase);
+    }
+
+    /** Implementação legada (lê ucs.csv) — usada como fallback se não houver associações. */
+    private List<String> obterSiglasUcsPorCursoEAnoLegado(String siglaCurso, int ano, String pastaBase) {
         String caminho = pastaBase + File.separator + NOME_FICHEIRO;
         List<String> linhas = DALUtil.lerFicheiro(caminho);
         List<String> siglas = new ArrayList<>();
@@ -238,24 +269,26 @@ public class UcDALFile implements UcDAL {
 
     @Override
     public int contarUcsPorCursoEAno(String siglaCurso, int ano, String pastaBase) {
-        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
-        List<String> linhas = DALUtil.lerFicheiro(caminho);
-        int contagem = 0;
-        for (String linha : linhas) {
-            if (linha.toLowerCase().startsWith("sigla")) continue;
-            String[] dados = linha.split(";", -1);
-            if (dados.length >= 5) {
-                try {
-                    int anoCurricular = Integer.parseInt(dados[2].trim());
-                    if (anoCurricular == ano && dados[4].trim().equalsIgnoreCase(siglaCurso)) contagem++;
-                } catch (NumberFormatException ignored) {}
-            }
-        }
-        return contagem;
+        // Conta via curso_uc reutilizando obterSiglasUcsPorCursoEAno.
+        return obterSiglasUcsPorCursoEAno(siglaCurso, ano, pastaBase).size();
     }
 
     @Override
     public List<String> obterCursosPorUc(String siglaUc, String pastaBase) {
+        // Cursos via curso_uc.csv; fallback ao ucs.csv.
+        List<String> viaAssoc = new ArrayList<>();
+        for (String[] d : lerAssociacoes()) {
+            if (d[1].trim().equalsIgnoreCase(siglaUc)) {
+                String c = d[0].trim();
+                if (!c.isEmpty() && !c.equalsIgnoreCase("N/A") && !viaAssoc.contains(c)) viaAssoc.add(c);
+            }
+        }
+        if (!viaAssoc.isEmpty()) return viaAssoc;
+        return obterCursosPorUcLegado(siglaUc, pastaBase);
+    }
+
+    /** Implementação legada (lê ucs.csv) — fallback se não houver associações. */
+    private List<String> obterCursosPorUcLegado(String siglaUc, String pastaBase) {
         String caminho = pastaBase + File.separator + NOME_FICHEIRO;
         List<String> linhas = DALUtil.lerFicheiro(caminho);
         List<String> cursos = new ArrayList<>();
@@ -328,7 +361,7 @@ public class UcDALFile implements UcDAL {
         DALUtil.adicionarLinhaCSV(caminho,
                 uc.getSigla() + ";" + uc.getNome() + ";"
                         + uc.getAnoCurricular() + ";" + siglaDocente + ";" + cursoStr
-                        + ";" + uc.getEcts() + ";0");
+                        + ";" + uc.getEcts() + ";0;" + uc.getEstado());
     }
 
     @Override
@@ -351,6 +384,10 @@ public class UcDALFile implements UcDAL {
                     nova.append(i < dados.length ? dados[i] : "");
                 }
                 nova.append(";").append(numMomentos);
+                // preserva a coluna 7 (estado), para não a apagar ao atualizar momentos
+                String estado = (dados.length > 7 && !dados[7].trim().isEmpty())
+                        ? dados[7].trim() : model.EstadoCurricular.SEM_CONDICOES.etiqueta();
+                nova.append(";").append(estado);
                 linhasAtualizadas.add(nova.toString());
                 atualizou = true;
             } else {
@@ -358,6 +395,32 @@ public class UcDALFile implements UcDAL {
             }
         }
         if (atualizou) DALUtil.reescreverFicheiro(caminho, linhasAtualizadas);
+    }
+
+    @Override
+    public void atualizarEstadoUc(String siglaUc, String estado, String pastaBase) {
+        String caminho = pastaBase + File.separator + NOME_FICHEIRO;
+        List<String> linhas = DALUtil.lerFicheiro(caminho);
+        if (linhas.isEmpty()) return;
+        List<String> novas = new ArrayList<>();
+        boolean atualizou = false;
+        for (String linha : linhas) {
+            if (linha.toLowerCase().startsWith("sigla")) { novas.add(CABECALHO); continue; }
+            String[] d = linha.split(";", -1);
+            if (d.length >= 1 && d[0].trim().equalsIgnoreCase(siglaUc)) {
+                StringBuilder nova = new StringBuilder();
+                for (int i = 0; i < 7; i++) {
+                    if (i > 0) nova.append(";");
+                    nova.append(i < d.length ? d[i] : "");
+                }
+                nova.append(";").append(estado);
+                novas.add(nova.toString());
+                atualizou = true;
+            } else {
+                novas.add(linha);
+            }
+        }
+        if (atualizou) DALUtil.reescreverFicheiro(caminho, novas);
     }
 
     @Override

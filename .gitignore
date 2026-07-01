@@ -61,3 +61,6 @@ Thumbs.db
 /LP2-Grupo1/bd - TestesTransicaoAlunos/pagamentos.csv
 /LP2-Grupo1/bd - TestesTransicaoAlunos/ucs.csv
 /LP2-Grupo1/run.bat
+
+# Ficheiros temporários do FUSE (cópias fantasma de ficheiros abertos+apagados)
+.fuse_hidden*

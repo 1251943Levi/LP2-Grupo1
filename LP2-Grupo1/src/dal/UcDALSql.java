@@ -34,6 +34,8 @@ public class UcDALSql implements UcDAL {
     private CursoDAL cursoDALInstance;
     private DocenteDAL docenteDALInstance;
     private InscricaoDAL inscricaoDALInstance;
+    // Card 2-2b: relação curso↔UC passa a ser lida da tabela intermédia curso_uc.
+    private final CursoUcDAL cursoUcDAL = new CursoUcDALSql();
 
     public UcDALSql() { this(new ConnectionManager()); }
     public UcDALSql(ConnectionManager cm) { this.cm = cm; }
@@ -74,13 +76,14 @@ public class UcDALSql implements UcDAL {
     @Override
     public String[] obterDadosBrutosUC(String sigla, String pastaBase) {
         List<String[]> r = cm.select(
-                "SELECT TOP 1 sigla, nome, anoCurricular, siglaDocente, siglaCurso, numMomentos FROM [uc] WHERE sigla = ?", this::mapRaw, sigla);
+                "SELECT TOP 1 * FROM [uc] WHERE sigla = ?", this::mapRaw, sigla);
         return r.isEmpty() ? null : r.get(0);
     }
 
-    /** Reconstrói o formato CSV: sigla;nome;ano;siglaDocente;siglaCurso;ects;momentos. */
+    /** Reconstrói o formato CSV: sigla;nome;ano;siglaDocente;siglaCurso;ects;momentos;estado. */
     private String[] mapRaw(java.sql.ResultSet rs) throws java.sql.SQLException {
         String doc = rs.getString("siglaDocente");
+        String estado = rs.getString("estado");
         return new String[]{
                 rs.getString("sigla"),
                 rs.getString("nome"),
@@ -88,13 +91,14 @@ public class UcDALSql implements UcDAL {
                 (doc == null || doc.isEmpty()) ? "N/A" : doc,
                 rs.getString("siglaCurso"),
                 String.valueOf(UnidadeCurricular.ECTS_PADRAO),
-                String.valueOf(rs.getInt("numMomentos"))
+                String.valueOf(rs.getInt("numMomentos")),
+                (estado == null || estado.isEmpty()) ? "SEM_CONDICOES" : estado
         };
     }
 
     @Override
     public UnidadeCurricular procurarUC(String sigla, String pastaBase) {
-        List<String[]> linhas = cm.select("SELECT sigla, nome, anoCurricular, siglaDocente, siglaCurso, numMomentos FROM [uc] WHERE sigla = ?", this::mapRaw, sigla);
+        List<String[]> linhas = cm.select("SELECT * FROM [uc] WHERE sigla = ?", this::mapRaw, sigla);
         UnidadeCurricular ucEncontrada = null;
         for (String[] dados : linhas) {
             if (ucEncontrada == null) {
@@ -139,7 +143,7 @@ public class UcDALSql implements UcDAL {
 
     @Override
     public String listarTodasUc(String pastaBase) {
-        List<String[]> linhas = cm.select("SELECT sigla, nome, anoCurricular, siglaDocente, siglaCurso, numMomentos FROM [uc] ORDER BY sigla", this::mapRaw);
+        List<String[]> linhas = cm.select("SELECT * FROM [uc] ORDER BY sigla", this::mapRaw);
         StringBuilder sb = new StringBuilder("\n--- LISTA DE UNIDADES CURRICULARES ---\n");
         for (String[] dados : linhas) {
             sb.append("Sigla: ").append(dados[0])
@@ -157,7 +161,7 @@ public class UcDALSql implements UcDAL {
     @Override
     public String listarUcsPorCurso(String siglaCurso, String pastaBase) {
         List<String[]> linhas = cm.select(
-                "SELECT sigla, nome, anoCurricular, siglaDocente, siglaCurso, numMomentos FROM [uc] WHERE siglaCurso = ?", this::mapRaw, siglaCurso);
+                "SELECT * FROM [uc] WHERE siglaCurso = ?", this::mapRaw, siglaCurso);
         Map<Integer, List<String>> ucsPorAno = new TreeMap<>();
         for (String[] dados : linhas) {
             try {
@@ -200,21 +204,25 @@ public class UcDALSql implements UcDAL {
 
     @Override
     public List<String> obterSiglasUcsPorCursoEAno(String siglaCurso, int ano, String pastaBase) {
+        // Relação via curso_uc (fonte de verdade); fallback à coluna uc.siglaCurso (legado).
+        List<String> viaAssoc = cursoUcDAL.obterSiglasUcsPorCursoEAno(siglaCurso, ano, utils.Config.getAnoAtual());
+        if (viaAssoc != null && !viaAssoc.isEmpty()) return viaAssoc;
         return cm.select(
-                "SELECT DISTINCT sigla FROM [uc] WHERE siglaCurso = ? AND anoCurricular = ?",
+                "SELECT DISTINCT sigla FROM [uc] WHERE siglaCurso = ? AND anoCurricular = ? ORDER BY sigla",
                 rs -> rs.getString("sigla"), siglaCurso, ano);
     }
 
     @Override
     public int contarUcsPorCursoEAno(String siglaCurso, int ano, String pastaBase) {
-        List<Integer> r = cm.select(
-                "SELECT COUNT(*) AS total FROM [uc] WHERE siglaCurso = ? AND anoCurricular = ?",
-                rs -> rs.getInt("total"), siglaCurso, ano);
-        return r.isEmpty() ? 0 : r.get(0);
+        // Conta via curso_uc (com fallback) reutilizando obterSiglasUcsPorCursoEAno.
+        return obterSiglasUcsPorCursoEAno(siglaCurso, ano, pastaBase).size();
     }
 
     @Override
     public List<String> obterCursosPorUc(String siglaUc, String pastaBase) {
+        // Cursos via curso_uc (fonte de verdade); fallback à coluna uc.siglaCurso (legado).
+        List<String> viaAssoc = cursoUcDAL.obterCursosPorUc(siglaUc, utils.Config.getAnoAtual());
+        if (viaAssoc != null && !viaAssoc.isEmpty()) return viaAssoc;
         return cm.select(
                 "SELECT DISTINCT siglaCurso FROM [uc] WHERE sigla = ? AND siglaCurso IS NOT NULL",
                 rs -> rs.getString("siglaCurso"), siglaUc);
@@ -222,7 +230,7 @@ public class UcDALSql implements UcDAL {
 
     @Override
     public String listarUcsDetalhadas(String pastaBase, int anoLetivoAtual) {
-        List<String[]> linhas = cm.select("SELECT sigla, nome, anoCurricular, siglaDocente, siglaCurso, numMomentos FROM [uc] ORDER BY sigla", this::mapRaw);
+        List<String[]> linhas = cm.select("SELECT * FROM [uc] ORDER BY sigla", this::mapRaw);
         StringBuilder sb = new StringBuilder("\n--- PAINEL DE UCS ---\n");
         List<String> ucsProcessadas = new ArrayList<>();
         for (String[] dados : linhas) {
@@ -265,10 +273,15 @@ public class UcDALSql implements UcDAL {
         if (siglaDocente != null && siglaDocente.equalsIgnoreCase("N/A")) siglaDocente = null;
         if (siglaDocente != null && docenteDAL().procurarPorSigla(siglaDocente) == null) siglaDocente = null;
         String cursoStr = (siglaCurso != null && !siglaCurso.isEmpty()) ? siglaCurso : null;
-        cm.update("INSERT INTO [uc] (sigla, nome, anoCurricular, siglaDocente, siglaCurso, numMomentos) "
-                + "VALUES (?, ?, ?, ?, ?, ?)",
+        cm.update("INSERT INTO [uc] (sigla, nome, anoCurricular, siglaDocente, siglaCurso, numMomentos, estado) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?)",
                 uc.getSigla(), uc.getNome(), uc.getAnoCurricular(),
-                siglaDocente, cursoStr, 0);
+                siglaDocente, cursoStr, 0, uc.getEstado());
+    }
+
+    @Override
+    public void atualizarEstadoUc(String siglaUc, String estado, String pastaBase) {
+        cm.update("UPDATE [uc] SET estado = ? WHERE sigla = ?", estado, siglaUc);
     }
 
     @Override
@@ -349,6 +362,7 @@ public class UcDALSql implements UcDAL {
                 + "    siglaDocente  NVARCHAR(10)  REFERENCES [docente](sigla),\n"
                 + "    siglaCurso    NVARCHAR(10)  NOT NULL REFERENCES [curso](sigla),\n"
                 + "    numMomentos   INT           NOT NULL DEFAULT 1,\n"
+                + "    estado        NVARCHAR(20)  NOT NULL DEFAULT 'SEM_CONDICOES' REFERENCES [EstadoCurricular](nome),\n"
                 + "    PRIMARY KEY (sigla, siglaCurso)\n"
                 + ");\n";
     }

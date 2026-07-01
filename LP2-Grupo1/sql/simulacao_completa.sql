@@ -34,9 +34,9 @@ SELECT c.sigla, c.siglaDepartamento
 FROM [curso] c LEFT JOIN [departamento] d ON c.siglaDepartamento = d.sigla
 WHERE d.sigla IS NULL;
 
-PRINT '[A.2] curso.estado fora de estado_curso:';
+PRINT '[A.2] curso.estado fora de EstadoCurricular:';
 SELECT c.sigla, c.estado
-FROM [curso] c LEFT JOIN [estado_curso] e ON c.estado = e.nome
+FROM [curso] c LEFT JOIN [EstadoCurricular] e ON c.estado = e.nome
 WHERE e.nome IS NULL;
 
 PRINT '[A.3] estudante.siglaCurso sem curso:';
@@ -131,8 +131,8 @@ BEGIN TRY
     BEGIN TRANSACTION;
 
     -- Garantir que o estado de curso usado existe (idempotente)
-    IF NOT EXISTS (SELECT 1 FROM [estado_curso] WHERE nome = 'Pendente')
-        INSERT INTO [estado_curso] (nome) VALUES ('Pendente');
+    IF NOT EXISTS (SELECT 1 FROM [EstadoCurricular] WHERE nome = 'SEM_CONDICOES')
+        INSERT INTO [EstadoCurricular] (nome) VALUES ('SEM_CONDICOES');
 
     -- ----------------------------------------------------------------
     -- B.1  CRIAÇÃO DE ANO LETIVO: PLANEAMENTO -> INICIADO -> FECHADO
@@ -146,7 +146,7 @@ BEGIN TRY
     -- Dados de apoio (departamento, curso, docente, uc)
     INSERT INTO [departamento] (sigla, nome) VALUES ('TST', 'Departamento de Teste');
     INSERT INTO [curso] (sigla, nome, siglaDepartamento, propina, estado)
-        VALUES ('TST', 'Curso de Teste', 'TST', 1000.00, 'Pendente');
+        VALUES ('TST', 'Curso de Teste', 'TST', 1000.00, 'SEM_CONDICOES');
     INSERT INTO [docente] (sigla, email, nome, nif)
         VALUES ('TST', 'tst.docente@issmf.ipp.pt', 'Docente Teste', '900000001');
     -- UC COM momentos definidos (numMomentos = 2)

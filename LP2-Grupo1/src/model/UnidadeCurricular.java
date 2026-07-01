@@ -23,6 +23,9 @@ public class UnidadeCurricular {
     private final Curso[] cursos;
     private int totalCursos;
 
+    /** Estado curricular da UC (Card 1): ATIVO / INATIVO / SEM_CONDICOES. */
+    private String estado = EstadoCurricular.SEM_CONDICOES.etiqueta();
+
 
     /**
      * Cria uma UC com ECTS explícito.
@@ -76,6 +79,18 @@ public class UnidadeCurricular {
 
     /** @return Número de momentos de avaliação configurados para esta UC (0 = ainda por definir). */
     public int getNumMomentos(){ return numMomentos; }
+
+    /** @return Estado curricular da UC (texto: ATIVO/INATIVO/SEM_CONDICOES). */
+    public String getEstado(){ return estado; }
+
+    /** @return Estado curricular da UC como enum. */
+    public EstadoCurricular getEstadoCurricular(){ return EstadoCurricular.fromString(estado); }
+
+    /** @param estado Novo estado curricular (texto). */
+    public void setEstado(String estado){ this.estado = estado; }
+
+    /** @param e Novo estado curricular (enum). */
+    public void setEstadoCurricular(EstadoCurricular e){ this.estado = e.etiqueta(); }
 
     /** @return Array dos cursos aos quais a UC está associada. */
     public Curso[] getCursos(){ return cursos; }

@@ -129,4 +129,24 @@ public class JustificacaoBLL {
         }
         tipoDAL.remover(id);
     }
+
+    // ---- Estatutos (catalogo + atribuicao), geridos pelo gestor ----
+
+    /** Cria um novo estatuto no catalogo. */
+    public void adicionarEstatuto(EstatutoEstudante estatuto) {
+        if (estatuto == null) throw new EstadoInvalidoException("Estatuto invalido.");
+        if (estatuto.getNome() == null || estatuto.getNome().trim().isEmpty())
+            throw new EstadoInvalidoException("O nome do estatuto e obrigatorio.");
+        estatutoDAL.adicionar(estatuto);
+    }
+
+    /** Atribui um estatuto a um estudante. */
+    public void atribuirEstatuto(int numMec, int idEstatuto) {
+        estatutoDAL.atribuir(numMec, idEstatuto);
+    }
+
+    /** Remove um estatuto do catalogo. */
+    public void removerEstatuto(int id) {
+        estatutoDAL.remover(id);
+    }
 }
